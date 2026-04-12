@@ -133,5 +133,33 @@ namespace YiboFile.ViewModels.Settings
             }
             catch { }
         }
+
+        public bool IsRenameLostFocusCommit
+        {
+            get => _configService.GetSnapshot().RenameLostFocusBehavior == "Commit";
+            set
+            {
+                if (value)
+                {
+                    _configService.Update(c => c.RenameLostFocusBehavior = "Commit");
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsRenameLostFocusCancel));
+                }
+            }
+        }
+
+        public bool IsRenameLostFocusCancel
+        {
+            get => _configService.GetSnapshot().RenameLostFocusBehavior == "Cancel";
+            set
+            {
+                if (value)
+                {
+                    _configService.Update(c => c.RenameLostFocusBehavior = "Cancel");
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsRenameLostFocusCommit));
+                }
+            }
+        }
     }
 }

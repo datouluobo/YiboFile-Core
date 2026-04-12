@@ -4,6 +4,7 @@
              xmlns:controls="clr-namespace:YiboFile.Controls"
              xmlns:helpers="clr-namespace:YiboFile.Helpers"
              xmlns:converters="clr-namespace:YiboFile.Converters"
+             xmlns:vms="clr-namespace:YiboFile.ViewModels"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
@@ -129,6 +130,36 @@
         </Style>
         <!-- 文件右键菜单 -->
         <ContextMenu x:Key="FileListContextMenu" DataContext="{Binding Data.DataContext, Source={StaticResource ControlProxy}}">
+            <ContextMenu.Resources>
+                <!-- Shell 菜单项的层级数据模板 -->
+                <HierarchicalDataTemplate DataType="{x:Type vms:ShellMenuItemViewModel}" ItemsSource="{Binding Children}">
+                    <Grid>
+                        <!-- Header 已经在 MenuItem 容器的样式中处理了，这里我们甚至可以为空，
+                             但为了确保某些情况下的正确性，我们可以显式声明。
+                             不过最稳妥的是在 ItemContainerStyle 中直接绑定。 -->
+                    </Grid>
+                </HierarchicalDataTemplate>
+
+                <!-- Shell 菜单项的通用容器样式 -->
+                <Style x:Key="ShellMenuItemStyle" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                    <Setter Property="Header" Value="{Binding Text}"/>
+                    <Setter Property="Icon" Value="{Binding Icon}"/>
+                    <Setter Property="Command" Value="{Binding ExecuteCommand}"/>
+                    <Setter Property="ItemsSource" Value="{Binding Children}"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="MenuItem">
+                                        <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContextMenu.Resources>
             <MenuItem x:Name="CopyItem" Header="复制" 
                       Command="{Binding Commands.CopyCommand}" 
                       Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -251,43 +282,16 @@
                       ItemsSource="{Binding PinnedShellMenuItems}"
                       Visibility="{Binding HasPinnedShellItems, Converter={StaticResource BooleanToVisibilityConverter}}"
                       FontWeight="Bold"
-                      Icon="📌">
-                <MenuItem.ItemContainerStyle>
-                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
-                        <Setter Property="Header" Value="{Binding Text}"/>
-                        <Setter Property="Icon" Value="{Binding Icon}"/>
-                        <Setter Property="Command" Value="{Binding ExecuteCommand}"/>
-                        <Setter Property="ItemsSource" Value="{Binding Children}"/>
-                    </Style>
-                </MenuItem.ItemContainerStyle>
-            </MenuItem>
+                      ItemContainerStyle="{StaticResource ShellMenuItemStyle}"
+                      Icon="📌" />
 
             <Separator Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <!-- 解析的 Shell 子菜单 (Phase 2) -->
-            <MenuItem x:Name="SystemShellMenu" Header="系统菜单" 
+            <MenuItem x:Name="SystemShellMenu" Header="Shell" 
                       ItemsSource="{Binding ShellSubMenuItems}"
                       Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      Icon="🖥️">
-                <MenuItem.ItemContainerStyle>
-                    <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
-                        <Setter Property="Header" Value="{Binding Text}"/>
-                        <Setter Property="Icon" Value="{Binding Icon}"/>
-                        <Setter Property="Command" Value="{Binding ExecuteCommand}"/>
-                        <Setter Property="ItemsSource" Value="{Binding Children}"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="MenuItem">
-                                            <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </MenuItem.ItemContainerStyle>
-            </MenuItem>
+                      ItemContainerStyle="{StaticResource ShellMenuItemStyle}"
+                      Icon="🖥️"/>
 
             <MenuItem x:Name="FullShellMenuItem" 
                       Header="系统菜单" 

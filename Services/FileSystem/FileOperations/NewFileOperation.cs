@@ -99,7 +99,7 @@ namespace YiboFile.Services.FileOperations
                 };
                 customMenuItem.Click += (s, args) =>
                 {
-                    var inputExtension = DialogService.ShowInput("请输入文件扩展名（如 .txt）：", ".txt", "新建文件", owner: _ownerWindow);
+                    var inputExtension = _context.ShowInput("请输入文件扩展名（如 .txt）：", ".txt", "新建文件");
 
                     if (inputExtension != null)
                     {

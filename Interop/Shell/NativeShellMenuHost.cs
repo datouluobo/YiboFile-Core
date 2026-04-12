@@ -8,7 +8,8 @@ using System.Windows.Interop;
 namespace YiboFile.Interop.Shell
 {
     /// <summary>
-    /// 负责弹出原生 Shell 上下文菜单并处理消息转发
+    /// 负责弹出原生 Shell 上下文菜单并处理消息转发。
+    /// 使用专用的隐藏 Win32 窗口来正确接收所有 owner-draw 消息，确保图标渲染。
     /// </summary>
     public sealed class NativeShellMenuHost : IDisposable
     {
@@ -16,8 +17,53 @@ namespace YiboFile.Interop.Shell
         private IContextMenu2 _contextMenu2;
         private IContextMenu3 _contextMenu3;
         private IntPtr _hMenu;
-        private HwndSource _hwndSource;
         private bool _disposed;
+
+        // ── Win32 消息窗口相关 ──
+        private const string MENU_WND_CLASS = "YiboFileShellMenuMsgWnd";
+        private static bool _classRegistered;
+        private IntPtr _msgWnd;
+        // 静态引用，因为 WndProc 委托必须在回调期间保持存活
+        private static NativeShellMenuHost _currentHost;
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern ushort RegisterClassW(ref WNDCLASS lpWndClass);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr CreateWindowExW(
+            uint dwExStyle, string lpClassName, string lpWindowName, uint dwStyle,
+            int x, int y, int nWidth, int nHeight,
+            IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool DestroyWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr DefWindowProcW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+        private static WndProcDelegate _wndProcDelegate;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct WNDCLASS
+        {
+            public uint style;
+            public WndProcDelegate lpfnWndProc;
+            public int cbClsExtra;
+            public int cbWndExtra;
+            public IntPtr hInstance;
+            public IntPtr hIcon;
+            public IntPtr hCursor;
+            public IntPtr hbrBackground;
+            public string lpszMenuName;
+            public string lpszClassName;
+        }
+
+        // HWND_MESSAGE parent for message-only window
+        private static readonly IntPtr HWND_MESSAGE = new IntPtr(-3);
 
         public void ShowNativeMenu(IEnumerable<string> paths, Point screenPoint, Window owner)
         {
@@ -33,26 +79,35 @@ namespace YiboFile.Interop.Shell
             _contextMenu2 = _contextMenu as IContextMenu2;
             _contextMenu3 = _contextMenu as IContextMenu3;
 
-            // 3. 创建并填充 HMENU
             _hMenu = NativeMethods.CreatePopupMenu();
-            _contextMenu.QueryContextMenu(_hMenu, 0, 1, 0x7FFF, ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE);
+            uint queryFlags = ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE
+                | ShellConstants.CMF_CANRENAME | ShellConstants.CMF_ITEMMENU;
+            _contextMenu.QueryContextMenu(_hMenu, 0, 1, 0x7FFF, queryFlags);
 
-            // 4. 设置消息钩子（转发菜单消息给 IContextMenu2/3）
-            var hwnd = new WindowInteropHelper(owner).Handle;
-            _hwndSource = HwndSource.FromHwnd(hwnd);
-            _hwndSource.AddHook(MenuWndProc);
+            // 3. 创建专用消息窗口（而非挂钩到 WPF 窗口）
+            // 使用常规隐藏窗口而非 HWND_MESSAGE 以确保某些扩展能正确获取父窗口状态
+            _currentHost = this;
+            EnsureWindowClass();
+            var ownerHandle = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
+            _msgWnd = CreateWindowExW(
+                0, MENU_WND_CLASS, "ShellMenuMsgWnd", 0x80000000 /* WS_POPUP */,
+                0, 0, 1, 1,
+                ownerHandle, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
 
-            // 5. 弹出菜单
-            uint flags = ShellConstants.TPM_LEFTALIGN | ShellConstants.TPM_TOPALIGN | ShellConstants.TPM_RETURNCMD | ShellConstants.TPM_RIGHTBUTTON;
-            int selectedId = NativeMethods.TrackPopupMenuEx(_hMenu, flags, (int)screenPoint.X, (int)screenPoint.Y, hwnd, IntPtr.Zero);
+            // 4. 弹出菜单 —— 使用专用消息窗口的 HWND
+            uint flags = ShellConstants.TPM_LEFTALIGN | ShellConstants.TPM_TOPALIGN
+                | ShellConstants.TPM_RETURNCMD | ShellConstants.TPM_RIGHTBUTTON;
+            int selectedId = NativeMethods.TrackPopupMenuEx(
+                _hMenu, flags, (int)screenPoint.X, (int)screenPoint.Y, _msgWnd, IntPtr.Zero);
 
-            // 6. 执行命令
+            // 5. 执行命令
             if (selectedId > 0)
             {
+                var hwnd = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
                 InvokeCommand(selectedId, hwnd, paths);
             }
 
-            // 7. 清理
+            // 6. 清理
             Cleanup();
             if (parentFolder != null) Marshal.ReleaseComObject(parentFolder);
         }
@@ -71,7 +126,8 @@ namespace YiboFile.Interop.Shell
                 _contextMenu3 = _contextMenu as IContextMenu3;
 
                 _hMenu = NativeMethods.CreatePopupMenu();
-                _contextMenu.QueryContextMenu(_hMenu, 0, 1, 0x7FFF, ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE);
+                _contextMenu.QueryContextMenu(_hMenu, 0, 1, 0x7FFF,
+                    ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE | ShellConstants.CMF_CANRENAME | ShellConstants.CMF_ITEMMENU);
 
                 var items = HMenuParser.ParseMenu(_hMenu, _contextMenu);
                 return items;
@@ -102,7 +158,71 @@ namespace YiboFile.Interop.Shell
             }
         }
 
+        // ════════════════════════════════════════
+        // 专用消息窗口的 WndProc
+        // ════════════════════════════════════════
+        private static IntPtr ShellMenuWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            var host = _currentHost;
 
+            if (host != null && !host._disposed)
+            {
+                switch (msg)
+                {
+                    case ShellConstants.WM_INITMENUPOPUP:
+                    case ShellConstants.WM_MEASUREITEM:
+                    case ShellConstants.WM_DRAWITEM:
+                        // 优先使用 IContextMenu3（支持 out result），否则回退到 IContextMenu2
+                        if (host._contextMenu3 != null)
+                        {
+                            host._contextMenu3.HandleMenuMsg2(msg, wParam, lParam, out _);
+                            // WM_MEASUREITEM / WM_DRAWITEM 必须返回 TRUE 表示已处理
+                            if (msg != ShellConstants.WM_INITMENUPOPUP)
+                                return (IntPtr)1;
+                            return IntPtr.Zero;
+                        }
+                        if (host._contextMenu2 != null)
+                        {
+                            host._contextMenu2.HandleMenuMsg(msg, wParam, lParam);
+                            if (msg != ShellConstants.WM_INITMENUPOPUP)
+                                return (IntPtr)1;
+                            return IntPtr.Zero;
+                        }
+                        break;
+
+                    case ShellConstants.WM_MENUCHAR:
+                        if (host._contextMenu3 != null)
+                        {
+                            host._contextMenu3.HandleMenuMsg2(msg, wParam, lParam, out var result);
+                            return result;
+                        }
+                        break;
+                }
+            }
+
+            return DefWindowProcW(hWnd, msg, wParam, lParam);
+        }
+
+        private static void EnsureWindowClass()
+        {
+            if (_classRegistered) return;
+
+            _wndProcDelegate = ShellMenuWndProc;
+
+            var wc = new WNDCLASS
+            {
+                lpfnWndProc = _wndProcDelegate,
+                hInstance = GetModuleHandle(null),
+                lpszClassName = MENU_WND_CLASS
+            };
+
+            RegisterClassW(ref wc);
+            _classRegistered = true;
+        }
+
+        // ════════════════════════════════════════
+        // IContextMenu 获取
+        // ════════════════════════════════════════
         private IContextMenu GetContextMenu(IEnumerable<string> paths, out IShellFolder parentFolder)
         {
             parentFolder = null;
@@ -111,7 +231,6 @@ namespace YiboFile.Interop.Shell
 
             try
             {
-                // 获取父文件夹的 IShellFolder
                 string firstPath = pathList[0];
                 string parentDirPath = Path.GetDirectoryName(firstPath);
                 
@@ -130,7 +249,6 @@ namespace YiboFile.Interop.Shell
                     Marshal.ReleaseComObject(desktopFolder);
                 }
 
-                // 获取子项的 PIDLs
                 var childPidls = new IntPtr[pathList.Count];
                 for (int i = 0; i < pathList.Count; i++)
                 {
@@ -140,11 +258,9 @@ namespace YiboFile.Interop.Shell
                     parentFolder.ParseDisplayName(IntPtr.Zero, IntPtr.Zero, name, ref eaten, out childPidls[i], ref attr);
                 }
 
-                // 获取 IContextMenu
                 var iid = new Guid("000214E4-0000-0000-C000-000000000046"); // IContextMenu
                 parentFolder.GetUIObjectOf(IntPtr.Zero, (uint)childPidls.Length, childPidls, ref iid, IntPtr.Zero, out var menuPtr);
                 
-                // 释放子项 PIDLs
                 foreach (var pidl in childPidls) NativeMethods.ILFree(pidl);
 
                 return (IContextMenu)Marshal.GetUniqueObjectForIUnknown(menuPtr);
@@ -166,39 +282,12 @@ namespace YiboFile.Interop.Shell
             _contextMenu.InvokeCommand(ref pici);
         }
 
-        private IntPtr MenuWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            if (_disposed) return IntPtr.Zero;
-
-            switch ((uint)msg)
-            {
-                case ShellConstants.WM_INITMENUPOPUP:
-                case ShellConstants.WM_MEASUREITEM:
-                case ShellConstants.WM_DRAWITEM:
-                    if (_contextMenu2 != null)
-                    {
-                        _contextMenu2.HandleMenuMsg((uint)msg, wParam, lParam);
-                    }
-                    break;
-
-                case ShellConstants.WM_MENUCHAR:
-                    if (_contextMenu3 != null)
-                    {
-                        _contextMenu3.HandleMenuMsg2((uint)msg, wParam, lParam, out var result);
-                        return result;
-                    }
-                    break;
-            }
-
-            return IntPtr.Zero;
-        }
-
         private void Cleanup()
         {
-            if (_hwndSource != null)
+            if (_msgWnd != IntPtr.Zero)
             {
-                _hwndSource.RemoveHook(MenuWndProc);
-                _hwndSource = null;
+                DestroyWindow(_msgWnd);
+                _msgWnd = IntPtr.Zero;
             }
 
             if (_hMenu != IntPtr.Zero)
@@ -214,6 +303,9 @@ namespace YiboFile.Interop.Shell
                 _contextMenu2 = null;
                 _contextMenu3 = null;
             }
+
+            if (_currentHost == this)
+                _currentHost = null;
         }
 
         public void Dispose()

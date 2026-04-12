@@ -60,7 +60,7 @@ namespace YiboFile.ViewModels.Previews
             SaveCommand = new RelayCommand(async () => await SaveAsync());
         }
 
-        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
+        public override async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             FilePath = filePath;
             Title = Path.GetFileName(filePath);

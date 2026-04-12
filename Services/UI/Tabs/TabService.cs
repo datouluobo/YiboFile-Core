@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -22,6 +23,7 @@ namespace YiboFile.Services.Tabs
         private PathTab _activeTab;
         private AppConfig _config;
         private TabUiContext _ui;
+        private readonly Services.UI.IDialogService _dialogService;
 
         public Services.Navigation.PaneId Pane { get; set; } = Services.Navigation.PaneId.Main;
 
@@ -33,19 +35,21 @@ namespace YiboFile.Services.Tabs
 
         private readonly TabContentRegistry _registry;
 
-        public TabService(AppConfig config, IMessageBus messageBus, TabContentRegistry registry)
+        public TabService(AppConfig config, IMessageBus messageBus, TabContentRegistry registry, Services.UI.IDialogService dialogService = null)
         {
             _config = config;
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
             lock (_allInstances) { _allInstances.Add(this); }
             SubscribeToConfigChanges();
         }
 
-        public TabService(IMessageBus messageBus, TabContentRegistry registry)
+        public TabService(IMessageBus messageBus, TabContentRegistry registry, Services.UI.IDialogService dialogService = null)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
             lock (_allInstances) { _allInstances.Add(this); }
             SubscribeToConfigChanges();
         }
@@ -85,23 +89,41 @@ namespace YiboFile.Services.Tabs
         {
             _messageBus.Subscribe<ConfigurationSettingChangedMessage>(m =>
             {
-                if (_tabSettingNames.Contains(m.SettingName))
+                if (_tabSettingNames.Contains(m.SettingName) || m.SettingName == "Language")
                 {
                     if (_ui?.GetConfig != null) 
                     {
                         _config = _ui.GetConfig();
                     }
+
+                    if (m.SettingName == "Language")
+                    {
+                        _ui?.Dispatcher?.InvokeAsync(() => RefreshSpecialTabTitles());
+                    }
+
                     // 策略级别的配置变更需要重建策略对象
                     if (m.SettingName == "TabWidthStrategy" || m.SettingName == "TabOverflowStrategy" || m.SettingName == "All")
                     {
                         _widthCalculator?.RebuildStrategies();
                     }
+
                     _ui?.Dispatcher?.InvokeAsync(() =>
                     {
                         UpdateTabWidths();
                     });
                 }
             });
+        }
+
+        private void RefreshSpecialTabTitles()
+        {
+            foreach (var tab in _tabs)
+            {
+                if (tab.CustomContent != null && string.IsNullOrEmpty(tab.OverrideTitle))
+                {
+                    tab.Title = tab.CustomContent.Title;
+                }
+            }
         }
 
         ~TabService()

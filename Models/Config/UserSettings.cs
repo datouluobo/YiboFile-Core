@@ -58,10 +58,17 @@ namespace YiboFile.Models.Config
 
         /// <summary>
         /// 系统右键菜单集成方案
-        /// "Native": 原生菜单（仅显示 YiboFile 自定义菜单项）
-        /// "System": 系统菜单（集成 Windows Shell 菜单项）
+        /// "Native": YiboFile 原生菜单（提供现代化 UI，底部保留全量系统入口）
+        /// "System": Windows 系统菜单（直接接管右键点击，弹出全量 Win32 原生菜单）
         /// </summary>
         public string ShellMenuMode { get; set; } = "System";
+
+        /// <summary>
+        /// 重命名时点击空白区域的行为
+        /// "Commit": 接受命名（默认，与 Windows 资源管理器一致）
+        /// "Cancel": 取消命名
+        /// </summary>
+        public string RenameLostFocusBehavior { get; set; } = "Commit";
 
         /// <summary>
         /// 用户固定到主菜单的 Shell 命令标识列表 (UniqueKey)

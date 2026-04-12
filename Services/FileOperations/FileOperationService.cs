@@ -12,12 +12,13 @@ using YiboFile.Services.Core.Error;
 using YiboFile.Services.FileOperations.Undo;
 using YiboFile.Services.FileSystem;
 
-// 使用 Dialogs 命名空间的 ConflictResolution
-using ConflictResolution = YiboFile.Dialogs.ConflictResolution;
+// 使用 Services.UI 命名空间的 ConflictResolution
+using ConflictResolution = YiboFile.Services.UI.ConflictResolution;
 using YiboFile.Services.FileOperations.TaskQueue;
 using TaskStatus = YiboFile.Services.FileOperations.TaskQueue.TaskStatus;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Services.FileOperations
 {
@@ -33,6 +34,7 @@ namespace YiboFile.Services.FileOperations
         private readonly TaskQueueService _taskQueueService;
         private readonly YiboFile.Services.Backup.IBackupService _backupService;
         private readonly IMessageBus _messageBus;
+        private readonly IDialogService _dialogService;
         private Func<FileOperationContext> _getContext;
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace YiboFile.Services.FileOperations
             _taskQueueService = taskQueueService;
             _backupService = backupService;
             _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
+            _dialogService = App.ServiceProvider?.GetService<IDialogService>();
         }
 
         #region Copy / Cut
@@ -587,24 +590,14 @@ namespace YiboFile.Services.FileOperations
 
         private async Task<(ConflictResolution, bool)> ShowConflictDialogAsync(string fileName, bool isMultiple, CancellationToken ct)
         {
-            return await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                var dialog = new ConflictResolutionDialog { Owner = Application.Current.MainWindow };
-                dialog.SetFileName(fileName);
-                dialog.SetMultipleMode(isMultiple);
-                using (ct.Register(() => { try { dialog.Dispatcher.Invoke(dialog.Close); } catch { } }))
-                {
-                    if (dialog.ShowDialog() == true) return (dialog.Resolution, dialog.ApplyToAll);
-                }
-                return (ConflictResolution.CancelAll, false);
-            });
+            if (_dialogService == null) return (ConflictResolution.CancelAll, false);
+            return await _dialogService.ShowConflictDialogAsync(fileName, isMultiple);
         }
 
         private bool ShowConfirmDialog(string message, string title)
         {
-            if (Application.Current?.Dispatcher?.CheckAccess() == false)
-                return Application.Current.Dispatcher.Invoke(() => ShowConfirmDialog(message, title));
-            return ConfirmDialog.Show(message, title, ConfirmDialog.DialogType.Question, Application.Current.MainWindow);
+            if (_dialogService == null) return false;
+            return _dialogService.Confirm(message, title);
         }
 
         #endregion

@@ -167,6 +167,8 @@ namespace YiboFile.Controls
                 {
                     await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
 
+                    if (_webView == null || _webView.CoreWebView2 == null) return;
+
                     _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
                     {
                         await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
@@ -226,11 +228,14 @@ namespace YiboFile.Controls
 </body>
 </html>";
             await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(odaWebView);
-            odaWebView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+            if (odaWebView != null && odaWebView.CoreWebView2 != null)
             {
-                await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(odaWebView);
-            };
-            odaWebView.NavigateToString(html);
+                odaWebView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                {
+                    await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(odaWebView);
+                };
+                odaWebView.NavigateToString(html);
+            }
         }
     }
 }

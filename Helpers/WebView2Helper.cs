@@ -10,7 +10,8 @@ namespace YiboFile.Helpers
     public static class WebView2Helper
     {
         private static CoreWebView2Environment _environment;
-        private static readonly object _lock = new object();
+        private static Task<CoreWebView2Environment> _initTask;
+        private static readonly object _initLock = new object();
 
         public static async Task EnsureInitializedAsync(WebView2 webView)
         {
@@ -18,24 +19,34 @@ namespace YiboFile.Helpers
 
             if (_environment == null)
             {
-                lock (_lock)
+                Task<CoreWebView2Environment> localTask;
+                lock (_initLock)
                 {
-                    if (_environment == null)
+                    if (_initTask == null)
                     {
                         string userDataFolder = Path.Combine(ConfigManager.GetBaseDirectory(), "WebView2");
                         try
                         {
-                            if (!Directory.Exists(userDataFolder))
-                            {
-                                Directory.CreateDirectory(userDataFolder);
-                            }
-                            _environment = CoreWebView2Environment.CreateAsync(null, userDataFolder).GetAwaiter().GetResult();
+                            if (!Directory.Exists(userDataFolder)) Directory.CreateDirectory(userDataFolder);
+                            _initTask = CoreWebView2Environment.CreateAsync(null, userDataFolder);
                         }
                         catch (Exception ex)
                         {
-                            YiboFile.Services.Core.FileLogger.LogException("WebView2Environment creation failed", ex);
+                            YiboFile.Services.Core.FileLogger.LogException("WebView2Environment task creation failed", ex);
+                            return;
                         }
                     }
+                    localTask = _initTask;
+                }
+                
+                try
+                {
+                    _environment = await localTask;
+                }
+                catch (Exception ex)
+                {
+                    YiboFile.Services.Core.FileLogger.LogException("WebView2Environment await failed", ex);
+                    return;
                 }
             }
 

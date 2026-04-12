@@ -34,6 +34,7 @@ namespace YiboFile.ViewModels
         private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly FileSystemWatcherService _fileWatcherService;
         private readonly Services.Features.ITagService _tagService;
+        private readonly Services.UI.IDialogService _dialogService;
         private const int MaxMetadataEnrichCount = 500;
 
         private string _currentPath = null;
@@ -42,7 +43,6 @@ namespace YiboFile.ViewModels
         private string _lastSortColumn = "Name";
         private bool _sortAscending = true;
         private DispatcherTimer _refreshDebounceTimer;
-        private bool _isLoadingFiles = false;
         private CancellationTokenSource _loadCancellationTokenSource = null;
         private readonly YiboFile.Services.Navigation.PaneId _paneId;
         private bool _showFullFileName = false;
@@ -111,11 +111,13 @@ namespace YiboFile.ViewModels
             ColumnService columnService = null,
             FileMetadataEnricher metadataEnricher = null,
             FolderSizeCalculator folderSizeCalculator = null,
-            FileSystemWatcherService fileWatcherService = null)
+            FileSystemWatcherService fileWatcherService = null,
+            Services.UI.IDialogService dialogService = null)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _dispatcher = System.Windows.Application.Current.Dispatcher;
             _paneId = paneId;
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
 
             var errorService = App.ServiceProvider?.GetService<YiboFile.Services.Core.Error.ErrorService>();
             _tagService = App.ServiceProvider?.GetService<Services.Features.ITagService>();
@@ -247,7 +249,6 @@ namespace YiboFile.ViewModels
                     return;
                 }
 
-                _isLoadingFiles = true;
                 IsLoading = true;
 
                 // 异步加载文件列表
@@ -288,17 +289,13 @@ namespace YiboFile.ViewModels
             {
                 if (!cancellationToken.IsCancellationRequested)
                 {
-                    await _dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        YiboFile.DialogService.Error($"加载文件列表失败: {ex.Message}");
-                    }), DispatcherPriority.Normal);
+                    _dialogService?.ShowError($"加载文件列表失败: {ex.Message}");
                 }
             }
             finally
             {
                 if (_loadRequestId == requestId)
                 {
-                    _isLoadingFiles = false;
                     IsLoading = false;
                 }
             }

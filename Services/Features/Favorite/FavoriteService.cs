@@ -16,6 +16,7 @@ using YiboFile.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Services.Favorite
 {
@@ -31,6 +32,7 @@ namespace YiboFile.Services.Favorite
         private readonly IFavoriteRepository _favoriteRepository;
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
         private readonly IMessageBus _messageBus;
+        private readonly Services.UI.IDialogService _dialogService;
         private readonly Services.Navigation.INavigationCoordinator _navigationCoordinator;
         private YiboFile.Favorite _draggedFavorite = null;
         private System.Windows.Point _dragStartPoint;
@@ -54,6 +56,7 @@ namespace YiboFile.Services.Favorite
             _favoriteRepository = favoriteRepository ?? throw new ArgumentNullException(nameof(favoriteRepository));
             _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            _dialogService = App.ServiceProvider?.GetService<Services.UI.IDialogService>();
             _navigationCoordinator = navigationCoordinator ?? App.ServiceProvider?.GetService<Services.Navigation.INavigationCoordinator>();
         }
 
@@ -300,7 +303,7 @@ namespace YiboFile.Services.Favorite
             var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
             if (selectedItems == null || selectedItems.Count == 0)
             {
-                YiboFile.DialogService.Info(locService?["Favorites.SelectItemsFirst"] ?? "请先选择要收藏的文件或文件夹");
+                _dialogService?.ShowInfo(locService?["Favorites.SelectItemsFirst"] ?? "请先选择要收藏的文件或文件夹");
                 return;
             }
 
@@ -317,7 +320,7 @@ namespace YiboFile.Services.Favorite
                 }
                 catch (Exception ex)
                 {
-                    YiboFile.DialogService.Error($"{locService?["Favorites.AddFailed"] ?? "收藏失败"}: {item.Name} - {ex.Message}");
+                    _dialogService?.ShowError($"{locService?["Favorites.AddFailed"] ?? "收藏失败"}: {item.Name} - {ex.Message}");
                 }
             }
 
@@ -365,7 +368,7 @@ namespace YiboFile.Services.Favorite
             var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
             if (id == 1)
             {
-                YiboFile.DialogService.Info(locService?["Favorites.DefaultGroupCannotDelete"] ?? "默认分组不能删除");
+                _dialogService?.ShowInfo(locService?["Favorites.DefaultGroupCannotDelete"] ?? "默认分组不能删除");
                 return;
             }
             _favoriteRepository.DeleteGroup(id);
@@ -417,7 +420,7 @@ namespace YiboFile.Services.Favorite
                 var locService = App.ServiceProvider?.GetService<YiboFile.Services.Localization.ILocalizationService>();
                 string notExistStr = locService?["Favorites.PathNotExist"] ?? "路径不存在";
                 string askRemoveStr = locService?["Favorites.AskRemove"] ?? "是否从收藏中移除？";
-                if (YiboFile.DialogService.Ask($"{notExistStr}: {favorite.Path}\n\n{askRemoveStr}", "提示"))
+                if (_dialogService?.Confirm($"{notExistStr}: {favorite.Path}\n\n{askRemoveStr}", "提示") == true)
                 {
                     _favoriteRepository.RemoveFavorite(favorite.Path);
                     _messageBus?.Publish(new FavoritesUpdatedMessage());
@@ -528,7 +531,7 @@ namespace YiboFile.Services.Favorite
                 if (favorite != null)
                 {
                     var currentName = !string.IsNullOrEmpty(favorite.DisplayName) ? favorite.DisplayName : Path.GetFileName(favorite.Path);
-                    var newName = DialogService.ShowInput(locService?["Favorites.Rename"] ?? "输入新的收藏别名", currentName);
+                    var newName = _dialogService?.ShowInput(locService?["Favorites.Rename"] ?? "输入新的收藏别名", currentName);
                     if (newName != null)
                     {
                         _favoriteRepository.UpdateFavoriteDisplayName(favorite.Path, newName);

@@ -86,7 +86,7 @@ namespace YiboFile.Services
         {
             if (_secondTabService != null)
             {
-                RestoreTabsForService(_secondTabService, _config.OpenTabsSecondary, _config.ActiveTabKeySecondary);
+                RestoreTabsForService(_secondTabService, _config.OpenTabsSecondary, _config.ActiveTabKeySecondary, _config.TabViewModes_Secondary);
             }
         }
 
@@ -424,23 +424,25 @@ namespace YiboFile.Services
         {
             if (_tabService != null)
             {
-                var (tabs, activeKey) = GetTabsState(_tabService);
+                var (tabs, activeKey, viewModes) = GetTabsState(_tabService);
 
                 // 防护：如果当前没有标签页但配置中有，说明还没恢复完成，不覆盖
                 if (tabs.Count > 0 || targetConfig.OpenTabs == null || targetConfig.OpenTabs.Count == 0)
                 {
                     targetConfig.OpenTabs = tabs;
                     targetConfig.ActiveTabKey = activeKey;
+                    targetConfig.TabViewModes = viewModes;
                 }
             }
 
             if (_secondTabService != null)
             {
-                var (tabs, activeKey) = GetTabsState(_secondTabService);
+                var (tabs, activeKey, viewModes) = GetTabsState(_secondTabService);
                 if (tabs.Count > 0 || targetConfig.OpenTabsSecondary == null || targetConfig.OpenTabsSecondary.Count == 0)
                 {
                     targetConfig.OpenTabsSecondary = tabs;
                     targetConfig.ActiveTabKeySecondary = activeKey;
+                    targetConfig.TabViewModes_Secondary = viewModes;
                 }
             }
         }
@@ -450,12 +452,25 @@ namespace YiboFile.Services
             YiboFile.Services.Config.ConfigurationService.Instance.Update(cfg => SaveTabsStateTo(cfg));
         }
 
-        private (List<string> tabs, string activeKey) GetTabsState(TabService service)
+        private (List<string> tabs, string activeKey, Dictionary<string, string> viewModes) GetTabsState(TabService service)
         {
             var orderedTabs = service.GetTabsInOrder();
 
-            var tabs = orderedTabs.Select(tab => GetTabKey(tab)).ToList();
+            var tabs = new List<string>();
+            var viewModes = new Dictionary<string, string>();
             var activeKey = string.Empty;
+
+            foreach (var tab in orderedTabs)
+            {
+                var key = GetTabKey(tab);
+                tabs.Add(key);
+
+                // 收集每个标签页的视图模式（仅当非默认值时写入，减小配置体积）
+                if (tab.ViewMode != YiboFile.Models.Enums.FileListViewMode.List)
+                {
+                    viewModes[key] = tab.ViewMode.ToString();
+                }
+            }
 
             var activeTab = service.ActiveTab;
             if (activeTab != null)
@@ -463,7 +478,7 @@ namespace YiboFile.Services
                 activeKey = GetTabKey(activeTab);
             }
 
-            return (tabs, activeKey);
+            return (tabs, activeKey, viewModes);
         }
 
         /// <summary>
@@ -667,12 +682,12 @@ namespace YiboFile.Services
             try
             {
                 // 恢复主列表标签页
-                RestoreTabsForService(_tabService, _config.OpenTabs, _config.ActiveTabKey);
+                RestoreTabsForService(_tabService, _config.OpenTabs, _config.ActiveTabKey, _config.TabViewModes);
 
                 // 恢复副列表标签页
                 if (_secondTabService != null)
                 {
-                    RestoreTabsForService(_secondTabService, _config.OpenTabsSecondary, _config.ActiveTabKeySecondary);
+                    RestoreTabsForService(_secondTabService, _config.OpenTabsSecondary, _config.ActiveTabKeySecondary, _config.TabViewModes_Secondary);
                 }
             }
             catch (Exception)
@@ -680,7 +695,7 @@ namespace YiboFile.Services
             }
         }
 
-        private void RestoreTabsForService(TabService service, List<string> openTabs, string activeTabKey)
+        private void RestoreTabsForService(TabService service, List<string> openTabs, string activeTabKey, Dictionary<string, string> tabViewModes = null)
         {
             if (service == null) return;
 
@@ -698,6 +713,23 @@ namespace YiboFile.Services
                     }
                     catch (Exception)
                     {
+                    }
+                }
+
+                // 1.5 恢复每个标签页的视图模式
+                if (tabViewModes != null && tabViewModes.Count > 0)
+                {
+                    foreach (var tabKey in openTabs)
+                    {
+                        if (string.IsNullOrEmpty(tabKey)) continue;
+                        if (tabViewModes.TryGetValue(tabKey, out var modeStr))
+                        {
+                            var tab = FindTabByKey(service, tabKey);
+                            if (tab != null && Enum.TryParse<YiboFile.Models.Enums.FileListViewMode>(modeStr, out var mode))
+                            {
+                                tab.ViewMode = mode;
+                            }
+                        }
                     }
                 }
 

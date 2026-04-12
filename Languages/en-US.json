@@ -17,6 +17,22 @@
         "No": "No",
         "Open": "Open"
     },
+    "About": {
+        "Title": "About",
+        "SoftwareInfo": "Software Information",
+        "Shortcuts": "Shortcuts",
+        "License": "Open Source Licenses",
+        "ModernExplorer": "Modern File Explorer",
+        "VersionInfo": "Version Information",
+        "VersionNumber": "Version Number",
+        "BuildDate": "Build Date",
+        "Developer": "Developer",
+        "ShortcutsTitle": "Mouse & Keyboard Shortcuts",
+        "Function": "Function",
+        "Operation": "Operation",
+        "LicenseTitle": "Open Source Licenses & Acknowledgements",
+        "LicenseDesc": "This project uses the following open source libraries:"
+    },
     "TabContent": {
         "FileBrowser": "File Browser",
         "Library": "Library",
@@ -214,10 +230,10 @@
             "CreateDesktopShortcut": "Create Desktop Shortcut",
             "ShortcutCreated": "Shortcut created on desktop",
             "ShellMenuSettings": "Context Menu Settings",
-            "ShellMenuNative": "Native Menu",
-            "ShellMenuNativeDesc": "Use YiboFile's native WPF context menu only",
-            "ShellMenuSystem": "System Menu",
-            "ShellMenuDesc": "Show Windows Shell context menu entry at the bottom of the native menu"
+            "ShellMenuNative": "YiboFile Native Menu",
+            "ShellMenuNativeDesc": "Use the modern context menu designed by YiboFile, providing enhanced features like libraries and tags.",
+            "ShellMenuSystem": "Windows System Menu",
+            "ShellMenuDesc": "Directly invoke the Windows system native context menu (supports all third-party shell extensions)."
         },
         "Backup": {
             "Title": "Backup Settings",
@@ -240,12 +256,29 @@
             "Days180": "180 Days",
             "Year1": "1 Year"
         },
+        "BackupBrowser": {
+            "Refresh": "Refresh",
+            "CleanOldBackups": "Clean Old Backups",
+            "BackupDate": "Backup Date",
+            "FileList": "File List",
+            "OriginalPath": "Original Path",
+            "Size": "Size",
+            "DeletionTime": "Deletion Time",
+            "Action": "Action",
+            "Restore": "Restore",
+            "Delete": "Delete",
+            "Loading": "Loading..."
+        },
         "FileList": {
             "ColumnWidths": "Column Width Settings",
             "TagColumnWidth": "Tag Column Width:",
             "Range50_500": "(Range: 50-500)",
             "NotesColumnWidth": "Notes Column Width:",
-            "Range100_800": "(Range: 100-800)"
+            "Range100_800": "(Range: 100-800)",
+            "RenameBehavior": "Rename Behavior",
+            "RenameLostFocusDesc": "Action when clicking outside the rename text box",
+            "RenameLostFocusCommit": "Accept and apply the new name (same as Windows Explorer)",
+            "RenameLostFocusCancel": "Cancel rename and restore original name"
         },
         "Search": {
             "FullTextSearchTitle": "Full Text Search",

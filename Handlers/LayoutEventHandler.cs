@@ -43,6 +43,7 @@ namespace YiboFile.Handlers
         private readonly SearchCacheService _searchCacheService;
         private readonly FileInfoService _secondFileInfoService;
         private readonly LibraryService _libraryService;
+        private readonly Services.UI.IDialogService _dialogService;
 
         private bool _secondTabEventsSubscribed = false;
         private bool _secondFileBrowserEventsInitialized = false;
@@ -58,7 +59,8 @@ namespace YiboFile.Handlers
             INavigationCoordinator navigationCoordinator,
             SearchCacheService searchCacheService,
             FileInfoService secondFileInfoService,
-            LibraryService libraryService)
+            LibraryService libraryService,
+            Services.UI.IDialogService dialogService = null)
         {
             _window = window;
             _messageBus = messageBus;
@@ -70,6 +72,7 @@ namespace YiboFile.Handlers
             _searchCacheService = searchCacheService;
             _secondFileInfoService = secondFileInfoService;
             _libraryService = libraryService;
+            _dialogService = dialogService ?? App.ServiceProvider?.GetRequiredService<Services.UI.IDialogService>();
         }
 
         public void Initialize()
@@ -543,7 +546,7 @@ namespace YiboFile.Handlers
         {
             if (_secondTabService?.ActiveTab != null)
             {
-                if (_secondTabService.ActiveTab.Type == TabType.Library && _secondTabService.ActiveTab.Library != null)
+                if (_secondTabService.ActiveTab.ContentTypeId == TabContentTypes.Library && _secondTabService.ActiveTab.Library != null)
                 {
                     LoadSecondFileBrowserLibrary(_secondTabService.ActiveTab.Library);
                     return;
@@ -650,7 +653,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"加载标签文件失败: {ex.Message}", owner: (System.Windows.Window)_window); // Corrected cast
+                _dialogService?.ShowError($"加载标签文件失败: {ex.Message}");
             }
         }
 
@@ -741,7 +744,7 @@ namespace YiboFile.Handlers
                     var protocolInfo = Services.Core.ProtocolManager.Parse(item.Path);
                     if (protocolInfo.Type == ProtocolType.Archive)
                     {
-                        MessageBox.Show("暂不支持直接打开压缩包内的文件。\n请先解压后再试。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        _dialogService?.ShowInfo("暂不支持直接打开压缩包内的文件。\n请先解压后再试。", "提示");
                         return;
                     }
                     try
@@ -754,7 +757,7 @@ namespace YiboFile.Handlers
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"无法打开文件: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        _dialogService?.ShowError($"无法打开文件: {ex.Message}");
                     }
                 }
             }

@@ -9,8 +9,33 @@ namespace YiboFile.Models
 {
     public class FileSystemItem : INotifyPropertyChanged
     {
-        public string Name { get; set; }
-        public string Path { get; set; }
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
+        }
+        
+        private string _path;
+        public string Path
+        {
+            get => _path;
+            set
+            {
+                if (_path != value)
+                {
+                    _path = value;
+                    OnPropertyChanged(nameof(Path));
+                }
+            }
+        }
         public string Type { get; set; }
         public string Size { get; set; }
         public string ModifiedDate { get; set; }
@@ -157,10 +182,10 @@ namespace YiboFile.Models
         public static string FormatTimeAgo(DateTime time)
         {
             var span = DateTime.Now - time;
-            if (span.TotalSeconds < 60) return $"{Math.Max(0, (int)span.TotalSeconds)} 秒";
-            if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}'";
+            if (span.TotalSeconds < 60) return $"{(int)span.TotalSeconds} 秒";
+            if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} 分";
             if (span.TotalHours < 24) return $"{(int)span.TotalHours} 时";
-            if (span.TotalDays < 65) return $"{(int)span.TotalDays} 天"; // 保持"天"直到约2个月
+            if (span.TotalDays < 60) return $"{(int)span.TotalDays} 天"; 
             if (span.TotalDays < 365) return $"{(int)(span.TotalDays / 30)} 月";
             return $"{(int)(span.TotalDays / 365)} 年";
         }
@@ -173,13 +198,12 @@ namespace YiboFile.Models
             get
             {
                 var span = DateTime.Now - CreatedDateTime;
-                if (span.TotalMinutes < 60) return "#FFCDD2"; // Red 100 (分钟)
-                if (span.TotalHours < 24) return "#FFF9C4";   // Yellow 100 (小时)
-                if (span.TotalDays < 3) return "#FFF9C4";     // Yellow 100 (< 3天)
-                if (span.TotalDays < 30) return "#C8E6C9";    // Green 100 (天)
-                if (span.TotalDays < 90) return "#B2EBF2";    // Cyan 100 (1-3个月)
-                if (span.TotalDays < 365) return "#BBDEFB";   // Blue 100 (月)
-                return "#E1BEE7";                             // Purple 100 (年)
+                if (span.TotalMinutes < 60) return "#D32F2F"; // Material Red 700 (Very Recent)
+                if (span.TotalHours < 24) return "#F57C00";   // Material Orange 700 (Recent)
+                if (span.TotalDays < 7) return "#388E3C";     // Material Green 700 (Within Week)
+                if (span.TotalDays < 30) return "#00796B";    // Material Teal 700 (Within Month)
+                if (span.TotalDays < 365) return "#1976D2";   // Material Blue 700 (Within Year)
+                return "#7B1FA2";                             // Material Purple 700 (Ancient)
             }
         }
 

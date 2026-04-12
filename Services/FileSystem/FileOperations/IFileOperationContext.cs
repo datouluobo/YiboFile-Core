@@ -50,13 +50,13 @@ namespace YiboFile.Services.FileOperations
         /// 显示确认对话框
         /// </summary>
         bool ShowConfirm(string message, string title);
+
+        /// <summary>
+        /// 显示输入对话框
+        /// </summary>
+        string ShowInput(string prompt, string defaultText, string title, bool selectFileNameOnly = false);
     }
 }
-
-
-
-
-
 
 
 

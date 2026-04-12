@@ -97,7 +97,7 @@
                 <Grid Visibility="{Binding ActivePreview.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Background="{DynamicResource OverlayLightBrush}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <ProgressBar IsIndeterminate="True" Width="200" Height="4" Margin="0,0,0,10"/>
-                        <TextBlock Text="正在加载..." HorizontalAlignment="Center"/>
+                        <TextBlock Text="正在加载..." Foreground="{DynamicResource ForegroundPrimaryBrush}" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
                 
@@ -113,7 +113,7 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="无法预览此文件" Foreground="{DynamicResource ForegroundTertiaryBrush}" FontSize="13"/>
+                    <TextBlock Text="无法预览此文件" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="13"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -164,7 +164,7 @@
             </Border.Style>
             <Grid>
                 <!-- 为了界面美观，加一个小的标签区分备注区 -->
-                <TextBlock Text="备注" FontSize="11" Foreground="{DynamicResource ForegroundTertiaryBrush}" Margin="8,4,8,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1" IsHitTestVisible="False"/>
+                <TextBlock Text="备注" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="8,4,8,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1" IsHitTestVisible="False"/>
                 <TextBox Name="NotesTextBox" Padding="8,22,8,4" 
                          AcceptsReturn="True" 
                          TextWrapping="Wrap"

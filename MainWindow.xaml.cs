@@ -64,6 +64,14 @@ namespace YiboFile
                 IntPtr hwnd = new WindowInteropHelper(this).Handle;
                 int immersiveDarkMode = 1;
                 DwmSetWindowAttribute(hwnd, 20, ref immersiveDarkMode, sizeof(int));
+
+                // 注册硬件监控钩子
+                HwndSource source = HwndSource.FromHwnd(hwnd);
+                if (source != null && _orchestrator?.HardwareMonitorService != null)
+                {
+                    _orchestrator.HardwareMonitorService.Initialize(hwnd);
+                    source.AddHook(_orchestrator.HardwareMonitorService.HookProc);
+                }
             }
             catch { }
         }
@@ -647,6 +655,12 @@ namespace YiboFile
             _messageBus.Subscribe<ViewModels.Messaging.Messages.PaneModeChangedMessage>(msg =>
             {
                 this.Dispatcher.Invoke(() => UpdateTabManagerMargin());
+            });
+            
+            // 4. 硬件设备变更 (刷新驱动器列表)
+            _messageBus.Subscribe<ViewModels.Messaging.Messages.DeviceChangedMessage>(msg =>
+            {
+                this.Dispatcher.Invoke(() => LoadDrives());
             });
         }
 

@@ -12,6 +12,7 @@ using YiboFile.Services.Core;
 using YiboFile.Services.FileInfo; // For FileInfoService
 using YiboFile.Services.ColumnManagement; // For ColumnService
 using YiboFile.Services.UIHelper; // For IUIHelperService
+using YiboFile.Services.Hardware; // For IHardwareMonitorService
 
 namespace YiboFile.Services.Orchestration
 {
@@ -81,6 +82,7 @@ namespace YiboFile.Services.Orchestration
         SearchCacheService SearchCacheService { get; }
         FileSystemWatcherService FileSystemWatcherService { get; }
         Services.WindowStateManager WindowStateManager { get; }
+        IHardwareMonitorService HardwareMonitorService { get; }
         KeyboardEventHandler KeyboardEventHandler { get; }
 
         #endregion

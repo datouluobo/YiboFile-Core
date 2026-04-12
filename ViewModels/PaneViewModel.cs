@@ -49,6 +49,21 @@ namespace YiboFile.ViewModels
         private bool _isLoadingDisabled;
         private string _statusText = "准备就绪";
 
+        private RefreshFileListMessage _pendingRefresh;
+
+        public bool IsAnyItemRenaming
+        {
+            get
+            {
+                if (FileList?.Files == null) return false;
+                foreach (var item in FileList.Files)
+                {
+                    if (item.IsRenaming) return true;
+                }
+                return false;
+            }
+        }
+
         private readonly SearchCoordinator _searchCoordinator;
         private readonly SearchFilterService _searchFilterService;
         private readonly ITagService _tagService;
@@ -63,6 +78,7 @@ namespace YiboFile.ViewModels
         private readonly ObservableCollection<ShellMenuItemViewModel> _pinnedShellMenuItems = new ObservableCollection<ShellMenuItemViewModel>();
         private readonly IShellContextMenuService _shellService;
         private readonly IPinnedShellCommandService _pinnedService;
+        private readonly Services.UI.IDialogService _dialogService;
 
         #endregion
 
@@ -176,9 +192,8 @@ namespace YiboFile.ViewModels
                     OnPropertyChanged(nameof(FileViewMode));
                     OnPropertyChanged(nameof(ViewModeIcon));
 
-                    // Persist the change
-                    ConfigurationService.Instance.Set(cfg => cfg.FileViewMode, value);
-
+                    // 通知 TabsModule 将模式写入当前活跃标签的 PathTab.ViewMode
+                    // 全局 cfg.FileViewMode 不再写入 — per-tab 持久化由 WindowStateManager 统一处理
                     _messageBus.Publish(new ViewModeChangedMessage(value, MyPaneId));
                 }
             }
@@ -230,9 +245,10 @@ namespace YiboFile.ViewModels
         }
 
         public string ShellMenuMode => ConfigurationService.Instance.Get(cfg => cfg.ShellMenuMode);
-        public bool IsShellIntegrationEnabled => ShellMenuMode == "System";
+        public string RenameLostFocusBehavior => ConfigurationService.Instance.Get(cfg => cfg.RenameLostFocusBehavior);
+        public bool IsShellIntegrationEnabled => true; // Integration is always prepared if requested by UI, Native mode uses it for WPF items, System mode doesn't need it.
         public bool IsShellMenuVisible => IsShellIntegrationEnabled && (_shellSubMenuItems.Count > 0 || _pinnedShellMenuItems.Count > 0);
-        public bool IsFullShellMenuVisible => ShellMenuMode == "Native" && Selection != null && Selection.HasSelection;
+        public bool IsFullShellMenuVisible => ShellMenuMode == "Native";
         public bool HasPinnedShellItems => IsShellIntegrationEnabled && _pinnedShellMenuItems.Count > 0;
 
         public ObservableCollection<ShellMenuItemViewModel> ShellSubMenuItems => _shellSubMenuItems;
@@ -312,18 +328,19 @@ namespace YiboFile.ViewModels
 
         #region Constructor
 
-        public PaneViewModel(Dispatcher dispatcher, IMessageBus messageBus, bool isSecondary = false)
+        public PaneViewModel(Dispatcher dispatcher, IMessageBus messageBus, bool isSecondary = false, Services.UI.IDialogService dialogService = null)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             _isSecondary = isSecondary;
             PaneLabel = isSecondary ? "B" : "A";
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
 
             _navigationService = App.ServiceProvider.GetService<NavigationService>();
 
             Selection = new SelectionViewModel(_messageBus, isSecondary);
-            Menu = new PaneMenuViewModel(this, _messageBus);
-            Commands = new PaneCommandSet(this, _messageBus);
+            Menu = new PaneMenuViewModel(this, _messageBus, _dialogService);
+            Commands = new PaneCommandSet(this, _messageBus, _dialogService);
             Preview = new Previews.PanePreviewViewModel(_messageBus, ConfigurationService.Instance, MyPaneId);
             
             // Fix initial state logic: if the Preview pane is visible, the inner preview should be hidden
@@ -349,16 +366,24 @@ namespace YiboFile.ViewModels
             // _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(OnFocusedPaneChanged);
 
             _messageBus.Subscribe<RefreshFileListMessage>(OnRefreshFileList);
+            _messageBus.Subscribe<RenameCompletedMessage>(OnRenameCompleted);
             _messageBus.Subscribe<LibrarySelectedMessage>(OnLibrarySelected);
-            _messageBus.Subscribe<FileSelectionChangedMessage>(OnFileSelectionChanged);
+            _messageBus.Subscribe<LibraryListChangedMessage>(OnLibraryListChanged);
             _messageBus.Subscribe<LibraryFilesLoadedMessage>(OnLibraryFilesLoaded);
+            _messageBus.Subscribe<ConfigurationSettingChangedMessage>(msg =>
+            {
+                if (msg.SettingName == "ShellMenuMode" || msg.SettingName == "All")
+                {
+                    OnPropertyChanged(nameof(ShellMenuMode));
+                    OnPropertyChanged(nameof(IsFullShellMenuVisible));
+                    OnPropertyChanged(nameof(IsShellIntegrationEnabled));
+                }
+            });
 
             // New Navigation Handling
             _messageBus.Subscribe<NavigationCompleteMessage>(OnNavigationComplete);
             _messageBus.Subscribe<Messaging.Messages.RestoreNavigationStateMessage>(OnRestoreNavigationState);
 
-            // 订阅库和标签变更
-            _messageBus.Subscribe<LibraryListChangedMessage>(OnLibraryListChanged);
             _messageBus.Subscribe<Messaging.Messages.FocusedPaneChangedMessage>(msg => IsActive = (msg.IsSecondPaneFocused == _isSecondary));
 
             _searchFilterService = App.ServiceProvider?.GetService<SearchFilterService>();
@@ -367,7 +392,7 @@ namespace YiboFile.ViewModels
             _libraryService = App.ServiceProvider?.GetService<LibraryService>();
 
             var columnService = App.ServiceProvider?.GetService<ColumnService>();
-            FileList = new FileListViewModel(_messageBus, isSecondary ? YiboFile.Services.Navigation.PaneId.Second : YiboFile.Services.Navigation.PaneId.Main, columnService);
+            FileList = new FileListViewModel(_messageBus, isSecondary ? YiboFile.Services.Navigation.PaneId.Second : YiboFile.Services.Navigation.PaneId.Main, columnService, dialogService: _dialogService);
 
             // Sync with FileListViewModel
             FileList.PropertyChanged += (s, e) =>
@@ -383,7 +408,9 @@ namespace YiboFile.ViewModels
             _shellService = App.ServiceProvider?.GetService<IShellContextMenuService>();
             _pinnedService = App.ServiceProvider?.GetService<IPinnedShellCommandService>();
 
-            _fileViewMode = ConfigurationService.Instance.Get(cfg => cfg.FileViewMode);
+            _fileViewMode = _isSecondary 
+                ? ConfigurationService.Instance.Get(cfg => cfg.FileViewMode_Secondary)
+                : ConfigurationService.Instance.Get(cfg => cfg.FileViewMode);
 
             // 仅预设路径值，不触发文件加载
             // 标签页恢复 (RestoreTabsState → SwitchToTab → RestoreNavigationStateMessage) 会在稍后设置正确路径并触发加载
@@ -634,17 +661,20 @@ namespace YiboFile.ViewModels
 
         private ShellMenuItemViewModel CreateShellMenuItemViewModel(ShellMenuItem item, List<string> originalPaths)
         {
-            var vm = new ShellMenuItemViewModel(item);
-            vm.ExecuteCommand = new RelayCommand(() => 
+            var vm = new ShellMenuItemViewModel(item, (id) => 
             {
-                _shellService.InvokeShellCommand(item.CommandId, originalPaths, System.Windows.Application.Current.MainWindow);
+                _shellService.InvokeShellCommand(id, originalPaths, System.Windows.Application.Current.MainWindow);
             });
             
-            // Phase 3: Pin/Hide Commands
+            // 为菜单项设置管理命令（固定/隐藏）
             vm.PinCommand = new RelayCommand(() => 
             {
-                if (vm.IsPinned) _pinnedService?.Unpin(item.Verb, item.Text);
-                else _pinnedService?.Pin(item.Verb, item.Text);
+                if (vm.IsPinned)
+                    _pinnedService?.Unpin(item.Verb, item.Text);
+                else
+                    _pinnedService?.Pin(item.Verb, item.Text);
+                
+                vm.IsPinned = !vm.IsPinned;
                 RequestUpdateShellMenu();
             });
 
@@ -654,23 +684,14 @@ namespace YiboFile.ViewModels
                 RequestUpdateShellMenu();
             });
 
-            if (item.Children?.Count > 0)
-            {
-                foreach (var child in item.Children)
-                {
-                    vm.Children.Add(CreateShellMenuItemViewModel(child, originalPaths));
-                }
-            }
-
-            // Phase 3: Add Management Options to each item
+            // 为具备 Verb 的项添加管理子菜单（Phase 3）
             AddManagementSubMenu(vm, item);
-            
+
             return vm;
         }
 
         private void RequestUpdateShellMenu()
         {
-            // Trigger a re-query after a setting change (Pin/Hide)
             _ = UpdateShellMenuItemsAsync();
         }
 
@@ -747,11 +768,26 @@ namespace YiboFile.ViewModels
             if (_searchFilterService != null) FileList.ApplyFilter(item => _searchFilterService.MatchesOptions(item, Filter.SearchOptions));
         }
 
-        // 已废弃：焦点状态由 MainWindowViewModel.ActivePane 属性统一调度，防止交换面板时焦点错位
         // private void OnFocusedPaneChanged(Messaging.Messages.FocusedPaneChangedMessage message) { IsActive = (message.IsSecondPaneFocused == _isSecondary); OnPropertyChanged(nameof(IsActive)); }
+
+        private void OnRenameCompleted(RenameCompletedMessage msg)
+        {
+            if (_pendingRefresh != null)
+            {
+                var pending = _pendingRefresh;
+                _pendingRefresh = null;
+                OnRefreshFileList(pending);
+            }
+        }
 
         private void OnRefreshFileList(RefreshFileListMessage msg)
         {
+            if (IsAnyItemRenaming)
+            {
+                _pendingRefresh = msg;
+                return;
+            }
+
             // 路径为空（全局刷新请求）时，必须匹配面板ID才执行
             if (string.IsNullOrEmpty(msg.Path))
             {
@@ -868,6 +904,20 @@ namespace YiboFile.ViewModels
                 {
                     // 路径相同但列表为空（启动首次加载被跳过） → 强制刷新
                     RequestRefresh();
+                }
+
+                if (msg.ViewMode.HasValue)
+                {
+                    // 仅当值确实不同时才更新，防止触发不必要的循环
+                    if (_fileViewMode != msg.ViewMode.Value)
+                    {
+                        _fileViewMode = msg.ViewMode.Value;
+                        OnPropertyChanged(nameof(FileViewMode));
+                        OnPropertyChanged(nameof(ViewModeIcon));
+                        
+                        // 通知 FileListViewModel 更新 UI
+                        _messageBus.Publish(new ViewModeChangedMessage(_fileViewMode, MyPaneId));
+                    }
                 }
 
                 OnPropertyChanged(nameof(CanNavigateBack));

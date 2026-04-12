@@ -31,7 +31,7 @@
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundInvertBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -150,7 +150,7 @@
                                     <controls:WordPreviewControl/>
                                     <Border Background="{DynamicResource OverlayDarkBrush}" Visibility="{Binding NeedsConversion, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding ConversionMessage}" Foreground="{DynamicResource ForegroundInvertBrush}" TextWrapping="Wrap" Margin="10" TextAlignment="Center"/>
+                                            <TextBlock Text="{Binding ConversionMessage}" Foreground="{DynamicResource ForegroundPrimaryBrush}" TextWrapping="Wrap" Margin="10" TextAlignment="Center"/>
                                             <Button Content="立即转换" Command="{Binding ConvertCommand}" Style="{DynamicResource PrimaryButtonStyle}" Margin="0,10,0,0"/>
                                         </StackPanel>
                                     </Border>
@@ -215,7 +215,7 @@
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
-                        <TextBlock Text="无可用预览" Foreground="{DynamicResource ForegroundTertiaryBrush}" FontSize="13"/>
+                        <TextBlock Text="无可用预览" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="13"/>
                     </StackPanel>
                 </Grid>
 

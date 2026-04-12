@@ -13,18 +13,21 @@ namespace YiboFile.Services.Tabs.Content
     {
         private ManagementPanelControl _cachedView;
         private string _initialTab;
+        private readonly YiboFile.Services.Localization.ILocalizationService _loc;
 
         /// <summary>
         /// 创建管理标签页内容。
         /// </summary>
         /// <param name="initialTab">初始选中的子标签页：Path / Library / Tag。默认 Path。</param>
-        public ManagementTabContent(string initialTab = "Path")
+        /// <param name="loc">本地化服务</param>
+        public ManagementTabContent(string initialTab = "Path", YiboFile.Services.Localization.ILocalizationService loc = null)
         {
             _initialTab = initialTab;
+            _loc = loc ?? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
         }
 
         public string Id => TabContentTypes.Management;
-        public string Title => "路径与库管理";
+        public string Title => _loc?["TabContent.Management"] ?? "路径与库管理";
         public string IconKey => "Icon_Nav_Library";
         public bool AllowMultiple => false;
         public bool SupportsSecondaryPane => true;

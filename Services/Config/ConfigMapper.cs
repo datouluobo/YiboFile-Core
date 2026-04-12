@@ -41,6 +41,7 @@ namespace YiboFile.Services.Config
             settings.Behavior.ShowOverflowGradient = source.ShowOverflowGradient;
             settings.Behavior.NewTabAction = source.NewTabAction;
             settings.Behavior.ShellMenuMode = source.ShellMenuMode;
+            settings.Behavior.RenameLostFocusBehavior = source.RenameLostFocusBehavior;
             #pragma warning disable CS0612
             settings.Behavior.TabWidthMode = source.TabWidthMode;
             settings.Behavior.PinnedTabWidth = source.PinnedTabWidth;
@@ -110,6 +111,10 @@ namespace YiboFile.Services.Config
             paneA.Session.LastLibraryId = source.LastLibraryId;
             paneA.Session.OpenTabs = new List<string>(source.OpenTabs ?? new List<string>());
             paneA.Session.ActiveTabKey = source.ActiveTabKey;
+            paneA.Session.TabViewModes = new Dictionary<string, string>(source.TabViewModes ?? new Dictionary<string, string>());
+            paneA.Session.FileViewMode = source.FileViewMode;
+            paneA.Session.SortColumn = source.SortColumn;
+            paneA.Session.SortDirection = source.SortDirection;
 
             // ── Pane B (Panes[1]) — 副面板列头 + 会话 ──
             var paneB = state.Panes[1];
@@ -121,8 +126,12 @@ namespace YiboFile.Services.Config
 
             paneB.Session.OpenTabs = new List<string>(source.OpenTabsSecondary ?? new List<string>());
             paneB.Session.ActiveTabKey = source.ActiveTabKeySecondary;
+            paneB.Session.TabViewModes = new Dictionary<string, string>(source.TabViewModes_Secondary ?? new Dictionary<string, string>());
+            paneB.Session.FileViewMode = source.FileViewMode_Secondary;
+            paneB.Session.SortColumn = source.SortColumn_Secondary;
+            paneB.Session.SortDirection = source.SortDirection_Secondary;
 
-            // View
+            // View (Mapped to Pane A as primary if needed, or kept as legacy global defaults)
             state.View.FileViewMode = source.FileViewMode;
             state.View.SortColumn = source.SortColumn;
             state.View.SortDirection = source.SortDirection;
@@ -162,6 +171,7 @@ namespace YiboFile.Services.Config
             config.ShowOverflowGradient = settings.Behavior.ShowOverflowGradient;
             config.NewTabAction = settings.Behavior.NewTabAction;
             config.ShellMenuMode = settings.Behavior.ShellMenuMode;
+            config.RenameLostFocusBehavior = settings.Behavior.RenameLostFocusBehavior;
             #pragma warning disable CS0612
             config.TabWidthMode = settings.Behavior.TabWidthMode;
             config.PinnedTabWidth = settings.Behavior.PinnedTabWidth;
@@ -225,6 +235,10 @@ namespace YiboFile.Services.Config
             config.LastLibraryId = paneA.Session.LastLibraryId;
             config.OpenTabs = new List<string>(paneA.Session.OpenTabs);
             config.ActiveTabKey = paneA.Session.ActiveTabKey;
+            config.TabViewModes = new Dictionary<string, string>(paneA.Session.TabViewModes ?? new Dictionary<string, string>());
+            config.FileViewMode = paneA.Session.FileViewMode;
+            config.SortColumn = paneA.Session.SortColumn;
+            config.SortDirection = paneA.Session.SortDirection;
 
             // ── Pane B → AppConfig 副面板字段 ──
             var paneB = state.Panes[1];
@@ -239,9 +253,13 @@ namespace YiboFile.Services.Config
 
             config.OpenTabsSecondary = new List<string>(paneB.Session.OpenTabs);
             config.ActiveTabKeySecondary = paneB.Session.ActiveTabKey;
+            config.TabViewModes_Secondary = new Dictionary<string, string>(paneB.Session.TabViewModes ?? new Dictionary<string, string>());
+            config.FileViewMode_Secondary = paneB.Session.FileViewMode;
+            config.SortColumn_Secondary = paneB.Session.SortColumn;
+            config.SortDirection_Secondary = paneB.Session.SortDirection;
 
-            // View
-            config.FileViewMode = state.View.FileViewMode;
+            // View (Legacy global)
+            // config.FileViewMode = state.View.FileViewMode; // Already mapped from Pane A
             config.SortColumn = state.View.SortColumn;
             config.SortDirection = state.View.SortDirection;
 

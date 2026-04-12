@@ -17,5 +17,11 @@ namespace YiboFile.ViewModels.Previews
             get => _subMessage;
             set => SetProperty(ref _subMessage, value);
         }
+        
+        public override System.Threading.Tasks.Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
+        {
+            FilePath = filePath;
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
     }
 }

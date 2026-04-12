@@ -125,7 +125,7 @@ namespace YiboFile.Handlers
                         try
                         {
                             _isAutoFitting = true;
-                            AutoFitNameColumn();
+                            _fileBrowser?.RequestColumnRecalculation();
                         }
                         finally
                         {
@@ -257,96 +257,13 @@ namespace YiboFile.Handlers
             // Run on dispatcher/idle to allow layout updates to propagate first if needed
             _fileBrowser?.Dispatcher?.BeginInvoke(new Action(() =>
             {
-                AutoFitNameColumn();
+                _fileBrowser?.RequestColumnRecalculation();
                 // Force layout update to clear any ghost header artifacts
                 _fileBrowser?.FilesList?.UpdateLayout();
             }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
-        private void AutoFitNameColumn()
-        {
-            if (_fileBrowser?.FilesList == null || _fileBrowser.FilesGrid == null) return;
-
-            var gridView = _fileBrowser.FilesGrid;
-            var columns = gridView.Columns;
-            GridViewColumn nameCol = null;
-            var otherCols = new System.Collections.Generic.List<GridViewColumn>();
-            double otherColsWidth = 0;
-
-            foreach (var col in columns)
-            {
-                string tag = null;
-                if (col.Header is FrameworkElement fe) tag = fe.Tag?.ToString();
-                else if (col.Header != null) tag = col.Header.ToString();
-
-                if (tag == "Name")
-                {
-                    nameCol = col;
-                }
-                else
-                {
-                    double w = col.ActualWidth > 0 ? col.ActualWidth : (double.IsNaN(col.Width) ? 0 : col.Width);
-                    if (w > 0)
-                    {
-                        otherColsWidth += w;
-                        otherCols.Add(col);
-                    }
-                }
-            }
-
-            if (nameCol == null) return;
-
-            // 如果 Name 列被用户显式隐藏，则不调整
-            if (nameCol.Width == 0 && !IsColumnVisible("Name")) return;
-
-            double listWidth = _fileBrowser.FilesList.ActualWidth;
-
-            // 动态计算内边距（考虑滚动条可见性）
-            double padding = 2;
-            var scrollViewer = FindDescendant<ScrollViewer>(_fileBrowser.FilesList);
-            if (scrollViewer != null && scrollViewer.ComputedVerticalScrollBarVisibility == Visibility.Visible)
-            {
-                padding += SystemParameters.VerticalScrollBarWidth;
-            }
-
-            double usableWidth = listWidth - padding;
-
-            // ── 第一阶段：压缩 Name 列 ──
-            double minNameWidth = 40;
-            double nameWidth = usableWidth - otherColsWidth;
-
-            if (nameWidth < minNameWidth)
-            {
-                nameWidth = minNameWidth;
-            }
-
-            // 仅在宽度显著变化时更新，防止 PropertyChanged 循环
-            if (Math.Abs(nameCol.Width - nameWidth) > 1)
-            {
-                nameCol.Width = nameWidth;
-            }
-
-            // ── 第二阶段：Name 已到底线后仍溢出，等比压缩其他所有可见列 ──
-            double totalUsed = nameWidth + otherColsWidth;
-            if (totalUsed > usableWidth && otherColsWidth > 0)
-            {
-                double targetOtherWidth = usableWidth - nameWidth;
-                if (targetOtherWidth < 0) targetOtherWidth = 0;
-
-                double scale = targetOtherWidth / otherColsWidth;
-                double minOtherCol = 30;
-
-                foreach (var col in otherCols)
-                {
-                    double w = col.ActualWidth > 0 ? col.ActualWidth : (double.IsNaN(col.Width) ? 0 : col.Width);
-                    double newW = Math.Max(minOtherCol, w * scale);
-                    if (Math.Abs(col.Width - newW) > 1)
-                    {
-                        col.Width = newW;
-                    }
-                }
-            }
-        }
+        // AutoFitNameColumn method removed to use unified engine
 
         private void UpdateVisibleColumnsConfig(string tag, bool isVisible)
         {

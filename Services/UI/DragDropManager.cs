@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +29,7 @@ namespace YiboFile.Services
         private ListView _associatedListView;
         private DragDropFeedbackAdorner _feedbackAdorner;
         private AdornerLayer _adornerLayer;
+        private readonly IDialogService _dialogService;
 
         // Delegate for refreshing the UI after a file operation
         public Action RequestRefresh { get; set; }
@@ -41,8 +43,9 @@ namespace YiboFile.Services
         // TaskQueueService for showing progress
         public FileOperations.TaskQueue.TaskQueueService TaskQueueService { get; set; }
 
-        public DragDropManager()
+        public DragDropManager(IDialogService dialogService = null)
         {
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<IDialogService>();
         }
 
         /// <summary>
@@ -463,7 +466,7 @@ namespace YiboFile.Services
                     task.Status = FileOperations.TaskQueue.TaskStatus.Failed;
                     task.CurrentFile = ex.Message;
                     System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
-                        YiboFile.DialogService.Error($"操作失败: {ex.Message}"));
+                        _dialogService?.ShowError($"操作失败: {ex.Message}"));
                 }
             });
         }
@@ -626,7 +629,7 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"创建快捷方式失败: {ex.Message}");
+                _dialogService?.ShowError($"创建快捷方式失败: {ex.Message}");
             }
         }
         private Controls.DragDropFeedbackAdorner _sourceDragAdorner;

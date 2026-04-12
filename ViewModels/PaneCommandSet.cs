@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -11,7 +12,6 @@ using YiboFile.Services.Navigation;
 using YiboFile.Services.Core;
 using YiboFile.Services.Features;
 using YiboFile.Services.Tabs;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.ViewModels
 {
@@ -23,11 +23,13 @@ namespace YiboFile.ViewModels
     {
         private readonly PaneViewModel _pane;
         private readonly IMessageBus _messageBus;
+        private readonly Services.UI.IDialogService _dialogService;
 
-        public PaneCommandSet(PaneViewModel pane, IMessageBus messageBus)
+        public PaneCommandSet(PaneViewModel pane, IMessageBus messageBus, Services.UI.IDialogService dialogService = null)
         {
             _pane = pane ?? throw new ArgumentNullException(nameof(pane));
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _dialogService = dialogService ?? App.ServiceProvider?.GetRequiredService<Services.UI.IDialogService>();
 
             InitializeCommands();
         }
@@ -139,11 +141,11 @@ namespace YiboFile.ViewModels
 
             NewLibraryCommand = new RelayCommand(() =>
             {
-                var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
-                if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                var inputName = _dialogService?.ShowInput("请输入库名称:", "", "新建库");
+                if (!string.IsNullOrWhiteSpace(inputName))
                 {
                     var paths = _pane.Selection?.SelectedItems?.Where(i => i.IsDirectory).Select(i => i.Path).ToList();
-                    _messageBus.Publish(new CreateLibraryRequestMessage(dialog.InputText, paths));
+                    _messageBus.Publish(new CreateLibraryRequestMessage(inputName, paths));
                 }
             });
 
@@ -154,7 +156,7 @@ namespace YiboFile.ViewModels
 
             NewFavoriteGroupCommand = new RelayCommand(() =>
             {
-                var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组");
+                var inputName = _dialogService?.ShowInput("请输入新分组名称：", "新分组", "新建分组");
                 if (!string.IsNullOrEmpty(inputName))
                 {
                     _messageBus.Publish(new CreateFavoriteGroupRequestMessage(inputName.Trim(), _pane.Selection?.SelectedItems?.ToList()));
@@ -163,20 +165,17 @@ namespace YiboFile.ViewModels
 
             ManageTagsCommand = new RelayCommand(() =>
             {
-                var dialog = new YiboFile.Controls.Dialogs.TagManagementDialog();
-                if (Application.Current?.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
-                dialog.ShowDialog();
+                _dialogService?.ShowTagManagementDialog();
                 _messageBus.Publish(new TagListChangedMessage());
             });
             NewTagCommand = ManageTagsCommand;
-
+ 
             BatchAddTagsCommand = new RelayCommand(() =>
             {
                 if ((_pane.Selection?.SelectedItems?.Count ?? 0) == 0) return;
-                var dialog = new YiboFile.Controls.Dialogs.TagSelectionDialog();
-                if (Application.Current?.MainWindow != null) dialog.Owner = Application.Current.MainWindow;
-                if (dialog.ShowDialog() == true)
-                    _messageBus.Publish(new AddTagToFilesRequestMessage(_pane.Selection.SelectedItems.Select(i => i.Path).ToList(), dialog.SelectedTagId));
+                var selectedTagId = _dialogService?.ShowTagSelectionDialog();
+                if (selectedTagId.HasValue)
+                    _messageBus.Publish(new AddTagToFilesRequestMessage(_pane.Selection.SelectedItems.Select(i => i.Path).ToList(), selectedTagId.Value));
             }, () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
             TagStatisticsCommand = new RelayCommand(() =>
@@ -190,14 +189,23 @@ namespace YiboFile.ViewModels
             ShowNativeShellMenuCommand = new RelayCommand(() =>
             {
                 var selectedItems = _pane.Selection?.SelectedItems?.Cast<YiboFile.Models.FileSystemItem>().ToList();
-                if (selectedItems == null || selectedItems.Count == 0) return;
+                List<string> paths;
 
-                // 规约 Phase 4: 支持物理路径转换
-                var paths = selectedItems
-                    .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
-                    .Where(p => !string.IsNullOrEmpty(p) && !p.Contains("://"))
-                    .ToList();
-                
+                if (selectedItems != null && selectedItems.Count > 0)
+                {
+                    // 规约 Phase 4: 支持物理路径转换
+                    paths = selectedItems
+                        .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
+                        .Where(p => !string.IsNullOrEmpty(p) && !p.Contains("://"))
+                        .ToList();
+                }
+                else if (!string.IsNullOrEmpty(_pane.CurrentPath) && !_pane.CurrentPath.Contains("://"))
+                {
+                    // 没有选中项时，显示当前目录的背景菜单
+                    paths = new List<string> { _pane.CurrentPath };
+                }
+                else return;
+
                 if (paths.Count == 0) return;
 
                 var shellService = App.ServiceProvider?.GetService<YiboFile.Services.Shell.IShellContextMenuService>();
@@ -207,7 +215,7 @@ namespace YiboFile.ViewModels
                 YiboFile.Interop.Shell.NativeMethods.GetCursorPos(out mousePos);
                 
                 shellService.ShowNativeMenu(paths, new Point(mousePos.x, mousePos.y), Application.Current.MainWindow);
-            }, () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
+            }, () => true); // 允许在任何时候弹出 (无论是否选中项)
         }
 
         public void NotifyCommandStatesChanged()

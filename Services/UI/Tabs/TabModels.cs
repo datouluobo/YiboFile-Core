@@ -26,11 +26,26 @@ namespace YiboFile.Services.Tabs
 
     public class PathTab : BaseViewModel
     {
-        private TabType _type;
+        [Obsolete("使用 ContentTypeId 替代。")]
         public TabType Type
         {
-            get => _type;
-            set => SetProperty(ref _type, value);
+            get
+            {
+                if (ContentTypeId == TabContentTypes.Library) return TabType.Library;
+                if (ContentTypeId == TabContentTypes.Search) return TabType.Search;
+                if (ContentTypeId == TabContentTypes.Tag) return TabType.Tag;
+                return TabType.Path;
+            }
+            set
+            {
+                ContentTypeId = value switch
+                {
+                    TabType.Library => TabContentTypes.Library,
+                    TabType.Search => TabContentTypes.Search,
+                    TabType.Tag => TabContentTypes.Tag,
+                    _ => TabContentTypes.Path
+                };
+            }
         }
 
         private string _path;
@@ -142,6 +157,13 @@ namespace YiboFile.Services.Tabs
         {
             get => _iconKey;
             set => SetProperty(ref _iconKey, value);
+        }
+        
+        private YiboFile.Models.Enums.FileListViewMode _viewMode = YiboFile.Models.Enums.FileListViewMode.List;
+        public YiboFile.Models.Enums.FileListViewMode ViewMode
+        {
+            get => _viewMode;
+            set => SetProperty(ref _viewMode, value);
         }
 
         // Navigation History State

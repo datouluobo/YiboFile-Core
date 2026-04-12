@@ -199,6 +199,15 @@ namespace YiboFile.Controls
         {
             if (DataContext is ViewModels.PaneViewModel vm)
             {
+                // [Binary Mode] 完全分离模式：如果设置为“系统菜单”，则直接显示原生菜单并拦截 WPF 菜单
+                if (vm.ShellMenuMode == "System")
+                {
+                    e.Handled = true;
+                    vm.Commands.ShowNativeShellMenuCommand.Execute(null);
+                    return;
+                }
+
+                // [Native Mode] 如果是“原生菜单”模式，才进行常规的 WPF 菜单准备
                 // 规约 Phase 2: 调用同步准备函数，彻底消除死锁风险
                 vm.PrepareShellMenuSync();
                 
@@ -273,6 +282,13 @@ namespace YiboFile.Controls
         public TitleActionBar ActionBar => TitleActionBar;
 
         public FileListControl GetFileListControl() => FileList;
+
+        public Behaviors.AutoColumnWidthBehavior AutoColumnWidthBehavior => FileList?.AutoColumnWidthBehavior;
+
+        public void RequestColumnRecalculation()
+        {
+            FileList?.RequestColumnRecalculation();
+        }
 
         public string AddressText
         {

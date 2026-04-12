@@ -10,6 +10,7 @@ namespace YiboFile.ViewModels.Previews
         string FilePath { get; }
         bool IsLoading { get; }
         ICommand OpenExternalCommand { get; }
+        System.Threading.Tasks.Task LoadAsync(string filePath, System.Threading.CancellationToken token = default);
     }
 
     public abstract class BasePreviewViewModel : BaseViewModel, IPreviewViewModel
@@ -43,6 +44,7 @@ namespace YiboFile.ViewModels.Previews
         }
 
         public ICommand OpenExternalCommand { get; protected set; }
+        public abstract System.Threading.Tasks.Task LoadAsync(string filePath, System.Threading.CancellationToken token = default);
 
         public virtual void Dispose()
         {

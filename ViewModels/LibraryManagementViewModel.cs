@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -13,21 +14,12 @@ using YiboFile;
 
 namespace YiboFile.ViewModels
 {
-    public interface ILibraryManagementDialogService
-    {
-        void ShowError(string message);
-        void ShowInfo(string message);
-        void ShowWarning(string message);
-        bool Confirm(string message, string title);
-        string ShowInputDialog(string title, string prompt, string defaultText);
-        string ShowFolderBrowserDialog(string title);
-    }
 
     public class LibraryManagementViewModel : BaseViewModel
     {
         private readonly ILibraryRepository _repository;
         private readonly LibraryService _libraryService;
-        private readonly ILibraryManagementDialogService _dialogService;
+        private readonly Services.UI.IDialogService _dialogService;
 
         private ObservableCollection<LibraryUiModel> _libraries;
         private string _newLibraryName;
@@ -37,11 +29,11 @@ namespace YiboFile.ViewModels
         public LibraryManagementViewModel(
             LibraryService libraryService,
             ILibraryRepository repository,
-            ILibraryManagementDialogService dialogService)
+            Services.UI.IDialogService dialogService = null)
         {
             _libraryService = libraryService ?? throw new ArgumentNullException(nameof(libraryService));
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
 
             CreateLibraryCommand = new RelayCommand(CreateNewLibrary);
             RenameLibraryCommand = new RelayCommand<LibraryUiModel>(RenameLibrary);
@@ -165,7 +157,7 @@ namespace YiboFile.ViewModels
         private void RenameLibrary(LibraryUiModel library)
         {
             if (library == null) return;
-            var newName = _dialogService.ShowInputDialog("重命名库", "请输入新的库名称:", library.Name);
+            var newName = _dialogService?.ShowInput("请输入新的库名称:", library.Name, "重命名库");
             if (!string.IsNullOrWhiteSpace(newName))
             {
                 try
@@ -230,7 +222,7 @@ namespace YiboFile.ViewModels
         private void AddPath(LibraryUiModel library)
         {
             if (library == null) return;
-            var path = _dialogService.ShowFolderBrowserDialog($"选择要添加到库 \"{library.Name}\" 的文件夹:");
+            var path = _dialogService?.ShowFolderBrowser($"选择要添加到库 \"{library.Name}\" 的文件夹:");
             if (!string.IsNullOrEmpty(path))
             {
                 try
@@ -255,7 +247,7 @@ namespace YiboFile.ViewModels
         private void EditPath(LibraryPath path)
         {
             if (path == null) return;
-            var newName = _dialogService.ShowInputDialog("编辑显示名称", "请输入显示名称:", path.DisplayName);
+            var newName = _dialogService?.ShowInput("请输入显示名称:", path.DisplayName, "编辑显示名称");
             // InputDialog returns null if cancelled. Logic allows empty string (reset to default?)
             // Existing logic: if (dialog.ShowDialog() == true) ... if (string.IsNullOrEmpty(newName)) newName = null;
             // The ShowInputDialog implementation should return null on cancel.

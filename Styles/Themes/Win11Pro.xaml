@@ -109,8 +109,8 @@
     <Color x:Key="ControlDefaultBrush.Color">#2B3D55</Color>
     <SolidColorBrush x:Key="ControlDefaultBrush" Color="#2B3D55"/>
     
-    <Color x:Key="ControlHoverBrush.Color">#364D6B</Color>
-    <SolidColorBrush x:Key="ControlHoverBrush" Color="#364D6B"/>
+    <Color x:Key="ControlHoverBrush.Color">#425D80</Color>
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#425D80"/>
     
     <Color x:Key="ControlPressedBrush.Color">#405B7A</Color>
     <SolidColorBrush x:Key="ControlPressedBrush" Color="#405B7A"/>

@@ -24,6 +24,7 @@ namespace YiboFile.Services.Tabs.Content
     public class FileBrowserTabContent : ITabContent
     {
         private readonly string _contentTypeId;
+        private readonly YiboFile.Services.Localization.ILocalizationService _loc;
 
         /// <summary>
         /// 创建文件浏览类标签页内容。
@@ -35,20 +36,22 @@ namespace YiboFile.Services.Tabs.Content
         /// <see cref="TabContentTypes.Tag"/>、
         /// <see cref="TabContentTypes.Search"/>
         /// </param>
-        public FileBrowserTabContent(string contentTypeId)
+        /// <param name="loc">本地化服务</param>
+        public FileBrowserTabContent(string contentTypeId, YiboFile.Services.Localization.ILocalizationService loc = null)
         {
             _contentTypeId = contentTypeId;
+            _loc = loc ?? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
         }
 
         public string Id => _contentTypeId;
 
         public string Title => _contentTypeId switch
         {
-            TabContentTypes.Path => "文件浏览",
-            TabContentTypes.Library => "库",
-            TabContentTypes.Tag => "标签",
-            TabContentTypes.Search => "搜索",
-            _ => "浏览"
+            TabContentTypes.Path => _loc?["TabContent.FileBrowser"] ?? "文件浏览",
+            TabContentTypes.Library => _loc?["TabContent.Library"] ?? "库",
+            TabContentTypes.Tag => _loc?["TabContent.Tag"] ?? "标签",
+            TabContentTypes.Search => _loc?["TabContent.Search"] ?? "搜索",
+            _ => _loc?["TabContent.FileBrowser"] ?? "浏览"
         };
 
         public string IconKey => _contentTypeId switch

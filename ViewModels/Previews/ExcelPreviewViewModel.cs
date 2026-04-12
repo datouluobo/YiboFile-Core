@@ -87,29 +87,49 @@ namespace YiboFile.ViewModels.Previews
             OpenExternalCommand = new RelayCommand(() => PreviewHelper.OpenInDefaultApp(FilePath));
         }
 
-        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
+        public override async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             FilePath = filePath;
             Title = Path.GetFileName(filePath);
             Icon = "📊";
             IsLoading = true;
+            IsLegacyFormat = false;
 
-            await Task.Run(() =>
+            try
             {
-                var ext = Path.GetExtension(filePath).ToLower();
-                if (ext == ".xls")
+                await Task.Run(() =>
                 {
-                    IsLegacyFormat = true;
-                    HasExcelInstalled = IsExcelInstalled();
-                }
-                else
-                {
-                    IsLegacyFormat = false;
-                    LoadXlsx(filePath);
-                }
-            });
-
-            IsLoading = false;
+                    var ext = Path.GetExtension(filePath).ToLower();
+                    if (ext == ".xls")
+                    {
+                        // Try auto-conversion to temp file for preview
+                        string tempXlsx = Path.Combine(Path.GetTempPath(), $"excel_preview_{Guid.NewGuid()}.xlsx");
+                        string error;
+                        if (ExcelParser.ConvertXlsToXlsx(filePath, tempXlsx, out error))
+                        {
+                            LoadXlsx(tempXlsx);
+                            // The temp file will be deleted later or overwritten
+                        }
+                        else
+                        {
+                            IsLegacyFormat = true;
+                            HasExcelInstalled = IsExcelInstalled();
+                        }
+                    }
+                    else
+                    {
+                        LoadXlsx(filePath);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                GeneratedHtml = $"<html><body>Error: {ex.Message}</body></html>";
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
         private void LoadXlsx(string path)
@@ -295,36 +315,48 @@ namespace YiboFile.ViewModels.Previews
 
             var sb = new StringBuilder();
             sb.Append("<html><head><meta charset='utf-8'><style>");
-            sb.Append("body{font-family:Segoe UI,Arial,Helvetica,sans-serif;margin:0}");
-            sb.Append(".hdr{background:#f5f5f5;border-bottom:1px solid #e6e6e6;padding:10px 15px;font-weight:600}");
-            sb.Append("table{border-collapse:collapse;width:100%}");
-            sb.Append("th,td{border:1px solid #ddd;padding:6px;font-size:13px}");
-            sb.Append("th{background:#fafafa}");
-            sb.Append(".meta{padding:8px 15px;color:#666;font-size:12px}");
+            sb.Append("body{font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;margin:0;background:#fff;color:#333}");
+            sb.Append(".hdr{background:#f8f9fa;border-bottom:1px solid #dee2e6;padding:12px 20px;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center}");
+            sb.Append("table{border-collapse:collapse;width:100%;table-layout:fixed;border-spacing:0;background:#fff}");
+            sb.Append("th,td{border:1px solid #e2e4e7;padding:4px 8px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}");
+            sb.Append("th{background:#f1f3f4;color:#5f6368;font-weight:normal;text-align:center;position:sticky;top:0;z-index:10}");
+            sb.Append(".row-idx{background:#f1f3f4;color:#5f6368;text-align:center;width:40px;position:sticky;left:0;z-index:5}");
+            sb.Append("tr:hover td{background:#f8f9fa}");
+            sb.Append(".meta{color:#70757a;font-size:11px;font-weight:normal}");
             sb.Append(themeCss);
+            sb.Append("[data-theme='dark'] body{background:#1e1e1e;color:#e8eaed}");
+            sb.Append("[data-theme='dark'] th, [data-theme='dark'] .row-idx{background:#2d2e30;color:#9aa0a6;border-color:#3c4043}");
+            sb.Append("[data-theme='dark'] td{border-color:#3c4043;background:#1e1e1e}");
+            sb.Append("[data-theme='dark'] .hdr{background:#202124;border-color:#3c4043}");
             sb.Append("</style></head><body>");
-            sb.Append($"<div class='hdr'>工作表: {WebUtility.HtmlEncode(sheetName)}</div>");
-            sb.Append($"<div class='meta'>行数预览: {rows.Count}</div>");
+            sb.Append("<div class='hdr'>");
+            sb.Append($"<span>工作表: {WebUtility.HtmlEncode(sheetName)}</span>");
+            sb.Append($"<span class='meta'>行数: {rows.Count} | 列数: {(rows.Count > 0 ? rows.Max(r => r.Count) : 0)}</span>");
+            sb.Append("</div>");
+            sb.Append("<div style='overflow:auto; height:calc(100vh - 45px)'>");
             sb.Append("<table>");
             if (rows.Count > 0)
             {
                 sb.Append("<thead><tr>");
+                sb.Append("<th class='row-idx'>#</th>"); // Corner cell
                 var maxCols = rows.Max(r => r.Count);
-                for (int c = 0; c < maxCols; c++) sb.Append($"<th>{IndexToCol(c)}</th>");
+                for (int c = 0; c < maxCols; c++) sb.Append($"<th style='width:100px'>{IndexToCol(c)}</th>");
                 sb.Append("</tr></thead>");
             }
             sb.Append("<tbody>");
-            foreach (var row in rows)
+            for (int i = 0; i < rows.Count; i++)
             {
+                var row = rows[i];
                 sb.Append("<tr>");
+                sb.Append($"<td class='row-idx'>{i + 1}</td>");
                 foreach (var cell in row)
                 {
                     var text = WebUtility.HtmlEncode(cell ?? "");
-                    sb.Append($"<td>{text}</td>");
+                    sb.Append($"<td title='{text}'>{text}</td>");
                 }
                 sb.Append("</tr>");
             }
-            sb.Append("</tbody></table></body></html>");
+            sb.Append("</tbody></table></div></body></html>");
             return sb.ToString();
         }
 

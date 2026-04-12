@@ -20,6 +20,7 @@ using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.Features;
 using YiboFile.Controls;
 using YiboFile.Services.Plugins;
+using YiboFile.Services.Hardware;
 
 namespace YiboFile.Services.Startup
 {
@@ -145,6 +146,8 @@ namespace YiboFile.Services.Startup
                     provider.GetService<ViewModels.Messaging.IMessageBus>(),
                     _application.Dispatcher));
 
+            services.AddSingleton<IHardwareMonitorService, HardwareMonitorService>();
+
             services.AddSingleton<FolderSizeCalculationService>();
             services.AddSingleton<YiboFile.Services.Shell.IShellContextMenuService, YiboFile.Services.Shell.ShellContextMenuService>();
             services.AddSingleton<YiboFile.Services.Shell.IPinnedShellCommandService, YiboFile.Services.Shell.PinnedShellCommandService>();
@@ -204,6 +207,9 @@ namespace YiboFile.Services.Startup
             services.AddSingleton<TabContentRegistry>();
             services.AddTransient<TabService>();
             services.AddTransient<ColumnService>();
+
+            // 注册对话框服务
+            services.AddSingleton<YiboFile.Services.UI.IDialogService, YiboFile.Services.UI.WpfDialogService>();
 
             // Register Dispatcher
             services.AddSingleton(_application.Dispatcher);
@@ -508,40 +514,40 @@ namespace YiboFile.Services.Startup
 
                 // ── 文件浏览类 ──
                 registry.Register(TabContentTypes.Path,
-                    () => new FileBrowserTabContent(TabContentTypes.Path),
+                    () => new FileBrowserTabContent(TabContentTypes.Path, loc),
                     new TabContentMetadata { Title = loc["TabContent.FileBrowser"], AllowMultiple = true, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Library,
-                    () => new FileBrowserTabContent(TabContentTypes.Library),
+                    () => new FileBrowserTabContent(TabContentTypes.Library, loc),
                     new TabContentMetadata { Title = loc["TabContent.Library"], IconKey = "Icon_Nav_Library", AllowMultiple = true, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Tag,
-                    () => new FileBrowserTabContent(TabContentTypes.Tag),
+                    () => new FileBrowserTabContent(TabContentTypes.Tag, loc),
                     new TabContentMetadata { Title = loc["TabContent.Tag"], IconKey = "Icon_Nav_Tag", AllowMultiple = true, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Search,
-                    () => new FileBrowserTabContent(TabContentTypes.Search),
+                    () => new FileBrowserTabContent(TabContentTypes.Search, loc),
                     new TabContentMetadata { Title = loc["TabContent.Search"], IconKey = "Icon_Nav_Search", AllowMultiple = true, SupportsSecondaryPane = true });
 
                 // ── 功能面板类 ──
                 registry.Register(TabContentTypes.Settings,
-                    () => new SettingsTabContent(),
+                    () => new SettingsTabContent(loc),
                     new TabContentMetadata { Title = loc["TabContent.Settings"], IconKey = "Icon_Window_Settings", AllowMultiple = false, SupportsSecondaryPane = false });
 
                 registry.Register(TabContentTypes.About,
-                    () => new AboutTabContent(),
+                    () => new AboutTabContent(loc),
                     new TabContentMetadata { Title = loc["TabContent.About"], IconKey = "Icon_Window_About", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Management,
-                    () => new ManagementTabContent(),
+                    () => new ManagementTabContent("Path", loc),
                     new TabContentMetadata { Title = loc["TabContent.Management"], IconKey = "Icon_Nav_Library", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Backup,
-                    () => new BackupTabContent(),
+                    () => new BackupTabContent(loc),
                     new TabContentMetadata { Title = loc["TabContent.Backup"], IconKey = "Icon_Folder", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 registry.Register(TabContentTypes.Clipboard,
-                    () => new ClipboardTabContent(),
+                    () => new ClipboardTabContent(loc),
                     new TabContentMetadata { Title = loc["TabContent.Clipboard"], IconKey = "Icon_Copy", AllowMultiple = false, SupportsSecondaryPane = true });
 
                 FileLogger.Log($"TabContentRegistry: Registered {registry.GetRegisteredIds().Count} content types");

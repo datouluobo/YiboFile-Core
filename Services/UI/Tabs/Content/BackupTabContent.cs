@@ -12,9 +12,15 @@ namespace YiboFile.Services.Tabs.Content
     public class BackupTabContent : ITabContent
     {
         private BackupBrowserControl _cachedView;
+        private readonly YiboFile.Services.Localization.ILocalizationService _loc;
+
+        public BackupTabContent(YiboFile.Services.Localization.ILocalizationService loc = null)
+        {
+            _loc = loc ?? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+        }
 
         public string Id => TabContentTypes.Backup;
-        public string Title => "备份管理";
+        public string Title => _loc?["TabContent.Backup"] ?? "备份管理";
         public string IconKey => "Icon_Folder";
         public bool AllowMultiple => false;
         public bool SupportsSecondaryPane => true;

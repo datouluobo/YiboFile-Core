@@ -172,4 +172,9 @@ namespace YiboFile.ViewModels.Messaging.Messages
             ResultPaths = resultPaths;
         }
     }
+
+    /// <summary>
+    /// 重命名完成（或取消）消息，用于在重命名结束后触发挂起的刷新请求
+    /// </summary>
+    public class RenameCompletedMessage { }
 }

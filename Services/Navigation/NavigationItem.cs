@@ -25,6 +25,7 @@ namespace YiboFile.Services.Navigation
         public string Path { get; set; }          // 完整路径
         public string IconKey { get; set; }       // 图标资源键
         public bool IsDrive { get; set; }         // 是否为驱动器节点
+        public bool CanEject { get; set; }        // 是否可以弹出 (针对可移动磁盘)
 
         // 驱动器特有属性
         public long TotalSize { get; set; }

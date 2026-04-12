@@ -6,7 +6,8 @@ using System.Windows.Input;
 using YiboFile.Services.Config;
 using YiboFile.Models;
 using YiboFile.ViewModels.Messaging.Messages;
-// using TagTrain.UI; // Phase 2
+using YiboFile.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Controls
 {
@@ -79,12 +80,41 @@ namespace YiboFile.Controls
             set => SetValue(OpenInNewTabCommandProperty, value);
         }
 
+        public static readonly DependencyProperty EjectDriveCommandProperty =
+            DependencyProperty.Register("EjectDriveCommand", typeof(ICommand), typeof(NavigationPanelControl), new PropertyMetadata(null));
+
+        public ICommand EjectDriveCommand
+        {
+            get => (ICommand)GetValue(EjectDriveCommandProperty);
+            set => SetValue(EjectDriveCommandProperty, value);
+        }
+
 
 
         public NavigationPanelControl()
         {
             InitializeComponent();
+            InitializeCommands();
             this.Loaded += NavigationPanelControl_Loaded;
+        }
+
+        private void InitializeCommands()
+        {
+            // 如果外部没有绑定命令，则初始化一个内部默认实现
+            if (EjectDriveCommand == null)
+            {
+                EjectDriveCommand = new RelayCommand<object>(param =>
+                {
+                    if (param is YiboFile.Services.Navigation.NavigationItem item)
+                    {
+                        if (item.IsDrive && item.CanEject && !string.IsNullOrEmpty(item.Path))
+                        {
+                            var bus = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<ViewModels.Messaging.IMessageBus>(App.ServiceProvider);
+                            bus?.Publish(new RequestEjectDriveMessage(item.Path));
+                        }
+                    }
+                });
+            }
         }
 
         private void NavigationPanelControl_Loaded(object sender, RoutedEventArgs e)
@@ -302,18 +332,23 @@ namespace YiboFile.Controls
 
         private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (!e.Handled && sender is DependencyObject source)
+            if (e.Handled) return;
+
+            // 查找应该处理滚动的 ScrollViewer
+            // 从 sender 的父级开始查找，以跳过控件内部可能存在的 ScrollViewer（即使其已禁用滚动）
+            var parent = System.Windows.Media.VisualTreeHelper.GetParent((DependencyObject)sender);
+            var scrollViewer = FindAncestor<ScrollViewer>(parent);
+
+            if (scrollViewer != null)
             {
-                var scrollViewer = FindAncestor<ScrollViewer>(source);
-                if (scrollViewer != null)
+                // 将事件标记为已处理，并手动在目标 ScrollViewer 上触发一个新的滚轮事件
+                e.Handled = true;
+                var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
                 {
-                    // Scroll incrementally based on Delta
-                    // Standard wheel delta is 120. 
-                    // 48 pixels is roughly 3 lines of text (16px fontsize).
-                    var scrollAmount = e.Delta / 120.0 * 48.0;
-                    scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - scrollAmount);
-                    e.Handled = true;
-                }
+                    RoutedEvent = UIElement.MouseWheelEvent,
+                    Source = sender
+                };
+                scrollViewer.RaiseEvent(eventArg);
             }
         }
 
@@ -439,6 +474,7 @@ namespace YiboFile.Controls
                     }
                     LibrariesListBoxSelectionChanged?.Invoke(s, e);
                 };
+                librariesListBox.PreviewMouseWheel += OnPreviewMouseWheel;
                 librariesListBox.ContextMenuOpening += (s, e) => LibrariesListBoxContextMenuOpening?.Invoke(s, e);
             }
 
@@ -523,6 +559,7 @@ namespace YiboFile.Controls
                 // Fix BUG-019: Remove SelectionChanged to prevent duplicate navigation
                 // listBox.SelectionChanged += FavoritesListBox_SelectionChanged;
                 listBox.PreviewMouseDown += FavoritesListBox_PreviewMouseDown;
+                listBox.PreviewMouseWheel += OnPreviewMouseWheel;
             }
         }
 
@@ -617,6 +654,7 @@ namespace YiboFile.Controls
             // Trigger global event if needed (keeping compatibility)
             if (!e.Handled) FavoriteListBoxPreviewMouseDown?.Invoke(this, sender as ListBox, e);
         }
+
 
         // Quick Access logic updated to prevent simultaneous navigation
         private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)

@@ -38,7 +38,6 @@ namespace YiboFile.Controls
         private IMessageBus _messageBus;
 
         // ═══ 跨面板预览 ═══
-        private bool _isDualPaneMode;
         private bool _isCrossPreviewActive;
         private object _savedPreviewDataContext;
 

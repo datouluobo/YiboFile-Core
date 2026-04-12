@@ -70,7 +70,7 @@
     <Thickness x:Key="UI.FileList.RowMargin">10,3</Thickness>
     <Thickness x:Key="UI.FileList.RowBorderThickness">0</Thickness>
     <sys:Double x:Key="UI.FileList.RowMinHeight">46</sys:Double>
-    <Thickness x:Key="UI.FileList.RowPadding">12,6</Thickness>
+    <Thickness x:Key="UI.FileList.RowPadding">16,6</Thickness>
     <!-- 选中时左侧2px强调线 -->
     <Thickness x:Key="UI.FileList.SelectedBorderThickness">2,0,0,0</Thickness>
 

@@ -24,374 +24,397 @@
             <Grid Name="NavPathContent" Margin="8" WindowChrome.IsHitTestVisibleInChrome="True">
                 <!-- 基础层：路径可滚动内容 -->
                 <Grid Margin="0,8,0,0">
-                <Grid.Resources>
-                    <!-- 递归数据模板 -->
-                    <HierarchicalDataTemplate x:Key="FolderTemplate" ItemsSource="{Binding Children}">
-                        <StackPanel Orientation="Horizontal" Margin="2,4">
-                            <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
-                                   Width="14" Height="14"
-                                   Margin="0,0,6,0" 
-                                   VerticalAlignment="Center"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                            <TextBlock Text="{Binding Header}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </HierarchicalDataTemplate>
-
-                    <!-- 驱动器根节点模板 -->
-                    <HierarchicalDataTemplate x:Key="DriveTemplate" ItemsSource="{Binding Children}">
-                        <Grid Margin="0,2,0,2">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <Grid Grid.Row="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <Image Grid.Column="0" 
-                                       helpers:IconHelper.IconKey="{Binding IconKey}" 
-                                       Width="18" Height="18"
-                                       Margin="0,0,8,0" 
+                    <Grid.Resources>
+                        <!-- 递归数据模板 -->
+                        <HierarchicalDataTemplate x:Key="FolderTemplate" ItemsSource="{Binding Children}">
+                            <StackPanel Orientation="Horizontal" Margin="2,4">
+                                <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
+                                       Width="14" Height="14"
+                                       Margin="0,0,6,0" 
                                        VerticalAlignment="Center"
                                        RenderOptions.BitmapScalingMode="HighQuality"/>
-                                           
-                                <DockPanel x:Name="DriveInfoPanel" Grid.Column="1" VerticalAlignment="Center" LastChildFill="True">
-                                    <!-- 容量信息 (必须完整显示，优先固定在右侧) -->
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
-                                        <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text=" / " FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
-                                    </StackPanel>
-                                    <!-- 盘符 + 别名 (别名在空间不足时完全隐藏) -->
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding DriveLetter}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding DriveLabel}" FontWeight="SemiBold" Margin="4,0,0,0" Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=DockPanel}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=200}"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Grid>
+                                <TextBlock Text="{Binding Header}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
 
-                            <!-- 进度条 -->
-                            <ProgressBar Grid.Row="1" 
-                                         Minimum="0" Maximum="1.0" 
-                                         Value="{Binding UsagePercentage}" 
-                                         Height="4" 
-                                         Margin="0,4,0,0"
-                                         BorderThickness="0"
-                                         Background="{DynamicResource ControlSampleBackgroundBrush}">
-                                <ProgressBar.Style>
-                                    <Style TargetType="ProgressBar">
-                                        <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                        <!-- 驱动器根节点模板 -->
+                        <HierarchicalDataTemplate x:Key="DriveTemplate" ItemsSource="{Binding Children}">
+                            <Grid Margin="0,2,0,2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <Image Grid.Column="0" 
+                                           helpers:IconHelper.IconKey="{Binding IconKey}" 
+                                           Width="18" Height="18"
+                                           Margin="0,0,8,0" 
+                                           VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                               
+                                    <DockPanel x:Name="DriveInfoPanel" Grid.Column="1" VerticalAlignment="Center" LastChildFill="True">
+                                        <!-- 容量信息 (必须完整显示，优先固定在右侧) -->
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                                            <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text=" / " FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
+                                        </StackPanel>
+                                        <!-- 盘符 + 别名 (别名在空间不足时完全隐藏) -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding DriveLetter}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding DriveLabel}" FontWeight="SemiBold" Margin="4,0,0,0" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                       Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=DockPanel}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=200}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Grid>
+
+                                <!-- 进度条 -->
+                                <ProgressBar Grid.Row="1" 
+                                             Minimum="0" Maximum="1.0" 
+                                             Value="{Binding UsagePercentage}" 
+                                             Height="4" 
+                                             Margin="0,4,0,0"
+                                             BorderThickness="0"
+                                             Background="{DynamicResource ControlSampleBackgroundBrush}">
+                                    <ProgressBar.Style>
+                                        <Style TargetType="ProgressBar">
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UsagePercentage}" Value="0.9">
+                                                    <Setter Property="Foreground" Value="{DynamicResource StatusErrorBrush}"/> 
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ProgressBar.Style>
+                                </ProgressBar>
+                            </Grid>
+                        </HierarchicalDataTemplate>
+                        
+                        <!-- 模板选择器 -->
+                        <local:NavigationItemTemplateSelector x:Key="NavigationItemTemplateSelector"
+                                                            DriveTemplate="{StaticResource DriveTemplate}"
+                                                            FolderTemplate="{StaticResource FolderTemplate}"/>
+
+                        <!-- 覆盖式 ScrollViewer 样式 (优化 Padding 以提供更多内容空间) -->
+                        <Style x:Key="OverlayScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+                            <Setter Property="OverridesDefaultStyle" Value="True"/>
+                            <Setter Property="Padding" Value="0,0,4,0"/> 
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                                        <Grid>
+                                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
+                                                                    Margin="{TemplateBinding Padding}"
+                                                                    CanContentScroll="{TemplateBinding CanContentScroll}"/>
+                                            <ScrollBar x:Name="PART_VerticalScrollBar" 
+                                                       HorizontalAlignment="Right" 
+                                                       Maximum="{TemplateBinding ScrollableHeight}" 
+                                                       Orientation="Vertical" 
+                                                       Style="{DynamicResource ModernScrollBarStyle}"
+                                                       ViewportSize="{TemplateBinding ViewportHeight}" 
+                                                       Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+
+                        <Style x:Key="ModernScrollBarStyle" TargetType="{x:Type ScrollBar}">
+                            <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
+                            <Setter Property="Stylus.IsFlicksEnabled" Value="false"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Width" Value="8"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                        <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
+                                            <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                                <Track.Thumb>
+                                                    <Thumb Style="{DynamicResource ScrollThumbStyle}"/>
+                                                </Track.Thumb>
+                                            </Track>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="Orientation" Value="Horizontal">
+                                    <Setter Property="Width" Value="Auto"/>
+                                    <Setter Property="Height" Value="8"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+
+                        <Style x:Key="ScrollThumbStyle" TargetType="{x:Type Thumb}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type Thumb}">
+                                        <Border x:Name="thumbBorder" Background="{DynamicResource AccentBrush}" CornerRadius="4" Opacity="0.3" Width="4" HorizontalAlignment="Right" Margin="0,0,2,0"/>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="thumbBorder" Property="Opacity" Value="0.8"/>
+                                                <Setter TargetName="thumbBorder" Property="Width" Value="8"/>
+                                                <Setter TargetName="thumbBorder" Property="Margin" Value="0"/>
+                                            </Trigger>
+                                            <Trigger Property="IsDragging" Value="True">
+                                                <Setter TargetName="thumbBorder" Property="Opacity" Value="1.0"/>
+                                                <Setter TargetName="thumbBorder" Property="Width" Value="8"/>
+                                                <Setter TargetName="thumbBorder" Property="Margin" Value="0"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+
+                        <!-- 树节点右键菜单定义为资源 -->
+                        <ContextMenu x:Key="DriveTreeViewContextMenu">
+                            <MenuItem Header="弹出" 
+                                      Command="{Binding Path=EjectDriveCommand, RelativeSource={RelativeSource AncestorType=local:NavigationPanelControl}}"
+                                      CommandParameter="{Binding}">
+                                <MenuItem.Style>
+                                    <Style TargetType="MenuItem">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding UsagePercentage}" Value="0.9">
-                                                <!-- Warning Red for > 90% logic handled via validation converter usually, simplified here -->
-                                                <Setter Property="Foreground" Value="{DynamicResource StatusErrorBrush}"/> 
+                                            <DataTrigger Binding="{Binding CanEject}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </ProgressBar.Style>
-                            </ProgressBar>
-                        </Grid>
-                    </HierarchicalDataTemplate>
+                                </MenuItem.Style>
+                                <MenuItem.Icon>
+                                    <TextBlock Text="⏏️" VerticalAlignment="Center" FontSize="14"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+
+                        <!-- TreeViewItem 样式 -->
+                         <Style x:Key="DriveTreeViewItemStyle" TargetType="TreeViewItem">
+                            <EventSetter Event="PreviewMouseDown" Handler="DrivesTreeViewItem_PreviewMouseDown"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                            <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                            <Setter Property="Padding" Value="1,0,0,0"/>
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                            <Setter Property="ContextMenu" Value="{StaticResource DriveTreeViewContextMenu}"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition MinWidth="19" Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- 展开按钮 (Chevron) -->
+                                            <ToggleButton x:Name="Expander" 
+                                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
+                                                <ToggleButton.Style>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Focusable" Value="False"/>
+                                                        <Setter Property="Width" Value="20"/>
+                                                        <Setter Property="Height" Value="20"/>
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="Transparent" Padding="2">
+                                                                        <Path x:Name="Arrow" 
+                                                                              Data="M 6,3 L 12,9 L 6,15" 
+                                                                              Stroke="{DynamicResource ForegroundSecondaryBrush}" 
+                                                                              StrokeThickness="1.5"
+                                                                              HorizontalAlignment="Center"
+                                                                              VerticalAlignment="Center"
+                                                                              RenderTransformOrigin="0.5,0.5">
+                                                                            <Path.RenderTransform>
+                                                                                <RotateTransform Angle="0"/>
+                                                                            </Path.RenderTransform>
+                                                                        </Path>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="Arrow" Property="RenderTransform">
+                                                                                <Setter.Value>
+                                                                                    <RotateTransform Angle="90"/>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                            <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ToggleButton.Style>
+                                            </ToggleButton>
+                                            
+                                            <!-- 内容区域 Border for Selection -->
+                                            <Border x:Name="Bd" 
+                                                    Grid.Column="1" 
+                                                    Grid.ColumnSpan="2"
+                                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                                    Background="{TemplateBinding Background}" 
+                                                    Padding="{TemplateBinding Padding}" 
+                                                    CornerRadius="{DynamicResource UI.Sidebar.ItemCornerRadius}"
+                                                    SnapsToDevicePixels="true">
+                                                <ContentPresenter x:Name="PART_Header" 
+                                                                ContentSource="Header" 
+                                                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                            
+                                            <!-- 子项目 -->
+                                            <ItemsPresenter x:Name="ItemsHost" 
+                                                          Grid.Column="1" 
+                                                          Grid.ColumnSpan="2" 
+                                                          Grid.Row="1"
+                                                          Margin="0,0,4,0"/>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsExpanded" Value="false">
+                                                <Setter Property="Visibility" TargetName="ItemsHost" Value="Collapsed"/>
+                                            </Trigger>
+                                            <Trigger Property="HasItems" Value="false">
+                                                <Setter Property="Visibility" TargetName="Expander" Value="Hidden"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="true">
+                                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="true">
+                                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="false">
+                                                <Setter Property="Foreground" Value="{DynamicResource ForegroundDisabledBrush}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Grid.Resources>
                     
-                    <!-- 模板选择器 -->
-                    <local:NavigationItemTemplateSelector x:Key="NavigationItemTemplateSelector"
-                                                        DriveTemplate="{StaticResource DriveTemplate}"
-                                                        FolderTemplate="{StaticResource FolderTemplate}"/>
-
-                    <!-- 覆盖式 ScrollViewer 样式 -->
-                    <Style x:Key="OverlayScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
-                        <Setter Property="OverridesDefaultStyle" Value="True"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                                    <Grid>
-                                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
-                                                                CanContentScroll="{TemplateBinding CanContentScroll}"/>
-                                        <ScrollBar x:Name="PART_VerticalScrollBar" 
-                                                   HorizontalAlignment="Right" 
-                                                   Maximum="{TemplateBinding ScrollableHeight}" 
-                                                   Orientation="Vertical" 
-                                                   Style="{DynamicResource ModernScrollBarStyle}"
-                                                   ViewportSize="{TemplateBinding ViewportHeight}" 
-                                                   Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
-                                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                                    </Grid>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-
-                    <Style x:Key="ModernScrollBarStyle" TargetType="{x:Type ScrollBar}">
-                        <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
-                        <Setter Property="Stylus.IsFlicksEnabled" Value="false"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Width" Value="6"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="{x:Type ScrollBar}">
-                                    <Grid x:Name="Bg" SnapsToDevicePixels="true">
-                                        <Track x:Name="PART_Track" IsDirectionReversed="true">
-                                            <Track.Thumb>
-                                                <Thumb Style="{DynamicResource ScrollThumbStyle}"/>
-                                            </Track.Thumb>
-                                        </Track>
-                                    </Grid>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="Orientation" Value="Horizontal">
-                                <Setter Property="Width" Value="Auto"/>
-                                <Setter Property="Height" Value="6"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-
-                    <Style x:Key="ScrollThumbStyle" TargetType="{x:Type Thumb}">
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="{x:Type Thumb}">
-                                    <Border x:Name="thumbBorder" Background="{DynamicResource AccentBrush}" CornerRadius="3" Opacity="0.4" Width="4"/>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                            <Setter TargetName="thumbBorder" Property="Opacity" Value="0.8"/>
-                                            <Setter TargetName="thumbBorder" Property="Width" Value="8"/>
-                                        </Trigger>
-                                        <Trigger Property="IsDragging" Value="True">
-                                            <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                            <Setter TargetName="thumbBorder" Property="Opacity" Value="1.0"/>
-                                            <Setter TargetName="thumbBorder" Property="Width" Value="8"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-
-                    <!-- TreeViewItem 样式：自定义展开按钮 -->
-                     <Style x:Key="DriveTreeViewItemStyle" TargetType="TreeViewItem">
-                        <EventSetter Event="PreviewMouseDown" Handler="DrivesTreeViewItem_PreviewMouseDown"/>
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
-                        <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
-                        <Setter Property="Padding" Value="1,0,0,0"/>
-                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="{x:Type TreeViewItem}">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition MinWidth="19" Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition/>
-                                        </Grid.RowDefinitions>
-                                        
-                                        <!-- 展开按钮 (Chevron) -->
-                                        <ToggleButton x:Name="Expander" 
-                                                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
-                                            <ToggleButton.Style>
-                                                <Style TargetType="ToggleButton">
-                                                    <Setter Property="Focusable" Value="False"/>
-                                                    <Setter Property="Width" Value="20"/>
-                                                    <Setter Property="Height" Value="20"/>
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="ToggleButton">
-                                                                <Border Background="Transparent" Padding="2">
-                                                                    <Path x:Name="Arrow" 
-                                                                          Data="M 6,3 L 12,9 L 6,15" 
-                                                                          Stroke="{DynamicResource ForegroundSecondaryBrush}" 
-                                                                          StrokeThickness="1.5"
-                                                                          HorizontalAlignment="Center"
-                                                                          VerticalAlignment="Center"
-                                                                          RenderTransformOrigin="0.5,0.5">
-                                                                        <Path.RenderTransform>
-                                                                            <RotateTransform Angle="0"/>
-                                                                        </Path.RenderTransform>
-                                                                    </Path>
-                                                                </Border>
-                                                                <ControlTemplate.Triggers>
-                                                                    <Trigger Property="IsChecked" Value="True">
-                                                                        <Setter TargetName="Arrow" Property="RenderTransform">
-                                                                            <Setter.Value>
-                                                                                <RotateTransform Angle="90"/>
-                                                                            </Setter.Value>
-                                                                        </Setter>
-                                                                        <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource AccentBrush}"/>
-                                                                    </Trigger>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="Arrow" Property="Stroke" Value="{DynamicResource ForegroundPrimaryBrush}"/>
-                                                                    </Trigger>
-                                                                </ControlTemplate.Triggers>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </ToggleButton.Style>
-                                        </ToggleButton>
-                                        
-                                        <!-- 内容区域 Border for Selection -->
-                                        <Border x:Name="Bd" 
-                                                Grid.Column="1" 
-                                                Grid.ColumnSpan="2"
-                                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                                Background="{TemplateBinding Background}" 
-                                                Padding="{TemplateBinding Padding}" 
-                                                CornerRadius="{DynamicResource UI.Sidebar.ItemCornerRadius}"
-                                                SnapsToDevicePixels="true">
-                                            <ContentPresenter x:Name="PART_Header" 
-                                                            ContentSource="Header" 
-                                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
-                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                        </Border>
-                                        
-                                        <!-- 子项目 -->
-                                        <ItemsPresenter x:Name="ItemsHost" 
-                                                      Grid.Column="1" 
-                                                      Grid.ColumnSpan="2" 
-                                                      Grid.Row="1"/>
-                                    </Grid>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsExpanded" Value="false">
-                                            <Setter Property="Visibility" TargetName="ItemsHost" Value="Collapsed"/>
-                                        </Trigger>
-                                        <Trigger Property="HasItems" Value="false">
-                                            <Setter Property="Visibility" TargetName="Expander" Value="Hidden"/>
-                                        </Trigger>
-                                        <Trigger Property="IsSelected" Value="true">
-                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SelectionBackgroundBrush}"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="true">
-                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsEnabled" Value="false">
-                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundDisabledBrush}"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Grid.Resources>
-                
-                <!-- 使用覆盖式 ScrollViewer 包裹整个路径导航区域 -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource OverlayScrollViewerStyle}">
-                    <StackPanel Name="NavSectionsPanel">
-                        <!-- 驱动器列表 (整体上移以对齐管理按钮, 内部对齐保持默认) -->
-                        <Expander Name="DrivesExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
-                             <Expander.Header>
-                                 <Grid Height="32">
-                                     <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.Drives}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
-                                 </Grid>
-                             </Expander.Header>
-                            <TreeView Name="DrivesTreeView" 
-                                      Margin="2"
-                                      BorderThickness="0"
-                                      Background="Transparent"
-                                      HorizontalContentAlignment="Stretch"
-                                      ItemTemplateSelector="{StaticResource NavigationItemTemplateSelector}"
-                                      ItemContainerStyle="{StaticResource DriveTreeViewItemStyle}"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                      ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                            </TreeView>
-                        </Expander>
-        
-                        <!-- 快速访问 -->
-                        <Expander Name="QuickAccessExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
-                             <Expander.Header>
-                                 <Grid Height="32">
-                                     <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.QuickAccess}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
-                                 </Grid>
-                             </Expander.Header>
-                            <ListBox Name="QuickAccessListBox" 
-                                     Margin="2,0,2,2"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     SelectionMode="Single"
-                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                                <ListBox.ItemTemplate>
+                    <!-- 使用覆盖式 ScrollViewer 包裹整个路径导航区域 -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource OverlayScrollViewerStyle}">
+                        <StackPanel Name="NavSectionsPanel">
+                            <!-- 驱动器列表 (整体上移以对齐管理按钮, 内部对齐保持默认) -->
+                            <Expander Name="DrivesExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
+                                 <Expander.Header>
+                                     <Grid Height="32">
+                                         <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.Drives}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                     </Grid>
+                                 </Expander.Header>
+                                <TreeView Name="DrivesTreeView" 
+                                          Margin="2"
+                                          BorderThickness="0"
+                                          Background="Transparent"
+                                          HorizontalContentAlignment="Stretch"
+                                          ItemTemplateSelector="{StaticResource NavigationItemTemplateSelector}"
+                                          ItemContainerStyle="{StaticResource DriveTreeViewItemStyle}"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                </TreeView>
+                            </Expander>
+            
+                            <!-- 快速访问 -->
+                            <Expander Name="QuickAccessExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
+                                 <Expander.Header>
+                                     <Grid Height="32">
+                                         <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.QuickAccess}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                     </Grid>
+                                 </Expander.Header>
+                                <ListBox Name="QuickAccessListBox" 
+                                         Margin="2,0,2,2"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         SelectionMode="Single"
+                                         ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
+                                                       Width="16" Height="16"
+                                                       Margin="0,0,8,0" 
+                                                       VerticalAlignment="Center"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Expander>
+                            
+                            <!-- 收藏分组 (动态 ItemControl) -->
+                            <ItemsControl Name="FavoritesGroupsItemsControl" Margin="0,0,0,8" ItemsSource="{Binding Favorites.FavoriteGroups}">
+                                <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
-                                                   Width="16" Height="16"
-                                                   Margin="0,0,8,0" 
-                                                   VerticalAlignment="Center"
-                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-                                        </StackPanel>
+                                        <Expander IsExpanded="True" Margin="0,-2,0,4" FocusVisualStyle="{x:Null}">
+                                            <Expander.Header>
+                                                <Grid Height="32" Margin="0,-6,0,0" Background="Transparent" AllowDrop="True" Loaded="FavoriteGroupHeader_Loaded">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Expander.Header>
+                                            <Expander.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="{i18n:Loc Key=Favorites.RenameGroup}" Tag="{Binding}" Click="RenameFavoriteGroup_Click">
+                                                        <MenuItem.Icon>
+                                                            <TextBlock Text="✏️" VerticalAlignment="Center" FontSize="14"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                    <MenuItem Header="{i18n:Loc Key=Favorites.DeleteGroup}" Tag="{Binding}" Click="DeleteFavoriteGroup_Click">
+                                                        <MenuItem.Icon>
+                                                            <TextBlock Text="🗑️" VerticalAlignment="Center" FontSize="14"/>
+                                                        </MenuItem.Icon>
+                                                    </MenuItem>
+                                                </ContextMenu>
+                                            </Expander.ContextMenu>
+                                            <ListBox ItemsSource="{Binding Items}" 
+                                                     Margin="2,0,2,2"
+                                                     BorderThickness="0"
+                                                     Background="Transparent"
+                                                     SelectionMode="Single"
+                                                     ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
+                                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                     Loaded="FavoriteListBox_Loaded">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
+                                                                   Width="16" Height="16"
+                                                                   Margin="0,0,8,0" 
+                                                                   VerticalAlignment="Center"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Expander>
                                     </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </Expander>
-                        
-                        <!-- 收藏分组 (动态 ItemControl) -->
-                        <ItemsControl Name="FavoritesGroupsItemsControl" Margin="0,0,0,8" ItemsSource="{Binding Favorites.FavoriteGroups}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Expander IsExpanded="True" Margin="0,-2,0,4" FocusVisualStyle="{x:Null}">
-                                        <Expander.Header>
-                                            <Grid Height="32" Margin="0,-6,0,0" Background="Transparent" AllowDrop="True" Loaded="FavoriteGroupHeader_Loaded">
-                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
-                                            </Grid>
-                                        </Expander.Header>
-                                        <Expander.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="{i18n:Loc Key=Favorites.RenameGroup}" Tag="{Binding}" Click="RenameFavoriteGroup_Click">
-                                                    <MenuItem.Icon>
-                                                        <TextBlock Text="✏️" VerticalAlignment="Center" FontSize="14"/>
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-                                                <MenuItem Header="{i18n:Loc Key=Favorites.DeleteGroup}" Tag="{Binding}" Click="DeleteFavoriteGroup_Click">
-                                                    <MenuItem.Icon>
-                                                        <TextBlock Text="🗑️" VerticalAlignment="Center" FontSize="14"/>
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-                                            </ContextMenu>
-                                        </Expander.ContextMenu>
-                                        <ListBox ItemsSource="{Binding Items}" 
-                                                 Margin="2,0,2,2"
-                                                 BorderThickness="0"
-                                                 Background="Transparent"
-                                                 SelectionMode="Single"
-                                                 ItemContainerStyle="{StaticResource NavListBoxItemStyle}"
-                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                                 Loaded="FavoriteListBox_Loaded">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
-                                                               Width="16" Height="16"
-                                                               Margin="0,0,8,0" 
-                                                               VerticalAlignment="Center"
-                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                    </Expander>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
- 
+                
                 <!-- 对齐首行的管理按钮 (Overlay 模式，Margin用于匹配 32px Header) -->
                 <Button x:Name="PathManageBtn" 
                         Style="{DynamicResource ModernButtonStyle}" 
@@ -509,29 +532,3 @@
         <local:NavTaskQueueView x:Name="NavTaskQueue" Grid.Row="2"/>
     </Grid>
 </UserControl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

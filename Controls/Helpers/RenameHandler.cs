@@ -9,6 +9,7 @@ using YiboFile.Models;
 using YiboFile.ViewModels;
 using YiboFile.ViewModels.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.Config;
 
 namespace YiboFile.Controls.Helpers
 {
@@ -18,6 +19,9 @@ namespace YiboFile.Controls.Helpers
     /// </summary>
     public static class RenameHandler
     {
+        [ThreadStatic]
+        private static bool _isProcessing;
+
         /// <summary>
         /// 处理重命名文本框的键盘按下事件
         /// </summary>
@@ -27,16 +31,20 @@ namespace YiboFile.Controls.Helpers
             {
                 if (e.Key == Key.Enter)
                 {
+                    _isProcessing = true;
                     // Force sync the TextBox text to RenameText in case binding hasn't updated
                     item.RenameText = textBox.Text;
                     CommitRename(item, controlDataContext);
                     RestoreFocusToList(textBox);
+                    _isProcessing = false;
                     e.Handled = true;
                 }
                 else if (e.Key == Key.Escape)
                 {
+                    _isProcessing = true;
                     CancelRename(item);
                     RestoreFocusToList(textBox);
+                    _isProcessing = false;
                     e.Handled = true;
                 }
             }
@@ -47,14 +55,24 @@ namespace YiboFile.Controls.Helpers
         /// </summary>
         public static void HandleLostFocus(object sender, RoutedEventArgs e, object controlDataContext)
         {
+            if (_isProcessing) return;
+            
             if (sender is TextBox textBox && textBox.DataContext is FileSystemItem item)
             {
-                // Commit on lost focus
+                // Commit or Cancel on lost focus based on settings
                 if (item.IsRenaming)
                 {
-                    // Delay slightly to allow Cancel to process if Esc was pressed
-                    // But actually, KeyDown happens before LostFocus.
-                    CommitRename(item, controlDataContext);
+                    var configService = App.ServiceProvider.GetService<IConfigurationService>();
+                    string behavior = configService?.GetSnapshot()?.RenameLostFocusBehavior ?? "Commit";
+
+                    if (behavior == "Cancel")
+                    {
+                        CancelRename(item);
+                    }
+                    else
+                    {
+                        CommitRename(item, controlDataContext);
+                    }
                 }
             }
         }
@@ -85,31 +103,33 @@ namespace YiboFile.Controls.Helpers
                     // 2. 确保它在焦点范围中是选中的
                     FocusManager.SetFocusedElement(FocusManager.GetFocusScope(textBox), textBox);
 
-                    // 确保文本已正确同步（处理绑定延迟）
-                    string name = !string.IsNullOrEmpty(item.RenameText)
-                        ? item.RenameText
-                        : (string.IsNullOrEmpty(textBox.Text) ? System.IO.Path.GetFileName(item.Path) : textBox.Text);
-
-                    if (string.IsNullOrEmpty(textBox.Text) && !string.IsNullOrEmpty(name))
-                    {
-                        textBox.Text = name;
-                    }
-
-                    // 选中逻辑
+                    // 选中逻辑：智能识别扩展名
                     if (!string.IsNullOrEmpty(textBox.Text))
                     {
                         var text = textBox.Text;
-                        int lastDotIndex = text.LastIndexOf('.');
-                        if (lastDotIndex > 0 && !item.IsDirectory)
-                        {
-                            textBox.Select(0, lastDotIndex);
-                        }
-                        else
+                        
+                        if (item.IsDirectory)
                         {
                             textBox.SelectAll();
                         }
+                        else
+                        {
+                            int lastDotIndex = text.LastIndexOf('.');
+                            // 逻辑优化：
+                            // 1. 如果没有点，全选
+                            // 2. 如果点在首位 (如 .gitignore)，全选
+                            // 3. 其他情况选择点之前的内容
+                            if (lastDotIndex > 0)
+                            {
+                                textBox.Select(0, lastDotIndex);
+                            }
+                            else
+                            {
+                                textBox.SelectAll();
+                            }
+                        }
                     }
-                }), System.Windows.Threading.DispatcherPriority.Input);
+                }), System.Windows.Threading.DispatcherPriority.Loaded); // 改为 Loaded 优先级确保 UI 已完全呈现
             }
         }
 
@@ -124,6 +144,7 @@ namespace YiboFile.Controls.Helpers
             if (string.IsNullOrWhiteSpace(item.RenameText) || item.RenameText == item.Name)
             {
                 item.IsRenaming = false;
+                PublishRenameCompleted(controlDataContext);
                 return;
             }
 
@@ -142,6 +163,7 @@ namespace YiboFile.Controls.Helpers
 
             // 重置状态
             item.IsRenaming = false;
+            PublishRenameCompleted(controlDataContext);
         }
 
         /// <summary>
@@ -153,6 +175,21 @@ namespace YiboFile.Controls.Helpers
             item.IsRenaming = false;
             // Revert text
             item.RenameText = item.Name;
+            PublishRenameCompleted(null);
+        }
+
+        private static void PublishRenameCompleted(object controlDataContext)
+        {
+            IMessageBus messageBus = null;
+            if (controlDataContext is PaneViewModel paneVm)
+            {
+                messageBus = paneVm.MessageBus;
+            }
+            if (messageBus == null)
+            {
+                messageBus = App.ServiceProvider.GetService<IMessageBus>();
+            }
+            messageBus?.Publish(new YiboFile.ViewModels.Messaging.Messages.RenameCompletedMessage());
         }
 
         /// <summary>

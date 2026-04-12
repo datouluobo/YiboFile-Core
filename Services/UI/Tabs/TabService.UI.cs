@@ -93,7 +93,7 @@ namespace YiboFile.Services.Tabs
 
             if (!skipValidation && !ValidatePath(path, out string errorMessage))
             {
-                YiboFile.DialogService.Warning(errorMessage);
+                _dialogService?.ShowWarning(errorMessage);
                 return;
             }
 
@@ -195,7 +195,6 @@ namespace YiboFile.Services.Tabs
             var newTab = new PathTab
             {
                 ContentTypeId = TabContentTypes.Library,
-                Type = TabType.Library,
                 Path = path,
                 Title = libraryName
             };
@@ -245,7 +244,6 @@ namespace YiboFile.Services.Tabs
             var newTab = new PathTab
             {
                 ContentTypeId = TabContentTypes.Library,
-                Type = TabType.Library,
                 Path = $"lib://{library.Name}",
                 Title = library.Name,
                 Library = library
@@ -289,7 +287,7 @@ namespace YiboFile.Services.Tabs
             if (tab.IsActive)
             {
                 // Prefer switching to a sibling of the SAME type
-                nextCandidate = _tabs.Where(t => t != tab && t.Type == tab.Type).LastOrDefault();
+                nextCandidate = _tabs.Where(t => t != tab && t.ContentTypeId == tab.ContentTypeId).LastOrDefault();
                 // If none, fallback to any previous tab
                 if (nextCandidate == null) nextCandidate = _tabs.Where(t => t != tab).LastOrDefault();
             }
@@ -312,16 +310,16 @@ namespace YiboFile.Services.Tabs
                 return;
             }
 
-            if (tabToDuplicate.Type == TabType.Library && tabToDuplicate.Library != null)
+            if (tabToDuplicate.ContentTypeId == TabContentTypes.Library && tabToDuplicate.Library != null)
             {
                 OpenLibraryTab(tabToDuplicate.Library, forceNewTab: true, activate: true);
             }
-            else if (tabToDuplicate.Type == TabType.Tag)
+            else if (tabToDuplicate.ContentTypeId == TabContentTypes.Tag)
             {
                 // Assuming Tag support in TabService exists or will be added
                 var newTab = new PathTab
                 {
-                    Type = TabType.Tag,
+                    ContentTypeId = TabContentTypes.Tag,
                     Path = tabToDuplicate.Path,
                     Title = tabToDuplicate.Title
                 };
@@ -343,6 +341,12 @@ namespace YiboFile.Services.Tabs
             // 绑定选择命令
             tab.SelectCommand = new YiboFile.ViewModels.RelayCommand(() => SwitchToTab(tab));
 
+            // 初始化 ViewMode
+            if (Pane == Services.Navigation.PaneId.Second)
+                tab.ViewMode = _config?.FileViewMode_Secondary ?? YiboFile.Models.Enums.FileListViewMode.List;
+            else
+                tab.ViewMode = _config?.FileViewMode ?? YiboFile.Models.Enums.FileListViewMode.List;
+
             // 添加到数据集合，ItemsControl 会自动感知并根据 DataTemplate 渲染
             AddTab(tab);
 
@@ -357,7 +361,7 @@ namespace YiboFile.Services.Tabs
             EnsureUi();
             try
             {
-                var newTitle = DialogService.ShowInput("请输入新的显示标题：", GetEffectiveTitle(tab), "输入", owner: _ui.OwnerWindow);
+                var newTitle = _dialogService?.ShowInput("请输入新的显示标题：", GetEffectiveTitle(tab), "输入");
                 if (newTitle != null) SetTabOverrideTitle(tab, newTitle.Trim());
             }
             catch { }

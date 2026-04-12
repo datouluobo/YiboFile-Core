@@ -12,9 +12,15 @@ namespace YiboFile.Services.Tabs.Content
     public class AboutTabContent : ITabContent
     {
         private AboutPanelControl _cachedView;
+        private readonly YiboFile.Services.Localization.ILocalizationService _loc;
+
+        public AboutTabContent(YiboFile.Services.Localization.ILocalizationService loc = null)
+        {
+            _loc = loc ?? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+        }
 
         public string Id => TabContentTypes.About;
-        public string Title => "关于";
+        public string Title => _loc?["TabContent.About"] ?? "关于";
         public string IconKey => "Icon_Window_About";
         public bool AllowMultiple => false;
         public bool SupportsSecondaryPane => true;

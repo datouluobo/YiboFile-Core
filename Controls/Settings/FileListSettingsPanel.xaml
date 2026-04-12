@@ -49,5 +49,18 @@
         </Grid>
         <TextBlock Text="{i18n:Loc Key=Settings.FileList.Range100_800}" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
 
+        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,24,0,24" />
+
+        <TextBlock Text="{i18n:Loc Key=Settings.FileList.RenameBehavior}" FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />
+        <TextBlock Text="{i18n:Loc Key=Settings.FileList.RenameLostFocusDesc}" FontSize="14" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,12" />
+        
+        <StackPanel Margin="0,0,0,16">
+            <RadioButton Content="{i18n:Loc Key=Settings.FileList.RenameLostFocusCommit}" 
+                         IsChecked="{Binding IsRenameLostFocusCommit}"
+                         Margin="0,0,0,8" />
+            <RadioButton Content="{i18n:Loc Key=Settings.FileList.RenameLostFocusCancel}" 
+                         IsChecked="{Binding IsRenameLostFocusCancel}" />
+        </StackPanel>
+
     </StackPanel>
 </UserControl>

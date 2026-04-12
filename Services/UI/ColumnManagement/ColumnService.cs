@@ -336,6 +336,26 @@ namespace YiboFile.Services.ColumnManagement
                 width = fallback > 0 ? fallback : 100;
             }
 
+            // 强制给定部分列的最小宽度，防止历史缓存中保存了过小的值（如60）导致列头内容被裁剪
+            if (width > 0)
+            {
+                switch (tag)
+                {
+                    case "Type":
+                        width = Math.Max(80, width);
+                        break;
+                    case "Size":
+                        width = Math.Max(100, width);
+                        break;
+                    case "CreatedTime":
+                        width = Math.Max(80, width);
+                        break;
+                    case "ModifiedDate":
+                        width = Math.Max(120, width);
+                        break;
+                }
+            }
+
             return width;
         }
 
@@ -551,7 +571,8 @@ namespace YiboFile.Services.ColumnManagement
             if (fileBrowser?.FilesGrid == null) return;
             try
             {
-                LoadColumnWidths(fileBrowser);
+                // 不重新加载配置，仅触发弹性列重算
+                fileBrowser.AutoColumnWidthBehavior?.AdjustTargetColumnWidth();
             }
             catch { }
         }

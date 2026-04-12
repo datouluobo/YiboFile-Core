@@ -149,11 +149,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ScrollViewer}">
                     <Grid>
-                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" CanContentScroll="{TemplateBinding CanContentScroll}" Margin="0,0,0,2" /> 
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" CanContentScroll="{TemplateBinding CanContentScroll}" Margin="0,0,0,4" /> 
                         <!-- Vertical ScrollBar -->
                         <ScrollBar x:Name="PART_VerticalScrollBar" HorizontalAlignment="Right" Maximum="{TemplateBinding ScrollableHeight}" Orientation="Vertical" Style="{StaticResource OverlayScrollBarStyle}" ViewportSize="{TemplateBinding ViewportHeight}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Opacity="0" />
                         <!-- Horizontal ScrollBar -->
-                        <ScrollBar x:Name="PART_HorizontalScrollBar" VerticalAlignment="Bottom" Maximum="{TemplateBinding ScrollableWidth}" Orientation="Horizontal" Style="{StaticResource OverlayScrollBarStyle}" ViewportSize="{TemplateBinding ViewportWidth}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Opacity="0" />
+                        <ScrollBar x:Name="PART_HorizontalScrollBar" VerticalAlignment="Bottom" Margin="0,0,0,-3" Maximum="{TemplateBinding ScrollableWidth}" Orientation="Horizontal" Style="{StaticResource OverlayScrollBarStyle}" ViewportSize="{TemplateBinding ViewportWidth}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Opacity="0" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">

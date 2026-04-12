@@ -11,6 +11,7 @@ using YiboFile.Services.Config;
 using YiboFile.Services.Navigation;
 using YiboFile.Models.Navigation;
 using YiboFile.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Handlers
 {
@@ -22,14 +23,15 @@ namespace YiboFile.Handlers
         private readonly NavigationService _navigationService;
         private readonly Services.FileList.FileListService _fileListService;
         private readonly Services.ColumnManagement.ColumnService _columnService;
-
+        private readonly Services.UI.IDialogService _dialogService;
         public LibraryEventHandler(
             IShellWindow shellWindow,
             LibraryService libraryService,
             INavigationCoordinator navigationCoordinator,
             NavigationService navigationService,
             Services.FileList.FileListService fileListService,
-            Services.ColumnManagement.ColumnService columnService)
+            Services.ColumnManagement.ColumnService columnService,
+            Services.UI.IDialogService dialogService = null)
         {
             _shellWindow = shellWindow ?? throw new ArgumentNullException(nameof(shellWindow));
             _libraryService = libraryService ?? throw new ArgumentNullException(nameof(libraryService));
@@ -37,6 +39,7 @@ namespace YiboFile.Handlers
             _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
             _fileListService = fileListService ?? throw new ArgumentNullException(nameof(fileListService));
             _columnService = columnService ?? throw new ArgumentNullException(nameof(columnService));
+            _dialogService = dialogService ?? App.ServiceProvider?.GetRequiredService<Services.UI.IDialogService>();
         }
 
         public void Initialize()
@@ -84,9 +87,7 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                // DialogService.Error relies on Window, pass Owner window if possible or null
-                // Or IShellWindow cast to Window if strictly needed, or just null for generic handle
-                MessageBox.Show($"加载库文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                _dialogService?.ShowError($"加载库文件失败: {ex.Message}");
             }
         }
 
@@ -226,12 +227,12 @@ namespace YiboFile.Handlers
         {
             if (_shellWindow.LibrariesListBox.SelectedItem is Library lib)
             {
-                var owner = _shellWindow as Window;
-                var dialog = new YiboFile.Controls.Dialogs.InputDialog("重命名库", "请输入新名称:", lib.Name);
-                if (owner != null) dialog.Owner = owner;
-
-                if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+                string newName = _dialogService?.ShowInput("请输入新名称:", lib.Name, "重命名库");
+                if (!string.IsNullOrWhiteSpace(newName))
                 {
+                    // [TODO] 实现重命名逻辑（由于这是 EventHandler，可能需要调用 libraryService）
+                    _libraryService?.UpdateLibraryName(lib.Id, newName);
+                    LoadLibraries();
                 }
             }
         }
@@ -240,8 +241,7 @@ namespace YiboFile.Handlers
         {
             if (_shellWindow.LibrariesListBox.SelectedItem is Library lib)
             {
-                var owner = _shellWindow as Window;
-                if (DialogService.Ask($"确定要删除库 \"{lib.Name}\" 吗？", "确认删除", owner))
+                if (_dialogService?.Confirm($"确定要删除库 \"{lib.Name}\" 吗？", "确认删除") == true)
                 {
                     _libraryService?.DeleteLibrary(lib.Id, lib.Name);
                     LoadLibraries();
@@ -276,7 +276,7 @@ namespace YiboFile.Handlers
             var selectedItems = _shellWindow.FileBrowser?.FilesSelectedItems?.Cast<FileSystemItem>().ToList() ?? new List<FileSystemItem>();
             if (selectedItems.Count == 0)
             {
-                MessageBox.Show("请先选择要添加到库的文件或文件夹", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                _dialogService?.ShowInfo("请先选择要添加到库的文件或文件夹", "提示");
                 return;
             }
 
@@ -292,7 +292,7 @@ namespace YiboFile.Handlers
                 var libraries = _libraryService.LoadLibraries();
                 if (libraries.Count == 0)
                 {
-                    MessageBox.Show("当前没有可用的库，请先创建一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _dialogService?.ShowInfo("当前没有可用的库，请先创建一个库", "提示");
                     return;
                 }
 
@@ -340,7 +340,7 @@ namespace YiboFile.Handlers
                     }
                     else
                     {
-                        MessageBox.Show("请选择一个库", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        _dialogService?.ShowWarning("请选择一个库", "提示");
                     }
                 };
 
@@ -398,7 +398,7 @@ namespace YiboFile.Handlers
 
             if (failCount > 0 && successCount == 0)
             {
-                MessageBox.Show($"添加失败:\n{string.Join("\\n", failedItems)}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                _dialogService?.ShowError($"添加失败:\n{string.Join("\n", failedItems)}");
             }
 
             currentLib = _shellWindow.ViewModel?.ActivePane?.CurrentLibrary;

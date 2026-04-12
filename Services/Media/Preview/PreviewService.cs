@@ -62,38 +62,17 @@ namespace YiboFile.Services.Preview
 
             try
             {
-                // Start loading immediately
-                var loadingTask = YiboFile.Previews.PreviewFactory.CreateViewModelAsync(filePath, token);
-
-                // Wait for either completion or small delay (50ms)
-                // This prevents flickering for fast-loading files
-                var delayTask = System.Threading.Tasks.Task.Delay(50, token);
-
-                var completedTask = await System.Threading.Tasks.Task.WhenAny(loadingTask, delayTask);
-
+                // Instantiate immediately (no await)
+                var viewModel = YiboFile.Previews.PreviewFactory.CreateViewModel(filePath);
+                
+                if (viewModel == null) return;
                 if (_generations.TryGetValue(pane, out var currentGen) && generation != currentGen || token.IsCancellationRequested) return;
 
-                if (completedTask == delayTask)
-                {
-                    // Loading is taking longer than 50ms.
-                    // Show "Loading..." / Empty state now.
-                    _messageBus.Publish(new PreviewChangedMessage(null, pane));
+                // Publish instance immediately so UI can show it (and its loading state)
+                _messageBus.Publish(new PreviewChangedMessage(viewModel, pane));
 
-                    // Await the actual load
-                    var viewModel = await loadingTask;
-
-                    if (_generations.TryGetValue(pane, out currentGen) && generation != currentGen || token.IsCancellationRequested) return;
-                    _messageBus.Publish(new PreviewChangedMessage(viewModel, pane));
-                }
-                else
-                {
-                    // Loading finished quickly (<50ms).
-                    // Update UI directly without clearing first (prevents flicker).
-                    var viewModel = await loadingTask;
-
-                    if (_generations.TryGetValue(pane, out currentGen) && generation != currentGen || token.IsCancellationRequested) return;
-                    _messageBus.Publish(new PreviewChangedMessage(viewModel, pane));
-                }
+                // Start actual loading
+                await viewModel.LoadAsync(filePath, token);
             }
             catch (OperationCanceledException)
             {

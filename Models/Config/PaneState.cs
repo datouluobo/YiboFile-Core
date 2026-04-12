@@ -33,6 +33,11 @@ namespace YiboFile.Models.Config
         public int LastLibraryId { get; set; } = 0;
         public List<string> OpenTabs { get; set; } = new List<string>();
         public string ActiveTabKey { get; set; } = string.Empty;
+        /// <summary>每标签页视图模式映射 (tabKey → ViewMode 枚举名)</summary>
+        public Dictionary<string, string> TabViewModes { get; set; } = new Dictionary<string, string>();
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List;
+        public string SortColumn { get; set; } = "Name";
+        public string SortDirection { get; set; } = "Ascending";
     }
 
     /// <summary>

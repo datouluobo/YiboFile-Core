@@ -153,7 +153,6 @@ namespace YiboFile.Services.Navigation
                 if (activeTab != null)
                 {
                     activeTab.ContentTypeId = TabContentTypes.Library;
-                    activeTab.Type = TabType.Library;
                     string libName = path.Substring(6);
                     if (activeTab.Library == null || activeTab.Library.Name != libName)
                     {
@@ -193,7 +192,6 @@ namespace YiboFile.Services.Navigation
                     if (activeTab != null)
                     {
                         activeTab.ContentTypeId = TabContentTypes.Library;
-                        activeTab.Type = TabType.Library;
                         string libName = path.Substring(6);
                         if (activeTab.Library == null || activeTab.Library.Name != libName)
                         {
@@ -257,7 +255,6 @@ namespace YiboFile.Services.Navigation
                 if (tabService.ActiveTab != null && tabService.ActiveTab.Path == "lib://")
                 {
                     tabService.ActiveTab.ContentTypeId = TabContentTypes.Library;
-                    tabService.ActiveTab.Type = TabType.Library;
                     tabService.UpdateTabTitle(tabService.ActiveTab, "lib://");
                 }
             }
@@ -275,7 +272,6 @@ namespace YiboFile.Services.Navigation
                 if (activeTab != null)
                 {
                     activeTab.ContentTypeId = TabContentTypes.Library;
-                    activeTab.Type = TabType.Library;
                     activeTab.Path = "lib://";
                     activeTab.Library = null;
                     tabService.UpdateTabTitle(activeTab, "所有库");
@@ -305,7 +301,6 @@ namespace YiboFile.Services.Navigation
                 if (activeTab != null)
                 {
                     activeTab.ContentTypeId = TabContentTypes.Library;
-                    activeTab.Type = TabType.Library;
                     activeTab.Path = $"lib://{library.Name}";
                     activeTab.Library = library;
                     tabService.UpdateTabTitle(activeTab, library.Name);

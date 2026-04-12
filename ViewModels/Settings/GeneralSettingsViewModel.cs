@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows.Input;
 using System.IO;
 using System.Diagnostics;
@@ -15,10 +16,12 @@ namespace YiboFile.ViewModels.Settings
 
         private readonly IConfigPathProvider _pathProvider;
         private readonly IConfigurationService _configService;
+        private readonly Services.UI.IDialogService _dialogService;
 
-        public GeneralSettingsViewModel(IConfigurationService configService)
+        public GeneralSettingsViewModel(IConfigurationService configService, Services.UI.IDialogService dialogService = null)
         {
             _configService = configService;
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
             _pathProvider = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Config.IConfigPathProvider)) as YiboFile.Services.Config.IConfigPathProvider;
             ChangeBaseDirectoryCommand = new RelayCommand<string>(ChangeBaseDirectory);
             CreateDesktopShortcutCommand = new RelayCommand(CreateDesktopShortcut);
@@ -322,12 +325,12 @@ namespace YiboFile.ViewModels.Settings
 
                     var loc = App.ServiceProvider?.GetService(typeof(YiboFile.Services.Localization.ILocalizationService)) as YiboFile.Services.Localization.ILocalizationService;
                     string msg = loc?.Get("Settings.General.ShortcutCreated") ?? "快捷方式已创建到桌面";
-                    YiboFile.DialogService.Info(msg);
+                    _dialogService?.ShowInfo(msg);
                 }
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"创建快捷方式失败: {ex.Message}");
+                _dialogService?.ShowError($"创建快捷方式失败: {ex.Message}");
             }
         }
     }

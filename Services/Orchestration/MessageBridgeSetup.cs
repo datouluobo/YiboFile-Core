@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
@@ -20,11 +21,13 @@ namespace YiboFile.Services.Orchestration
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IMessageBus _messageBus;
+        private readonly UI.IDialogService _dialogService;
 
         public MessageBridgeSetup(IServiceProvider serviceProvider, IMessageBus messageBus)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _dialogService = _serviceProvider.GetService<UI.IDialogService>();
         }
 
         /// <summary>
@@ -129,7 +132,7 @@ namespace YiboFile.Services.Orchestration
                         }
                         catch (Exception ex)
                         {
-                            DialogService.Error($"无法打开文件: {ex.Message}", owner: window);
+                            _dialogService?.ShowError($"无法打开文件: {ex.Message}");
                         }
                     }
                 });
@@ -151,7 +154,7 @@ namespace YiboFile.Services.Orchestration
                 {
                     if (e.Severity == ErrorSeverity.Critical)
                     {
-                        YiboFile.DialogService.Error(e.Message, "严重错误", window);
+                        _dialogService?.ShowError(e.Message, "严重错误");
                     }
                     else
                     {
@@ -171,7 +174,7 @@ namespace YiboFile.Services.Orchestration
             {
                 window.Dispatcher.Invoke(() =>
                 {
-                    DialogService.Warning($"收藏的路径不存在: {msg.Favorite.Path}", "错误", owner: window);
+                    _dialogService?.ShowWarning($"收藏的路径不存在: {msg.Favorite.Path}", "错误");
                 });
             });
 

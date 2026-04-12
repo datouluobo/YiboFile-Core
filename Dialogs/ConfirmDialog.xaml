@@ -3,114 +3,105 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="确认" 
         WindowStartupLocation="CenterOwner"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
+        Style="{StaticResource BaseDialogWindowStyle}"
         SizeToContent="WidthAndHeight"
         ShowInTaskbar="False">
     
-    <Window.Resources>
-        <!-- 基础按钮样式 -->
-        <Style x:Key="LocalButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="20,8"/>
-            <Setter Property="Margin" Value="10,0,0,0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" 
-                                Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.85"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.75"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
-
-    <Border Background="{DynamicResource BackgroundElevatedBrush}" 
-            CornerRadius="12" 
-            BorderBrush="{DynamicResource BorderBrush}" 
-            BorderThickness="1"
-            Margin="20"
-            MinWidth="320"
-            MaxWidth="450">
-        <Border.Effect>
-            <!-- Shadow color remains fixed as it's an effect, usually not themed differently in light/dark modes for simple shadows, but could use a resource if available -->
-            <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.15" ShadowDepth="0"/>
-        </Border.Effect>
+    <Grid Margin="24" MinWidth="320" MaxWidth="450" RenderTransformOrigin="0.5,0.5">
+        <Grid.RenderTransform>
+            <ScaleTransform x:Name="GridScale" ScaleX="0.95" ScaleY="0.95"/>
+        </Grid.RenderTransform>
         
-        <Grid Margin="24">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <Grid.Triggers>
+            <EventTrigger RoutedEvent="Grid.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="GridScale" 
+                                         Storyboard.TargetProperty="ScaleX"
+                                         To="1.0" Duration="0:0:0.18">
+                            <DoubleAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                        <DoubleAnimation Storyboard.TargetName="GridScale" 
+                                         Storyboard.TargetProperty="ScaleY"
+                                         To="1.0" Duration="0:0:0.18">
+                            <DoubleAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                         From="0.0" To="1.0" Duration="0:0:0.15"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Grid.Triggers>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 标题区域 -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             
-            <!-- 标题区域 -->
-            <Grid Grid.Row="0" Margin="0,0,0,16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                
-                <TextBlock Grid.Column="0"
-                           x:Name="IconTextBlock" 
-                           FontSize="24"
-                           Text="ℹ️"
-                           VerticalAlignment="Center"
-                           Margin="0,0,12,0"/>
-                <TextBlock Grid.Column="1"
-                           x:Name="ConfirmTitle" 
-                           FontSize="18"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                           VerticalAlignment="Center"
-                           TextWrapping="Wrap"/>
-            </Grid>
+            <TextBlock Grid.Column="0"
+                       x:Name="IconTextBlock" 
+                       Style="{StaticResource DialogIconStyle}"
+                       Text="ℹ️"/>
             
-            <!-- 消息内容 -->
-            <TextBlock Grid.Row="1" 
-                       x:Name="MessageTextBlock" 
-                       FontSize="14"
-                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                       TextWrapping="Wrap"
-                       LineHeight="20"
-                       Margin="0,0,0,24"/>
-            
-            <!-- 按钮 -->
-            <StackPanel Grid.Row="2" 
-                       Orientation="Horizontal" 
-                       HorizontalAlignment="Right">
-                <Button Content="取消" 
-                        x:Name="CancelButton"
-                        Click="Cancel_Click" 
-                        Background="{DynamicResource BackgroundTertiaryBrush}"
-                        Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        Style="{StaticResource LocalButtonStyle}"/>
-                
-                <Button x:Name="ConfirmButton"
-                        Content="确定" 
-                        Click="Confirm_Click" 
-                        Background="{DynamicResource AccentBrush}"
-                        Foreground="{DynamicResource ForegroundOnAccentBrush}"
-                        BorderThickness="0"
-                        Style="{StaticResource LocalButtonStyle}"/>
-            </StackPanel>
+            <TextBlock Grid.Column="1"
+                       x:Name="ConfirmTitle" 
+                       FontSize="18"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource ForegroundPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"/>
         </Grid>
-    </Border>
-</Window>
+        
+        <!-- 消息内容 -->
+        <TextBlock Grid.Row="1" 
+                   x:Name="MessageTextBlock" 
+                   FontSize="14"
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   LineHeight="20"
+                   Margin="0,0,0,24"/>
+        
+        <!-- 按钮区域 -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            
+            <Button x:Name="NoButton"
+                    Content="否" 
+                    Visibility="Collapsed"
+                    Click="No_Click"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Margin="10,0,0,0"/>
 
+            <Button x:Name="CancelButton"
+                    Content="取消" 
+                    Click="Cancel_Click" 
+                    Style="{StaticResource DialogButtonStyle}"
+                    Margin="10,0,0,0"/>
+            
+            <Button x:Name="ConfirmButton"
+                    Content="确定" 
+                    Click="Confirm_Click" 
+                    Style="{StaticResource PrimaryDialogButtonStyle}"
+                    Margin="10,0,0,0"/>
+
+            <Button x:Name="YesButton"
+                    Content="是" 
+                    Visibility="Collapsed"
+                    Click="Yes_Click" 
+                    Style="{StaticResource PrimaryDialogButtonStyle}"
+                    Margin="10,0,0,0"/>
+        </StackPanel>
+    </Grid>
+</Window>

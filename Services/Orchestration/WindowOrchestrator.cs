@@ -13,6 +13,7 @@ using YiboFile.Services.FileOperations;
 using YiboFile.Services.Features;
 using YiboFile.Services.ColumnManagement;
 using YiboFile.Services.QuickAccess;
+using YiboFile.Services.Hardware;
 using YiboFile.Handlers;
 using YiboFile.Models.Navigation;
 
@@ -64,6 +65,7 @@ namespace YiboFile.Services.Orchestration
         private ColumnService _columnService;
         private Services.FileInfo.FileInfoService _fileInfoService;
         private Services.FileInfo.FileInfoService _secondFileInfoService;
+        private IHardwareMonitorService _hardwareMonitorService;
 
         // ViewModel 和模块引用（由 ModuleInitializer 填充）
         private MainWindowViewModel _viewModel;
@@ -120,6 +122,7 @@ namespace YiboFile.Services.Orchestration
         public WindowStateManager WindowStateManager => _handlerInitializer.WindowStateManager;
         public ColumnService ColumnService => _columnService;
         public Services.FileInfo.FileInfoService SecondFileInfoService => _secondFileInfoService;
+        public IHardwareMonitorService HardwareMonitorService => _hardwareMonitorService;
 
         #endregion
 
@@ -160,7 +163,15 @@ namespace YiboFile.Services.Orchestration
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"初始化失败: {ex.Message}\n{ex.StackTrace}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                var dialogService = _serviceProvider.GetService<UI.IDialogService>();
+                if (dialogService != null)
+                {
+                    dialogService.ShowError($"初始化失败: {ex.Message}\n{ex.StackTrace}", "错误");
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"初始化失败: {ex.Message}\n{ex.StackTrace}", "错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
             }
         }
 
@@ -181,6 +192,7 @@ namespace YiboFile.Services.Orchestration
             _quickAccessService = _serviceProvider.GetRequiredService<QuickAccessService>();
             _secondFileListService = _serviceProvider.GetRequiredService<FileListService>();
             _columnService = _serviceProvider.GetRequiredService<ColumnService>();
+            _hardwareMonitorService = _serviceProvider.GetRequiredService<IHardwareMonitorService>();
 
             // 为两个面板创建独立的服务实例
             _tabService = _serviceProvider.GetRequiredService<TabService>();

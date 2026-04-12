@@ -7,6 +7,7 @@
              xmlns:conv="clr-namespace:YiboFile.Converters"
              xmlns:vm="clr-namespace:YiboFile.ViewModels"
              xmlns:previews="clr-namespace:YiboFile.ViewModels.Previews"
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800"
              Background="{DynamicResource BackgroundPrimaryBrush}"
@@ -34,8 +35,8 @@
         <!-- Toolbar -->
         <Border Grid.Row="0" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
             <StackPanel Orientation="Horizontal">
-                <Button Content="刷新" Padding="10,5" Command="{Binding LoadCommand}" Margin="0,0,10,0"/>
-                <Button Content="清理旧备份" Padding="10,5" Command="{Binding CleanCommand}"/>
+                <Button Content="{i18n:Loc Key=BackupBrowser.Refresh}" Padding="10,5" Command="{Binding LoadCommand}" Margin="0,0,10,0"/>
+                <Button Content="{i18n:Loc Key=BackupBrowser.CleanOldBackups}" Padding="10,5" Command="{Binding CleanCommand}"/>
             </StackPanel>
         </Border>
 
@@ -49,7 +50,7 @@
 
             <!-- Left: Backup Dates -->
             <DockPanel Grid.Column="0">
-                <TextBlock Text="备份日期" DockPanel.Dock="Top" Margin="10" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                <TextBlock Text="{i18n:Loc Key=BackupBrowser.BackupDate}" DockPanel.Dock="Top" Margin="10" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                 <ListBox ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}" BorderThickness="0" Background="Transparent">
                      <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -67,28 +68,28 @@
 
             <!-- Middle: Files in selected backup -->
             <DockPanel Grid.Column="2">
-                <TextBlock Text="文件列表" DockPanel.Dock="Top" Margin="10" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+                <TextBlock Text="{i18n:Loc Key=BackupBrowser.FileList}" DockPanel.Dock="Top" Margin="10" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                 
                 <ListView x:Name="BackupFilesListView" ItemsSource="{Binding SelectedBackup.Records}" SelectedItem="{Binding CurrentPreviewRecord}" BorderThickness="0" Background="Transparent" SelectionMode="Single" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="原始路径" Width="{Binding ActualWidth, ElementName=BackupFilesListView, Converter={StaticResource MathConverter}, ConverterParameter=-350}">
+                            <GridViewColumn Header="{i18n:Loc Key=BackupBrowser.OriginalPath}" Width="{Binding ActualWidth, ElementName=BackupFilesListView, Converter={StaticResource MathConverter}, ConverterParameter=-350}">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding OriginalPath}" TextTrimming="CharacterEllipsis" ToolTip="{Binding OriginalPath}"/>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="大小" Width="80" DisplayMemberBinding="{Binding Size}"/>
-                            <GridViewColumn Header="删除时间" Width="130" DisplayMemberBinding="{Binding DeletionTime}"/>
-                            <GridViewColumn Header="操作" Width="110">
+                            <GridViewColumn Header="{i18n:Loc Key=BackupBrowser.Size}" Width="80" DisplayMemberBinding="{Binding Size}"/>
+                            <GridViewColumn Header="{i18n:Loc Key=BackupBrowser.DeletionTime}" Width="130" DisplayMemberBinding="{Binding DeletionTime}"/>
+                            <GridViewColumn Header="{i18n:Loc Key=BackupBrowser.Action}" Width="110">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Content="恢复" Margin="0,0,5,0" Padding="5,2" 
+                                            <Button Content="{i18n:Loc Key=BackupBrowser.Restore}" Margin="0,0,5,0" Padding="5,2" 
                                                     Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     CommandParameter="{Binding}"/>
-                                            <Button Content="删除" Padding="5,2"
+                                            <Button Content="{i18n:Loc Key=BackupBrowser.Delete}" Padding="5,2"
                                                     Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                     CommandParameter="{Binding}" Foreground="{DynamicResource StatusErrorBrush}"/>
                                         </StackPanel>
@@ -117,7 +118,7 @@
         
         <!-- Loading Overlay -->
         <Grid Grid.RowSpan="3" Background="{DynamicResource BackgroundElevatedBrush}" Opacity="0.5" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-             <TextBlock Text="加载中..." HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
+             <TextBlock Text="{i18n:Loc Key=BackupBrowser.Loading}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
         </Grid>
     </Grid>
 </UserControl>

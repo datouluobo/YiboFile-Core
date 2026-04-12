@@ -17,6 +17,22 @@
     "No": "否",
     "Open": "打开"
   },
+  "About": {
+    "Title": "关于",
+    "SoftwareInfo": "软件信息",
+    "Shortcuts": "快捷操作",
+    "License": "开源许可",
+    "ModernExplorer": "现代文件资源管理器",
+    "VersionInfo": "版本信息",
+    "VersionNumber": "版本号",
+    "BuildDate": "构建日期",
+    "Developer": "开发者",
+    "ShortcutsTitle": "鼠标与键盘快捷操作",
+    "Function": "功能",
+    "Operation": "操作方式",
+    "LicenseTitle": "开源许可与致谢",
+    "LicenseDesc": "本项目使用了以下开源库："
+  },
   "TabContent": {
     "FileBrowser": "文件浏览",
     "Library": "库",
@@ -214,10 +230,10 @@
       "CreateDesktopShortcut": "生成桌面快捷方式",
       "ShortcutCreated": "快捷方式已创建到桌面",
       "ShellMenuSettings": "右键菜单设置",
-      "ShellMenuNative": "原生菜单",
-      "ShellMenuNativeDesc": "仅使用 YiboFile 原生右键菜单",
-      "ShellMenuSystem": "系统菜单",
-      "ShellMenuDesc": "在原生菜单末尾显示 Windows 系统右键菜单入口"
+      "ShellMenuNative": "YiboFile 原生菜单",
+      "ShellMenuNativeDesc": "使用 YiboFile 设计的现代化右键菜单，提供库、标签等增强功能",
+      "ShellMenuSystem": "Windows 系统菜单",
+      "ShellMenuDesc": "直接调用 Windows 系统原生的右键菜单（支持所有第三方扩展项）"
     },
     "Backup": {
       "Title": "备份设置",
@@ -240,12 +256,29 @@
       "Days180": "180 天",
       "Year1": "1 年"
     },
+    "BackupBrowser": {
+      "Refresh": "刷新",
+      "CleanOldBackups": "清理旧备份",
+      "BackupDate": "备份日期",
+      "FileList": "文件列表",
+      "OriginalPath": "原始路径",
+      "Size": "大小",
+      "DeletionTime": "删除时间",
+      "Action": "操作",
+      "Restore": "恢复",
+      "Delete": "删除",
+      "Loading": "加载中..."
+    },
     "FileList": {
       "ColumnWidths": "列宽设置",
       "TagColumnWidth": "标签列宽度:",
       "Range50_500": "（范围：50-500）",
       "NotesColumnWidth": "备注列宽度:",
-      "Range100_800": "（范围：100-800）"
+      "Range100_800": "（范围：100-800）",
+      "RenameBehavior": "重命名行为",
+      "RenameLostFocusDesc": "在重命名文件时，点击其他区域（文件名框外）的行为",
+      "RenameLostFocusCommit": "接受并应用新名称（与 Windows 资源管理器一致）",
+      "RenameLostFocusCancel": "取消重命名，恢复原文件名"
     },
     "Search": {
       "FullTextSearchTitle": "全文搜索 (Full Text Search)",

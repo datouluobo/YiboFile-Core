@@ -44,7 +44,7 @@ namespace YiboFile.Services.FileOperations
             string title = locService?["FileOp.NewFolder"] ?? "新建文件夹";
             string defaultValue = locService?["FileOp.NewFolder"] ?? "新建文件夹";
 
-            string inputName = DialogService.ShowInput(inputPrompt, title, defaultValue, owner: _ownerWindow);
+            string inputName = _context.ShowInput(inputPrompt, defaultValue, title);
 
             if (inputName != null)
             {

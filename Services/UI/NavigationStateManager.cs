@@ -33,16 +33,15 @@ namespace YiboFile.Services
             public void SetFromTab(PathTab tab)
             {
                 Clear();
-                switch (tab.Type)
+                if (tab.ContentTypeId == TabContentTypes.Library)
                 {
-                    case TabType.Path:
-                        Mode = NavigationMode.Path;
-                        CurrentPath = tab.Path;
-                        break;
-                    case TabType.Library:
-                        Mode = NavigationMode.Library;
-                        CurrentLibrary = tab.Library;
-                        break;
+                    Mode = NavigationMode.Library;
+                    CurrentLibrary = tab.Library;
+                }
+                else
+                {
+                    Mode = NavigationMode.Path;
+                    CurrentPath = tab.Path;
                 }
             }
 

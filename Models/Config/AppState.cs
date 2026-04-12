@@ -62,8 +62,10 @@ namespace YiboFile.Models.Config
                     LastLibraryId = ps.LastLibraryId,
                     OpenTabs = ps.OpenTabs,
                     ActiveTabKey = ps.ActiveTabKey,
+                    TabViewModes = ps.TabViewModes,
                     OpenTabsSecondary = Panes.Count > 1 ? Panes[1].Session.OpenTabs : new List<string>(),
-                    ActiveTabKeySecondary = Panes.Count > 1 ? Panes[1].Session.ActiveTabKey : string.Empty
+                    ActiveTabKeySecondary = Panes.Count > 1 ? Panes[1].Session.ActiveTabKey : string.Empty,
+                    TabViewModes_Secondary = Panes.Count > 1 ? Panes[1].Session.TabViewModes : new Dictionary<string, string>()
                 };
             }
             set
@@ -76,11 +78,13 @@ namespace YiboFile.Models.Config
                     Panes[0].Session.LastLibraryId = value.LastLibraryId;
                     Panes[0].Session.OpenTabs = value.OpenTabs;
                     Panes[0].Session.ActiveTabKey = value.ActiveTabKey;
+                    Panes[0].Session.TabViewModes = value.TabViewModes ?? new Dictionary<string, string>();
                 }
                 if (Panes.Count > 1)
                 {
                     Panes[1].Session.OpenTabs = value.OpenTabsSecondary;
                     Panes[1].Session.ActiveTabKey = value.ActiveTabKeySecondary;
+                    Panes[1].Session.TabViewModes = value.TabViewModes_Secondary ?? new Dictionary<string, string>();
                 }
             }
         }
@@ -136,11 +140,14 @@ namespace YiboFile.Models.Config
 
         public List<string> OpenTabs { get; set; } = new List<string>();
         public string ActiveTabKey { get; set; } = string.Empty;
+        public Dictionary<string, string> TabViewModes { get; set; } = new Dictionary<string, string>();
 
         [Obsolete("使用 Panes[1].Session 替代")]
         public List<string> OpenTabsSecondary { get; set; } = new List<string>();
         [Obsolete("使用 Panes[1].Session 替代")]
         public string ActiveTabKeySecondary { get; set; } = string.Empty;
+        [Obsolete("使用 Panes[1].Session 替代")]
+        public Dictionary<string, string> TabViewModes_Secondary { get; set; } = new Dictionary<string, string>();
     }
 
     public class ViewState

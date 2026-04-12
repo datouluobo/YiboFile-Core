@@ -12,9 +12,15 @@ namespace YiboFile.Services.Tabs.Content
     public class SettingsTabContent : ITabContent
     {
         private SettingsPanelControl _cachedView;
+        private readonly YiboFile.Services.Localization.ILocalizationService _loc;
+
+        public SettingsTabContent(YiboFile.Services.Localization.ILocalizationService loc = null)
+        {
+            _loc = loc ?? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+        }
 
         public string Id => TabContentTypes.Settings;
-        public string Title => "设置";
+        public string Title => _loc?["TabContent.Settings"] ?? "设置";
         public string IconKey => "Icon_Window_Settings";
         public bool AllowMultiple => false;
         public bool SupportsSecondaryPane => false; // 设置页在窄副栏中体验不佳

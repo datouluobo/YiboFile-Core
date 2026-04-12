@@ -17,6 +17,7 @@ namespace YiboFile.ViewModels.Settings
         }
 
         private LibraryService _libraryService;
+        private readonly Services.UI.IDialogService _dialogService;
 
         public ICommand ImportLibrariesCommand { get; }
         public ICommand ExportLibrariesCommand { get; }
@@ -26,8 +27,9 @@ namespace YiboFile.ViewModels.Settings
 
         public event EventHandler OpenLibraryManagerRequested;
 
-        public LibrarySettingsViewModel()
+        public LibrarySettingsViewModel(Services.UI.IDialogService dialogService = null)
         {
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
             ImportLibrariesCommand = new RelayCommand<string>(ImportLibraries);
             ExportLibrariesCommand = new RelayCommand<string>(ExportLibraries);
             OpenLibraryManagerCommand = new RelayCommand(OpenLibraryManager);
@@ -68,14 +70,10 @@ namespace YiboFile.ViewModels.Settings
 
         private void AddLibrary()
         {
-            var dialog = new WinForms.FolderBrowserDialog();
-            dialog.Description = "选择文件夹作为新的库";
-            dialog.UseDescriptionForTitle = true;
-            dialog.ShowNewFolderButton = true;
-
-            if (dialog.ShowDialog() == WinForms.DialogResult.OK)
+            string path = _dialogService?.ShowFolderBrowser("选择文件夹作为新的库");
+            
+            if (!string.IsNullOrEmpty(path))
             {
-                string path = dialog.SelectedPath;
                 string name = new System.IO.DirectoryInfo(path).Name;
 
                 try
@@ -88,7 +86,7 @@ namespace YiboFile.ViewModels.Settings
                 }
                 catch (Exception ex)
                 {
-                    YiboFile.DialogService.Error("添加库失败: " + ex.Message);
+                    _dialogService?.ShowError("添加库失败: " + ex.Message);
                 }
             }
         }
@@ -96,7 +94,7 @@ namespace YiboFile.ViewModels.Settings
         private void RemoveLibrary(LibraryItemViewModel item)
         {
             if (item == null) return;
-            if (YiboFile.DialogService.Ask($"确定要移除库 \"{item.Name}\" 吗？", "确认"))
+            if (_dialogService?.Confirm($"确定要移除库 \"{item.Name}\" 吗？", "确认") == true)
             {
                 try
                 {
@@ -105,7 +103,7 @@ namespace YiboFile.ViewModels.Settings
                 }
                 catch (Exception ex)
                 {
-                    YiboFile.DialogService.Error("移除库失败: " + ex.Message);
+                    _dialogService?.ShowError("移除库失败: " + ex.Message);
                 }
             }
         }

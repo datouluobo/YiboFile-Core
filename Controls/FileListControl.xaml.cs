@@ -493,30 +493,21 @@ namespace YiboFile.Controls
 
         #region Inline Rename
 
-
-        private void RenameTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void RenameOverlay_RenameConfirmed(object sender, RenameConfirmedEventArgs e)
         {
-            RenameHandler.HandleKeyDown(sender, e, this.DataContext);
+            if (sender is RenameOverlay overlay && overlay.DataContext is FileSystemItem item)
+            {
+                item.RenameText = overlay.Text;
+                RenameHandler.CommitRename(item, this.DataContext);
+            }
         }
 
-        private void RenameTextBox_LostFocus(object sender, RoutedEventArgs e)
+        private void RenameOverlay_RenameCancelled(object sender, EventArgs e)
         {
-            RenameHandler.HandleLostFocus(sender, e, this.DataContext);
-        }
-
-        private void RenameTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            RenameHandler.HandleIsVisibleChanged(sender, e, Dispatcher);
-        }
-
-        private void CommitRenameLogic(FileSystemItem item)
-        {
-            RenameHandler.CommitRename(item, this.DataContext);
-        }
-
-        private void CancelRenameLogic(FileSystemItem item)
-        {
-            RenameHandler.CancelRename(item);
+            if (sender is RenameOverlay overlay && overlay.DataContext is FileSystemItem item)
+            {
+                RenameHandler.CancelRename(item);
+            }
         }
 
         #endregion
@@ -560,6 +551,13 @@ namespace YiboFile.Controls
         public void SetFileListService(Services.FileList.FileListService fileListService)
         {
             _fileListService = fileListService;
+        }
+
+        public AutoColumnWidthBehavior AutoColumnWidthBehavior => _autoColumnWidthBehavior;
+
+        public void RequestColumnRecalculation()
+        {
+            _autoColumnWidthBehavior?.AdjustTargetColumnWidth();
         }
 
 

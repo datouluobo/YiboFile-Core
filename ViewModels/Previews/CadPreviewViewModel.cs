@@ -80,7 +80,7 @@ namespace YiboFile.ViewModels.Previews
             Icon = "📐";
         }
 
-        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
+        public override async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             FilePath = filePath;
             Title = Path.GetFileName(filePath);
@@ -244,7 +244,7 @@ namespace YiboFile.ViewModels.Previews
 
                     File.Copy(cachedDxfPath, targetPath, false);
 
-                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    await Application.Current.Dispatcher.InvokeAsync(new Action(() =>
                     {
                         ConvertStatusText = "✅ 转换成功";
                         Services.Core.NotificationService.ShowSuccess($"转换成功！已保存到: {targetPath}");

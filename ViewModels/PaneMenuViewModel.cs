@@ -24,12 +24,14 @@ namespace YiboFile.ViewModels
         private readonly LibraryService _libraryService;
         private readonly ITagService _tagService;
         private readonly FavoriteService _favoriteService;
+        private readonly Services.UI.IDialogService _dialogService;
         private readonly PaneViewModel _pane;
 
-        public PaneMenuViewModel(PaneViewModel pane, IMessageBus messageBus)
+        public PaneMenuViewModel(PaneViewModel pane, IMessageBus messageBus, Services.UI.IDialogService dialogService = null)
         {
             _pane = pane ?? throw new ArgumentNullException(nameof(pane));
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
             _dispatcher = Dispatcher.CurrentDispatcher;
 
             _libraryService = App.ServiceProvider?.GetService<LibraryService>();
@@ -138,11 +140,11 @@ namespace YiboFile.ViewModels
         {
             var selectedItems = _pane.Selection?.SelectedItems;
 
-            var dialog = new YiboFile.Controls.Dialogs.InputDialog("新建库", "请输入库名称:");
-            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+            var libName = _dialogService?.ShowInput("请输入库名称:", "", "新建库");
+            if (!string.IsNullOrWhiteSpace(libName))
             {
                 var paths = selectedItems?.Where(i => i.IsDirectory).Select(i => i.Path).ToList() ?? new List<string>();
-                _messageBus.Publish(new CreateLibraryRequestMessage(dialog.InputText, paths));
+                _messageBus.Publish(new CreateLibraryRequestMessage(libName, paths));
             }
         }
 
@@ -161,7 +163,7 @@ namespace YiboFile.ViewModels
         private void NewFavoriteGroup()
         {
             var selectedItems = _pane.Selection?.SelectedItems?.ToList();
-            var inputName = YiboFile.DialogService.ShowInput("请输入新分组名称：", "新分组", "新建分组");
+            var inputName = _dialogService?.ShowInput("请输入新分组名称：", "新分组", "新建分组");
             if (!string.IsNullOrEmpty(inputName))
             {
                 _messageBus.Publish(new CreateFavoriteGroupRequestMessage(inputName.Trim(), selectedItems));

@@ -14,6 +14,19 @@ namespace YiboFile.Interop.Shell
     /// </summary>
     public static class HMenuParser
     {
+        // HBMMENU 特殊常量 (Windows SDK)
+        private const long HBMMENU_CALLBACK = -1;
+        private const long HBMMENU_SYSTEM = 1;
+        private const long HBMMENU_MBAR_RESTORE = 2;
+        private const long HBMMENU_MBAR_MINIMIZE = 3;
+        private const long HBMMENU_MBAR_CLOSE = 5;
+        private const long HBMMENU_MBAR_CLOSE_D = 6;
+        private const long HBMMENU_MBAR_MINIMIZE_D = 7;
+        private const long HBMMENU_POPUP_CLOSE = 8;
+        private const long HBMMENU_POPUP_RESTORE = 9;
+        private const long HBMMENU_POPUP_MAXIMIZE = 10;
+        private const long HBMMENU_POPUP_MINIMIZE = 11;
+
         public static List<ShellMenuItem> ParseMenu(IntPtr hMenu, IContextMenu contextMenu)
         {
             var result = new List<ShellMenuItem>();
@@ -22,7 +35,10 @@ namespace YiboFile.Interop.Shell
             for (uint i = 0; i < (uint)count; i++)
             {
                 var mii = MENUITEMINFO.Create();
-                mii.fMask = ShellConstants.MIIM_ID | ShellConstants.MIIM_SUBMENU | ShellConstants.MIIM_STRING | ShellConstants.MIIM_FTYPE | ShellConstants.MIIM_BITMAP;
+                mii.fMask = ShellConstants.MIIM_ID | ShellConstants.MIIM_SUBMENU
+                    | ShellConstants.MIIM_STRING | ShellConstants.MIIM_FTYPE
+                    | ShellConstants.MIIM_BITMAP | ShellConstants.MIIM_CHECKMARKS
+                    | ShellConstants.MIIM_DATA;
                 
                 // 初次调用获取字符串长度 (cch 会被填充为长度)
                 mii.dwTypeData = IntPtr.Zero;
@@ -61,10 +77,34 @@ namespace YiboFile.Interop.Shell
                     CommandId = (int)mii.wID
                 };
 
-                // 1. 提取图标 (HBMPBIT_CALLBACK or specific HBITMAP)
-                if (mii.hbmpItem != IntPtr.Zero && mii.hbmpItem.ToInt64() > 10) // 排除特殊标记如 HBMMENU_CALLBACK
+                // ── 图标提取 ──
+                // 排除 HBMMENU_CALLBACK(-1) 和其他特殊系统常量 (0-11)
+                long bmpVal = mii.hbmpItem.ToInt64();
+                bool hasRealBmp = mii.hbmpItem != IntPtr.Zero && bmpVal > HBMMENU_POPUP_MINIMIZE && bmpVal != unchecked((long)(uint)0xFFFFFFFF);
+                
+                if (hasRealBmp)
                 {
                     item.Icon = IconHelper.BitmapSourceFromHBitmap(mii.hbmpItem);
+                }
+
+                // 策略 1.5: 如果是 MFT_BITMAP，dwTypeData 可能指向位图
+                if (item.Icon == null && (mii.fType & ShellConstants.MFT_BITMAP) != 0)
+                {
+                    if (mii.hbmpItem != IntPtr.Zero) // MenuItemInfo.hbmpItem often overlaps with dwTypeData for MFT_BITMAP
+                        item.Icon = IconHelper.BitmapSourceFromHBitmap(mii.hbmpItem);
+                }
+
+                // 策略 2: 从 hbmpChecked / hbmpUnchecked 提取 (MIIM_CHECKMARKS)
+                if (item.Icon == null && mii.hbmpUnchecked != IntPtr.Zero)
+                    item.Icon = IconHelper.BitmapSourceFromHBitmap(mii.hbmpUnchecked);
+                if (item.Icon == null && mii.hbmpChecked != IntPtr.Zero)
+                    item.Icon = IconHelper.BitmapSourceFromHBitmap(mii.hbmpChecked);
+
+                // 策略 3: 对于 OWNERDRAW 项，尝试从 dwItemData 找图标（有些厂商会传句柄）
+                if (item.Icon == null && (mii.fType & ShellConstants.MFT_OWNERDRAW) != 0 && mii.dwItemData != IntPtr.Zero)
+                {
+                    // 这是一个模糊测试，如果 dwItemData 看起来像一个有效的 GDI 句柄，尝试转换
+                    // 但通常这不可靠，所以只在万不得已时尝试
                 }
 
                 // 2. 获取 Verb (用于唯一标识和固定功能)
@@ -76,14 +116,14 @@ namespace YiboFile.Interop.Shell
                 // 3. 处理子菜单
                 if (mii.hSubMenu != IntPtr.Zero)
                 {
-                    // Phase 4: 通知 Shell 扩展初始化子菜单（必不可少，否则 SendTo 等项为空）
-                    if (contextMenu is IContextMenu2 cm2)
-                    {
-                        cm2.HandleMenuMsg(ShellConstants.WM_INITMENUPOPUP, mii.hSubMenu, (IntPtr)i);
-                    }
-                    else if (contextMenu is IContextMenu3 cm3)
+                    // 通知 Shell 扩展初始化子菜单
+                    if (contextMenu is IContextMenu3 cm3)
                     {
                         cm3.HandleMenuMsg2(ShellConstants.WM_INITMENUPOPUP, mii.hSubMenu, (IntPtr)i, out _);
+                    }
+                    else if (contextMenu is IContextMenu2 cm2)
+                    {
+                        cm2.HandleMenuMsg(ShellConstants.WM_INITMENUPOPUP, mii.hSubMenu, (IntPtr)i);
                     }
 
                     item.Children = ParseMenu(mii.hSubMenu, contextMenu);
@@ -118,15 +158,39 @@ namespace YiboFile.Interop.Shell
         [DllImport("gdi32.dll")]
         public static extern bool DeleteObject(IntPtr hObject);
 
+        [DllImport("gdi32.dll")]
+        private static extern int GetObject(IntPtr hObject, int nCount, ref BITMAP lpObject);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct BITMAP
+        {
+            public int bmType;
+            public int bmWidth;
+            public int bmHeight;
+            public int bmWidthBytes;
+            public ushort bmPlanes;
+            public ushort bmBitsPixel;
+            public IntPtr bmBits;
+        }
+
         public static BitmapSource BitmapSourceFromHBitmap(IntPtr hBitmap)
         {
-            // 过滤非法句柄。Shell 菜单位图常包含 HBMMENU_CALLBACK (1) 或其他常量。
-            // 强转为 long 进行安全范围检查 (通常有效句柄 > 65535)。
-            if (hBitmap == IntPtr.Zero || (long)hBitmap <= 100) return null;
+            // 安全范围检查：HBMMENU_CALLBACK = -1, 系统常量 = 0~11
+            if (hBitmap == IntPtr.Zero) return null;
+            long val = hBitmap.ToInt64();
+            if (val <= 11 || val == -1 || val == unchecked((long)(uint)0xFFFFFFFF)) return null;
 
             try
             {
-                // 使用托管层 CreateBitmapSourceFromHBitmap
+                // 验证 HBITMAP 是否有效
+                var bmp = new BITMAP();
+                if (GetObject(hBitmap, Marshal.SizeOf(typeof(BITMAP)), ref bmp) == 0)
+                    return null;
+
+                // 跳过尺寸异常的位图
+                if (bmp.bmWidth <= 0 || bmp.bmHeight <= 0 || bmp.bmWidth > 256 || bmp.bmHeight > 256)
+                    return null;
+
                 BitmapSource source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
                     hBitmap,
                     IntPtr.Zero,
@@ -135,9 +199,7 @@ namespace YiboFile.Interop.Shell
                 
                 if (source == null) return null;
 
-                // 核心修复点：克隆 (Clone) 图标并冻结。
-                // 这会将依赖于原始 HBITMAP 的底层缓冲区物理复制一份，
-                // 彻底断开与 Win32 HMENU 生长期的关联。
+                // 克隆并冻结，断开与原始 HBITMAP 的关联
                 var result = source.Clone();
                 if (result.CanFreeze) result.Freeze();
                 
@@ -145,7 +207,6 @@ namespace YiboFile.Interop.Shell
             }
             catch
             {
-                // 忽略转换失败
                 return null;
             }
         }

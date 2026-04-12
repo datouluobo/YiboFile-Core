@@ -32,7 +32,7 @@ namespace YiboFile.Services.FileOperations
             if (item == null) return;
             if (!_context.CanPerformOperation("Rename")) return;
 
-            var newName = DialogService.ShowInput("请输入新名称：", item.Name, "重命名", selectFileNameOnly: true, owner: _ownerWindow);
+            var newName = _context.ShowInput("请输入新名称：", item.Name, "重命名", selectFileNameOnly: true);
 
             if (newName != null)
             {

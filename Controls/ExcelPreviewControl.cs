@@ -16,9 +16,8 @@ namespace YiboFile.Controls
         private Grid _mainGrid;
         private Grid _xlsxGrid;
         private StackPanel _legacyPanel;
-
         private WebView2 _webView;
-        private StackPanel _tabPanel;
+        private ExcelPreviewViewModel _currentVm;
 
         public ExcelPreviewControl()
         {
@@ -28,15 +27,39 @@ namespace YiboFile.Controls
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
+            DetachVm();
             if (e.NewValue is ExcelPreviewViewModel vm)
             {
-                UpdateView(vm);
-                vm.PropertyChanged += (s, args) =>
-                {
-                    if (args.PropertyName == nameof(ExcelPreviewViewModel.IsLegacyFormat)) UpdateView(vm);
-                    if (args.PropertyName == nameof(ExcelPreviewViewModel.Sheets)) RebuildTabs(vm);
-                    if (args.PropertyName == nameof(ExcelPreviewViewModel.GeneratedHtml)) LoadHtml(vm.GeneratedHtml);
-                };
+                _currentVm = vm;
+                _currentVm.PropertyChanged += OnVmPropertyChanged;
+                UpdateView(_currentVm);
+                if (!string.IsNullOrEmpty(_currentVm.GeneratedHtml))
+                    LoadHtml(_currentVm.GeneratedHtml);
+            }
+        }
+
+        private void DetachVm()
+        {
+            if (_currentVm != null)
+            {
+                _currentVm.PropertyChanged -= OnVmPropertyChanged;
+                _currentVm = null;
+            }
+        }
+
+        private void OnVmPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ExcelPreviewViewModel.IsLegacyFormat))
+            {
+                Dispatcher.BeginInvoke(new Action(() => {
+                    if (_currentVm != null) UpdateView(_currentVm);
+                }));
+            }
+            if (e.PropertyName == nameof(ExcelPreviewViewModel.GeneratedHtml))
+            {
+                Dispatcher.BeginInvoke(new Action(() => {
+                    if (_currentVm != null) LoadHtml(_currentVm.GeneratedHtml);
+                }));
             }
         }
 
@@ -60,34 +83,8 @@ namespace YiboFile.Controls
 
             // 1. XLSX View
             _xlsxGrid = new Grid { Visibility = Visibility.Collapsed };
-            _xlsxGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Tabs
-            _xlsxGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // WebView
-
-            // Tabs
-            var tabBorder = new Border
-            {
-                BorderThickness = new Thickness(0, 0, 0, 1),
-                Padding = new Thickness(10, 5, 10, 5)
-            };
-            tabBorder.SetResourceReference(Border.BackgroundProperty, "BackgroundSecondaryBrush");
-            tabBorder.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
-            var tabScroll = new ScrollViewer
-            {
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                PanningMode = PanningMode.HorizontalOnly
-            };
-
-            _tabPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            tabScroll.Content = _tabPanel;
-            tabBorder.Child = tabScroll;
-
-            Grid.SetRow(tabBorder, 0);
-            _xlsxGrid.Children.Add(tabBorder);
-
             // WebView
             _webView = new WebView2();
-            Grid.SetRow(_webView, 1);
             _xlsxGrid.Children.Add(_webView);
 
             // 2. Legacy View
@@ -112,6 +109,7 @@ namespace YiboFile.Controls
             };
             legacyDesc.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundSecondaryBrush");
             legacyTitle.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
+            legacyIcon.SetResourceReference(TextBlock.ForegroundProperty, "ForegroundPrimaryBrush");
 
             var convertButton = new Button
             {
@@ -138,56 +136,13 @@ namespace YiboFile.Controls
 
             this.Unloaded += (s, e) =>
             {
+                DetachVm();
                 if (_webView != null)
                 {
-                    _webView.Dispose();
+                    try { _webView.Dispose(); } catch { }
                     _webView = null;
                 }
             };
-        }
-
-        private void RebuildTabs(ExcelPreviewViewModel vm)
-        {
-            _tabPanel.Children.Clear();
-            if (vm.Sheets == null) return;
-
-            foreach (var sheet in vm.Sheets)
-            {
-                var btn = new Button
-                {
-                    Content = sheet.Name,
-                    Padding = new Thickness(12, 6, 12, 6),
-                    Margin = new Thickness(0, 0, 5, 0),
-                    FontSize = 13,
-                    Cursor = Cursors.Hand,
-                    BorderThickness = new Thickness(0)
-                };
-
-                if (sheet == vm.SelectedSheet)
-                {
-                    btn.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
-                    btn.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
-                }
-                else
-                {
-                    btn.Background = Brushes.Transparent;
-                    btn.SetResourceReference(Button.ForegroundProperty, "ForegroundPrimaryBrush");
-                }
-
-                btn.Click += (s, e) =>
-                {
-                    vm.SelectedSheet = sheet;
-                    foreach (Button b in _tabPanel.Children)
-                    {
-                        b.Background = Brushes.Transparent;
-                        b.SetResourceReference(Button.ForegroundProperty, "ForegroundPrimaryBrush");
-                    }
-                    btn.SetResourceReference(Button.BackgroundProperty, "AccentDefaultBrush");
-                    btn.SetResourceReference(Button.ForegroundProperty, "ForegroundOnAccentBrush");
-                };
-
-                _tabPanel.Children.Add(btn);
-            }
         }
 
         private async void LoadHtml(string html)
@@ -197,7 +152,14 @@ namespace YiboFile.Controls
                 try
                 {
                     await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
-                    _webView.NavigateToString(html);
+                    if (_webView != null && _webView.CoreWebView2 != null)
+                    {
+                        _webView.CoreWebView2.DOMContentLoaded += async (s, ev) =>
+                        {
+                            await YiboFile.Helpers.WebView2Helper.InjectThemeScriptAsync(_webView);
+                        };
+                        _webView.NavigateToString(html);
+                    }
                 }
                 catch { }
             }

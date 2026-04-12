@@ -75,18 +75,18 @@
     <SolidColorBrush x:Key="AccentPressedBrush" Color="#004085"/>           <!-- 按下 -->
     <Color x:Key="AccentSelectedBrush.Color">#64B5F6</Color>
     <SolidColorBrush x:Key="AccentSelectedBrush" Color="#64B5F6"/>          <!-- 选中 -->
-    <Color x:Key="AccentLightBrush.Color">#E3F2FD</Color>
-    <SolidColorBrush x:Key="AccentLightBrush" Color="#E3F2FD"/>             <!-- 浅强调色背景 -->
+    <Color x:Key="AccentLightBrush.Color">#1E3A5F</Color>
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#1E3A5F"/>             <!-- 浅强调色背景: 深色主题下使用深蓝色保证文字对比度 -->
     
     <!-- 5. 控件状态 (4个) -->
-    <Color x:Key="ControlDefaultBrush.Color">#E3F2FD</Color>
-    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#E3F2FD"/>          <!-- 控件默认 -->
-    <Color x:Key="ControlHoverBrush.Color">#BBDEFB</Color>
-    <SolidColorBrush x:Key="ControlHoverBrush" Color="#BBDEFB"/>            <!-- 控件悬停 -->
-    <Color x:Key="ControlPressedBrush.Color">#90CAF9</Color>
-    <SolidColorBrush x:Key="ControlPressedBrush" Color="#90CAF9"/>          <!-- 控件按下 -->
-    <Color x:Key="ControlDisabledBrush.Color">#F5F5F5</Color>
-    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#F5F5F5"/>         <!-- 控件禁用 -->
+    <Color x:Key="ControlDefaultBrush.Color">#2A3F59</Color>
+    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#2A3F59"/>          <!-- 控件默认: 同 Elevated -->
+    <Color x:Key="ControlHoverBrush.Color">#364D6B</Color>
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#364D6B"/>            <!-- 控件悬停: 稍亮 -->
+    <Color x:Key="ControlPressedBrush.Color">#1B2B3D</Color>
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#1B2B3D"/>          <!-- 控件按下: 同 Secondary -->
+    <Color x:Key="ControlDisabledBrush.Color">#142436</Color>
+    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#142436"/>         <!-- 控件禁用 -->
     
     <!-- 6. 状态色 (4个) -->
     <Color x:Key="StatusSuccessBrush.Color">#28A745</Color>

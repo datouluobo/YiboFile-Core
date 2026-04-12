@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using YiboFile.Controls;
+using YiboFile.Controls.Helpers;
 using YiboFile.Interfaces;
 using YiboFile.Models;
 using YiboFile.Models.Navigation;
@@ -32,6 +33,7 @@ namespace YiboFile.Handlers
         private System.Windows.Point _mouseDownPoint;
         private bool _isMouseDownOnListView = false;
         private bool _isMouseDownOnColumnHeader = false;
+        private readonly SlowClickRenameBehavior _slowClickRename;
 
         public FileListMouseHandler(
             FileBrowserControl fileBrowser,
@@ -47,6 +49,7 @@ namespace YiboFile.Handlers
             _shellWindow = shellWindow;
             _paneId = paneId;
             _handleFileOpen = handleFileOpen;
+            _slowClickRename = new SlowClickRenameBehavior();
         }
 
         private PaneViewModel CurrentPane => _paneId == PaneId.Main ? _shellWindow.ViewModel.PrimaryPane : _shellWindow.ViewModel.SecondaryPane;
@@ -64,6 +67,7 @@ namespace YiboFile.Handlers
                 }
             }
             HandleDoubleClick(e);
+            _slowClickRename.OnDoubleClick();
         }
 
         public void OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -79,6 +83,7 @@ namespace YiboFile.Handlers
                 }
             }
             HandleDoubleClick(e);
+            _slowClickRename.OnDoubleClick();
         }
 
         public void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -158,6 +163,9 @@ namespace YiboFile.Handlers
             _mouseDownPoint = e.GetPosition(listView);
             _isMouseDownOnListView = true;
             _isMouseDownOnColumnHeader = false;
+
+            // 慢单击重命名：记录 MouseDown 候选
+            _slowClickRename.OnMouseDown(listView, e);
 
             bool isListViewItem = false;
             if (hitResult != null)
@@ -268,6 +276,9 @@ namespace YiboFile.Handlers
                 {
                     if (current is ListViewItem)
                     {
+                        // 慢单击重命名：松手在 ListViewItem 上时启动延迟
+                        _slowClickRename.OnMouseUp(listView, e);
+
                         _isMouseDownOnListView = false;
                         return;
                     }
@@ -290,6 +301,9 @@ namespace YiboFile.Handlers
                     listView.SelectedItems.Clear();
                 }
             }
+
+            // 慢单击重命名：在空白区点击时也取消
+            _slowClickRename.Cancel();
 
             _isMouseDownOnListView = false;
             _isMouseDownOnColumnHeader = false;

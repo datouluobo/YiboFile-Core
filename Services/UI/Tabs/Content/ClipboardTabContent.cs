@@ -15,9 +15,15 @@ namespace YiboFile.Services.Tabs.Content
     public class ClipboardTabContent : ITabContent
     {
         private ClipboardHistoryPanel _cachedView;
+        private readonly YiboFile.Services.Localization.ILocalizationService _loc;
+
+        public ClipboardTabContent(YiboFile.Services.Localization.ILocalizationService loc = null)
+        {
+            _loc = loc ?? Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
+        }
 
         public string Id => TabContentTypes.Clipboard;
-        public string Title => "剪切板历史";
+        public string Title => _loc?["TabContent.Clipboard"] ?? "剪切板历史";
         public string IconKey => "Icon_Copy";
         public bool AllowMultiple => false;
         public bool SupportsSecondaryPane => true;

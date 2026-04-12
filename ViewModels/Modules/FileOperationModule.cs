@@ -26,6 +26,7 @@ namespace YiboFile.ViewModels.Modules
         private readonly UndoService _undoService;
         private readonly ErrorService _errorService;
         private readonly LibraryService _libraryService;
+        private readonly Services.UI.IDialogService _dialogService;
 
         public override string Name => "FileOperation";
 
@@ -48,13 +49,15 @@ namespace YiboFile.ViewModels.Modules
             FileOperationService fileOperationService,
             UndoService undoService = null,
             ErrorService errorService = null,
-            LibraryService libraryService = null)
+            LibraryService libraryService = null,
+            Services.UI.IDialogService dialogService = null)
             : base(messageBus)
         {
             _fileOperationService = fileOperationService ?? throw new ArgumentNullException(nameof(fileOperationService));
             _undoService = undoService;
             _errorService = errorService;
             _libraryService = libraryService ?? App.ServiceProvider?.GetService<LibraryService>();
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
 
             CopyCommand = new RelayCommand<IList>(ExecuteCopy, CanExecuteCopy);
             CutCommand = new RelayCommand<IList>(ExecuteCut, CanExecuteCut);
@@ -201,7 +204,7 @@ namespace YiboFile.ViewModels.Modules
                 if (YiboFile.Services.Core.ProtocolManager.IsVirtual(targetPath))
                 {
                     // 暂时不支持压缩包内文件的系统属性
-                    YiboFile.DialogService.Info($"暂不支持查看此类型的系统属性：\n{targetPath}");
+                    _dialogService?.ShowInfo($"暂不支持查看此类型的系统属性：\n{targetPath}");
                     return;
                 }
 

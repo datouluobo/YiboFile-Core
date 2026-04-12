@@ -6,6 +6,8 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using YiboFile.Models;
 using YiboFile.Services.Theming;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Windows
 {
@@ -279,9 +281,11 @@ namespace YiboFile.Windows
         {
             _theme.Name = ThemeNameTextBox.Text.Trim();
 
+            var dialogService = App.ServiceProvider?.GetService<IDialogService>();
+
             if (string.IsNullOrWhiteSpace(_theme.Name))
             {
-                YiboFile.DialogService.Warning("请输入主题名称", owner: this);
+                dialogService?.ShowWarning("请输入主题名称");
                 return;
             }
 
@@ -304,7 +308,7 @@ namespace YiboFile.Windows
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"保存失败: {ex.Message}", owner: this);
+                dialogService?.ShowError($"保存失败: {ex.Message}");
             }
         }
 

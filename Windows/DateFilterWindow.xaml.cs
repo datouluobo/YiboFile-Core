@@ -1,5 +1,7 @@
 using System;
 using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Windows
 {
@@ -40,11 +42,13 @@ namespace YiboFile.Windows
         private void SearchButton_Click(object sender, RoutedEventArgs e)
         {
             // 验证日期选择
+            var dialogService = App.ServiceProvider?.GetService<IDialogService>();
+
             if (SingleDateRadio.IsChecked == true)
             {
                 if (!SingleDatePicker.SelectedDate.HasValue)
                 {
-                    YiboFile.DialogService.Info("请选择日期", owner: this);
+                    dialogService?.ShowInfo("请选择日期");
                     return;
                 }
                 SelectedStartDate = SingleDatePicker.SelectedDate.Value.Date;
@@ -54,24 +58,24 @@ namespace YiboFile.Windows
             {
                 if (!StartDatePicker.SelectedDate.HasValue || !EndDatePicker.SelectedDate.HasValue)
                 {
-                    YiboFile.DialogService.Info("请选择完整的日期范围", owner: this);
+                    dialogService?.ShowInfo("请选择完整的日期范围");
                     return;
                 }
-
+ 
                 SelectedStartDate = StartDatePicker.SelectedDate.Value.Date;
                 SelectedEndDate = EndDatePicker.SelectedDate.Value.Date;
-
+ 
                 if (SelectedStartDate > SelectedEndDate)
                 {
-                    YiboFile.DialogService.Warning("开始日期不能晚于结束日期", owner: this);
+                    dialogService?.ShowWarning("开始日期不能晚于结束日期");
                     return;
                 }
             }
-
+ 
             // 验证至少选择一个搜索类型
-            if (!SearchCreatedDateCheckBox.IsChecked.Value && !SearchModifiedDateCheckBox.IsChecked.Value)
+            if (SearchCreatedDateCheckBox.IsChecked != true && SearchModifiedDateCheckBox.IsChecked != true)
             {
-                YiboFile.DialogService.Info("请至少选择一种搜索类型（创建日期或修改日期）", owner: this);
+                dialogService?.ShowInfo("请至少选择一种搜索类型（创建日期或修改日期）");
                 return;
             }
 

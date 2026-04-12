@@ -180,12 +180,12 @@ namespace YiboFile.Handlers
 
                     // 需要在新 Service 中创建标签
                     PathTab newTab = null;
-                    if (dragData.Tab.Type == TabType.Library && dragData.Tab.Library != null)
+                    if (dragData.Tab.ContentTypeId == TabContentTypes.Library && dragData.Tab.Library != null)
                     {
                         targetService.OpenLibraryTab(dragData.Tab.Library, forceNewTab: true, activate: true);
                         newTab = targetService.ActiveTab;
                     }
-                    else if (dragData.Tab.Type == TabType.Tag)
+                    else if (dragData.Tab.ContentTypeId == TabContentTypes.Tag)
                     {
                          targetService.CreateTagTab(dragData.Tab.Title, forceNewTab: true, activate: true);
                          newTab = targetService.ActiveTab;

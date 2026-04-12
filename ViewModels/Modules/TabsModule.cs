@@ -96,6 +96,7 @@ namespace YiboFile.ViewModels.Modules
 
             Subscribe<SwitchToTabMessage>(OnSwitchToTab);
             Subscribe<NavigationCompleteMessage>(OnNavigationComplete);
+            Subscribe<ViewModeChangedMessage>(OnViewModeChanged);
 
             // 订阅路径变更以更新当前标签页
             Subscribe<PathChangedMessage>(OnPathChanged);
@@ -140,7 +141,8 @@ namespace YiboFile.ViewModels.Modules
                         tab.Path,
                         tab.BackStack,
                         tab.ForwardStack,
-                        pane));
+                        pane,
+                        tab.ViewMode));
 
                     if (tab.ContentTypeId == TabContentTypes.Tag && tab.Path?.StartsWith("tag://") == true)
                     {
@@ -440,6 +442,15 @@ namespace YiboFile.ViewModels.Modules
 
             // 4. 执行创建/激活
             finalTabService?.CreateSpecialTab(message.ContentTypeId);
+        }
+
+        private void OnViewModeChanged(ViewModeChangedMessage msg)
+        {
+            var tabService = msg.TargetPane == PaneId.Second ? _secondTabService : _tabService;
+            if (tabService?.ActiveTab != null)
+            {
+                tabService.ActiveTab.ViewMode = msg.Mode;
+            }
         }
 
         #endregion

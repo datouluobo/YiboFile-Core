@@ -80,7 +80,7 @@ namespace YiboFile.Controls
             {
                 await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
 
-                if (_webView.CoreWebView2 != null)
+                if (_webView != null && _webView.CoreWebView2 != null)
                 {
                     _webView.CoreWebView2.Settings.IsScriptEnabled = true;
                     _webView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
@@ -161,6 +161,8 @@ namespace YiboFile.Controls
                 });
 
                 string base64 = Convert.ToBase64String(bytes);
+
+                if (_webView == null || _webView.CoreWebView2 == null) return;
 
                 // Use Base64 to load PDF, bypassing CORS and local file access restrictions
                 await _webView.CoreWebView2.ExecuteScriptAsync(

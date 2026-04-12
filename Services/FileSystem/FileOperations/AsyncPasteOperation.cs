@@ -8,6 +8,7 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Dialogs;
 using YiboFile.Services.Core.Error;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Services.FileOperations
 {

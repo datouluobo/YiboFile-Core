@@ -21,11 +21,13 @@ namespace YiboFile.ViewModels
         private BackupRecord _currentPreviewRecord;
         private AppConfig _config;
         private readonly IMessageBus _messageBus;
+        private readonly Services.UI.IDialogService _dialogService;
 
-        public BackupViewModel(IBackupService backupService, IMessageBus messageBus = null)
+        public BackupViewModel(IBackupService backupService, IMessageBus messageBus = null, Services.UI.IDialogService dialogService = null)
         {
             _backupService = backupService ?? throw new ArgumentNullException(nameof(backupService));
             _messageBus = messageBus;
+            _dialogService = dialogService ?? App.ServiceProvider?.GetService<Services.UI.IDialogService>();
 
             LoadCommand = new RelayCommand(async () => await LoadBackupsAsync());
             RestoreCommand = new RelayCommand<BackupRecord>(async (record) => await RestoreFileAsync(record));
@@ -114,18 +116,18 @@ namespace YiboFile.ViewModels
             {
                 await _backupService.RestoreAsync(record);
                 RemoveRecordFromUI(record);
-                YiboFile.DialogService.Info($"已恢复: {System.IO.Path.GetFileName(record.OriginalPath)}");
+                _dialogService?.ShowInfo($"已恢复: {System.IO.Path.GetFileName(record.OriginalPath)}");
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"恢复失败: {ex.Message}");
+                _dialogService?.ShowError($"恢复失败: {ex.Message}");
             }
         }
 
         private async Task DeleteFileAsync(BackupRecord record)
         {
             if (record == null) return;
-            if (!YiboFile.DialogService.Ask($"确定要永久删除备份文件 \"{System.IO.Path.GetFileName(record.OriginalPath)}\" 吗?", "确认删除"))
+            if (_dialogService?.Confirm($"确定要永久删除备份文件 \"{System.IO.Path.GetFileName(record.OriginalPath)}\" 吗?", "确认删除") != true)
                 return;
 
             try
@@ -135,7 +137,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"删除失败: {ex.Message}");
+                _dialogService?.ShowError($"删除失败: {ex.Message}");
             }
         }
 
@@ -144,7 +146,7 @@ namespace YiboFile.ViewModels
             int days = _config?.BackupRetentionDays ?? 30;
             if (days <= 0) days = 30;
 
-            if (YiboFile.DialogService.Ask($"确定要清理超过 {days} 天的旧备份吗?", "清理确认"))
+            if (_dialogService?.Confirm($"确定要清理超过 {days} 天的旧备份吗?", "清理确认") == true)
             {
                 await _backupService.CleanOldBackupsAsync(days);
                 await LoadBackupsAsync();
@@ -167,7 +169,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"还原失败: {ex.Message}");
+                _dialogService?.ShowError($"还原失败: {ex.Message}");
             }
             finally
             {
@@ -179,7 +181,7 @@ namespace YiboFile.ViewModels
         {
             if (SelectedFiles == null || SelectedFiles.Count == 0 || SelectedBackup == null) return;
 
-            if (!YiboFile.DialogService.Ask($"确定要永久删除这 {SelectedFiles.Count} 个备份文件吗？", "确认删除")) return;
+            if (_dialogService?.Confirm($"确定要永久删除这 {SelectedFiles.Count} 个备份文件吗？", "确认删除") != true) return;
 
             IsLoading = true;
             try
@@ -193,7 +195,7 @@ namespace YiboFile.ViewModels
             }
             catch (Exception ex)
             {
-                YiboFile.DialogService.Error($"删除失败: {ex.Message}");
+                _dialogService?.ShowError($"删除失败: {ex.Message}");
             }
             finally
             {

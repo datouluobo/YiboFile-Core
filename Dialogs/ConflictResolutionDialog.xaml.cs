@@ -1,21 +1,8 @@
 using System.Windows;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Dialogs
 {
-    /// <summary>
-    /// 文件冲突解决方式
-    /// </summary>
-    public enum ConflictResolution
-    {
-        /// <summary>覆盖现有文件</summary>
-        Overwrite,
-        /// <summary>跳过此文件</summary>
-        Skip,
-        /// <summary>重命名新文件</summary>
-        Rename,
-        /// <summary>取消整个操作</summary>
-        CancelAll
-    }
 
     /// <summary>
     /// 冲突解决对话框

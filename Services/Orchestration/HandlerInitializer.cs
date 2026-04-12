@@ -127,6 +127,7 @@ namespace YiboFile.Services.Orchestration
             // 获取必要的服务
             var configUIHelper = new ConfigUIAdapter(window);
             UIHelperService = new Services.UIHelper.UIHelperService(window.FileBrowser, window.Dispatcher);
+            var dialogService = _serviceProvider.GetService<Services.UI.IDialogService>();
 
             WindowStateManager = new WindowStateManager(
                 configUIHelper,
@@ -148,7 +149,8 @@ namespace YiboFile.Services.Orchestration
                 navigationCoordinator,
                 searchCacheService,
                 secondFileInfoService,
-                libraryService
+                libraryService,
+                dialogService
             );
             layoutHandler.Initialize();
             window._layoutEventHandler = layoutHandler;
@@ -280,7 +282,8 @@ namespace YiboFile.Services.Orchestration
                 navigationCoordinator,
                 navigationService,
                 fileListService,
-                columnService
+                columnService,
+                _serviceProvider.GetService<Services.UI.IDialogService>()
             );
             window._libraryEventHandler.Initialize();
 

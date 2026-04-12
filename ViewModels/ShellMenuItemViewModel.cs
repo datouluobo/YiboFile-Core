@@ -62,7 +62,7 @@ namespace YiboFile.ViewModels
         /// </summary>
         public ICommand HideCommand { get; set; }
 
-        public ShellMenuItemViewModel(ShellMenuItem data)
+        public ShellMenuItemViewModel(ShellMenuItem data, Action<int> executeAction = null)
         {
             ShellData = data;
             Text = data.Text;
@@ -70,11 +70,16 @@ namespace YiboFile.ViewModels
             IsSeparator = data.IsSeparator;
             IsPinned = data.IsPinned;
 
+            if (executeAction != null && data.CommandId > 0 && !data.IsSeparator)
+            {
+                ExecuteCommand = new RelayCommand(() => executeAction(data.CommandId));
+            }
+
             if (data.Children != null)
             {
                 foreach (var child in data.Children)
                 {
-                    Children.Add(new ShellMenuItemViewModel(child));
+                    Children.Add(new ShellMenuItemViewModel(child, executeAction));
                 }
             }
         }

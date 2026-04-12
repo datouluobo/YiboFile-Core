@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i18n="clr-namespace:YiboFile.Services.Localization"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <Grid>
@@ -22,16 +23,16 @@
 
                 <!-- 标题栏 -->
                 <Border Grid.Row="0" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,12">
-                    <TextBlock Text="关于" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{i18n:Loc Key=About.Title}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
                 </Border>
 
                 <!-- 导航列表 -->
                 <StackPanel Grid.Row="1" Margin="0,10">
-                    <RadioButton x:Name="TabInfo" Content="软件信息" GroupName="AboutTabs" IsChecked="True"
+                    <RadioButton x:Name="TabInfo" Content="{i18n:Loc Key=About.SoftwareInfo}" GroupName="AboutTabs" IsChecked="True"
                                  Style="{DynamicResource SettingsTabButtonStyle}" Click="Tab_Click"/>
-                    <RadioButton x:Name="TabShortcuts" Content="快捷操作" GroupName="AboutTabs"
+                    <RadioButton x:Name="TabShortcuts" Content="{i18n:Loc Key=About.Shortcuts}" GroupName="AboutTabs"
                                  Style="{DynamicResource SettingsTabButtonStyle}" Click="Tab_Click"/>
-                    <RadioButton x:Name="TabLicense" Content="开源许可" GroupName="AboutTabs"
+                    <RadioButton x:Name="TabLicense" Content="{i18n:Loc Key=About.License}" GroupName="AboutTabs"
                                  Style="{DynamicResource SettingsTabButtonStyle}" Click="Tab_Click"/>
                 </StackPanel>
             </Grid>
@@ -51,18 +52,18 @@
                         
                         <!-- 标题 -->
                         <TextBlock Text="YiboFile" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,10" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
-                        <TextBlock Text="现代文件资源管理器" FontSize="16" HorizontalAlignment="Center" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,30"/>
+                        <TextBlock Text="{i18n:Loc Key=About.ModernExplorer}" FontSize="16" HorizontalAlignment="Center" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,30"/>
 
                         <!-- 版本 -->
                         <Border Background="{DynamicResource BackgroundSecondaryBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,20" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="版本信息" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,15"/>
+                                <TextBlock Text="{i18n:Loc Key=About.VersionInfo}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,15"/>
                                 <Grid Margin="0,5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="100"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="版本号" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                    <TextBlock Text="{i18n:Loc Key=About.VersionNumber}" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                                     <TextBlock x:Name="VersionText" Text="1.0.0.0" Grid.Column="1" FontWeight="Medium"/>
                                 </Grid>
                                 <Grid Margin="0,5">
@@ -70,7 +71,7 @@
                                         <ColumnDefinition Width="100"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="构建日期" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                    <TextBlock Text="{i18n:Loc Key=About.BuildDate}" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                                     <TextBlock x:Name="BuildDateText" Text="2026-01-04" Grid.Column="1"/>
                                 </Grid>
                                 <Grid Margin="0,5">
@@ -78,7 +79,7 @@
                                         <ColumnDefinition Width="100"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="开发者" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                                    <TextBlock Text="{i18n:Loc Key=About.Developer}" Grid.Column="0" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                                     <TextBlock Text="YiboSoft" Grid.Column="1"/>
                                 </Grid>
                             </StackPanel>
@@ -94,7 +95,7 @@
                 <!-- 内容页 2：快捷操作 -->
                 <ScrollViewer x:Name="ContentShortcuts" Visibility="Collapsed" Padding="30">
                     <StackPanel>
-                        <TextBlock Text="鼠标与键盘快捷操作" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+                        <TextBlock Text="{i18n:Loc Key=About.ShortcutsTitle}" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
                         
                         <Border Background="{DynamicResource BackgroundSecondaryBrush}" CornerRadius="8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                             <StackPanel>
@@ -104,8 +105,8 @@
                                         <ColumnDefinition Width="2*"/>
                                         <ColumnDefinition Width="3*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="功能" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0"/>
-                                    <TextBlock Text="操作方式" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0"/>
+                                    <TextBlock Text="{i18n:Loc Key=About.Function}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0"/>
+                                    <TextBlock Text="{i18n:Loc Key=About.Operation}" Grid.Column="1" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0"/>
                                 </Grid>
                                 <Border Height="1" Background="{DynamicResource DividerBrush}"/>
                                 
@@ -139,8 +140,8 @@
                 <!-- 内容页 3：开源许可 -->
                 <ScrollViewer x:Name="ContentLicense" Visibility="Collapsed" Padding="30">
                     <StackPanel>
-                        <TextBlock Text="开源许可与致谢" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
-                        <TextBlock Text="本项目使用了以下开源库：" Margin="0,0,0,20" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
+                        <TextBlock Text="{i18n:Loc Key=About.LicenseTitle}" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <TextBlock Text="{i18n:Loc Key=About.LicenseDesc}" Margin="0,0,0,20" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
                         
                         <ItemsControl x:Name="LicensesList">
                             <ItemsControl.ItemsPanel>

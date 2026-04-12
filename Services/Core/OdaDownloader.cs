@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -58,12 +59,13 @@ namespace YiboFile.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"无法打开下载页面: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                var dialogService = App.ServiceProvider?.GetService<UI.IDialogService>();
+                dialogService?.ShowError($"无法打开下载页面: {ex.Message}");
             }
         }
         
         /// <summary>
-        /// 从本地文件安装 ODA File Converter
+        /// 从本地 file 安装 ODA File Converter
         /// </summary>
         public static async Task<bool> InstallFromLocalFile(string zipFilePath, IProgress<string> progress)
         {
@@ -154,4 +156,3 @@ namespace YiboFile.Services
         }
     }
 }
-

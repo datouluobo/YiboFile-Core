@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +8,7 @@ using System.Windows;
 using YiboFile.Controls;
 using YiboFile.Services;
 using YiboFile.Dialogs;
+using YiboFile.Services.UI;
 
 namespace YiboFile.Services.FileOperations
 {
@@ -57,11 +59,11 @@ namespace YiboFile.Services.FileOperations
             // 如果有多个位置，询问用户（在需要时）
             if (_currentLibrary.Paths.Count > 1)
             {
+                var dialogService = App.ServiceProvider?.GetService(typeof(IDialogService)) as IDialogService;
                 var paths = string.Join("\n", _currentLibrary.Paths.Select((p, i) => $"{i + 1}. {p}"));
-                bool confirm = YiboFile.DialogService.Ask(
+                bool confirm = dialogService?.Confirm(
                     $"当前库有多个位置，将在第一个位置执行操作：\n\n{firstPath}\n\n是否继续？\n\n所有位置：\n{paths}",
-                    "选择位置",
-                    _ownerWindow);
+                    "选择位置") ?? false;
 
                 if (!confirm)
                 {
@@ -78,7 +80,8 @@ namespace YiboFile.Services.FileOperations
             {
                 if (operation == "NewFolder" || operation == "NewFile" || operation == "Paste")
                 {
-                    YiboFile.DialogService.Info("当前库没有添加任何位置，请先在管理库中添加位置", "提示", _ownerWindow);
+                    var dialogService = App.ServiceProvider?.GetService(typeof(IDialogService)) as IDialogService;
+                    dialogService?.ShowInfo("当前库没有添加任何位置，请先在管理库中添加位置", "提示");
                 }
                 return false;
             }
@@ -107,39 +110,46 @@ namespace YiboFile.Services.FileOperations
 
         public MessageBoxResult ShowMessage(string message, string title, MessageBoxButton buttons, MessageBoxImage icon)
         {
+            var dialogService = App.ServiceProvider?.GetService(typeof(IDialogService)) as IDialogService;
+            if (dialogService == null) return MessageBoxResult.None;
+
             if (buttons == MessageBoxButton.YesNo || buttons == MessageBoxButton.YesNoCancel)
             {
-                return YiboFile.DialogService.Ask(message, title, _ownerWindow) ? MessageBoxResult.Yes : MessageBoxResult.No;
+                return dialogService.Confirm(message, title) ? MessageBoxResult.Yes : MessageBoxResult.No;
             }
             if (buttons == MessageBoxButton.OKCancel)
             {
-                return YiboFile.DialogService.Ask(message, title, _ownerWindow) ? MessageBoxResult.OK : MessageBoxResult.Cancel;
+                return dialogService.Confirm(message, title) ? MessageBoxResult.OK : MessageBoxResult.Cancel;
             }
 
             if (icon == MessageBoxImage.Error)
             {
-                YiboFile.DialogService.Error(message, title, _ownerWindow);
+                dialogService.ShowError(message, title);
             }
             else if (icon == MessageBoxImage.Warning)
             {
-                YiboFile.DialogService.Warning(message, title, _ownerWindow);
+                dialogService.ShowWarning(message, title);
             }
             else
             {
-                YiboFile.DialogService.Info(message, title, _ownerWindow);
+                dialogService.ShowInfo(message, title);
             }
             return MessageBoxResult.OK;
         }
 
         public bool ShowConfirm(string message, string title)
         {
-            return ConfirmDialog.Show(message, title, ConfirmDialog.DialogType.Warning, _ownerWindow);
+            var dialogService = App.ServiceProvider?.GetService(typeof(IDialogService)) as IDialogService;
+            return dialogService?.Confirm(message, title) ?? false;
+        }
+
+        public string ShowInput(string prompt, string defaultText, string title, bool selectFileNameOnly = false)
+        {
+            var dialogService = App.ServiceProvider?.GetService<UI.IDialogService>();
+            return dialogService?.ShowInput(prompt, defaultText, title, selectFileNameOnly);
         }
     }
 }
-
-
-
 
 
 

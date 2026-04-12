@@ -9,6 +9,8 @@ using System.Windows.Media;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
 using Microsoft.Extensions.DependencyInjection;
+using YiboFile.Services.UI;
+using YiboFile.Services.Hardware;
 
 namespace YiboFile.Services.QuickAccess
 {
@@ -43,6 +45,7 @@ namespace YiboFile.Services.QuickAccess
 
         private readonly System.Windows.Threading.Dispatcher _dispatcher;
         private readonly IMessageBus _messageBus;
+        private readonly IDialogService _dialogService;
         private bool _isQuickAccessLanguageEventHooked = false;
 
         #endregion
@@ -53,6 +56,7 @@ namespace YiboFile.Services.QuickAccess
         {
             _messageBus = messageBus ?? App.ServiceProvider?.GetService<IMessageBus>();
             _dispatcher = dispatcher ?? Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            _dialogService = App.ServiceProvider?.GetService<IDialogService>();
         }
 
         #endregion
@@ -153,7 +157,7 @@ namespace YiboFile.Services.QuickAccess
                     // 警告：DriveInfo.GetDrives() 和 d.IsReady 在有未就绪光驱或挂载网络盘时可能导致耗时阻塞
                     var drives = DriveInfo.GetDrives().Where(d =>
                     {
-                        try { return d.IsReady; }
+                        try { return d.IsReady || d.DriveType == DriveType.Removable || d.DriveType == DriveType.CDRom; }
                         catch { return false; }
                     }).ToList();
 
@@ -161,10 +165,11 @@ namespace YiboFile.Services.QuickAccess
                     {
                         try
                         {
-                            long totalSize = drive.TotalSize;
-                            long freeSpace = drive.AvailableFreeSpace;
+                            long totalSize = drive.IsReady ? drive.TotalSize : 0;
+                            long freeSpace = drive.IsReady ? drive.AvailableFreeSpace : 0;
                             long usedSize = totalSize - freeSpace;
                             double usagePercentage = totalSize > 0 ? (double)usedSize / totalSize : 0;
+                            bool isRemovable = drive.DriveType == DriveType.Removable || drive.DriveType == DriveType.CDRom;
 
                             var item = new YiboFile.Services.Navigation.NavigationItem
                             {
@@ -175,6 +180,7 @@ namespace YiboFile.Services.QuickAccess
                                 TotalSize = totalSize,
                                 UsedSize = usedSize,
                                 UsagePercentage = usagePercentage,
+                                CanEject = isRemovable,
                                 UsageText = $"{formatFileSize(usedSize)} / {formatFileSize(totalSize)}",
                                 ToolTip = $"总空间: {formatFileSize(totalSize)}\n可用空间: {formatFileSize(freeSpace)}",
                                 DriveLetter = drive.Name.TrimEnd('\\'),
@@ -380,7 +386,7 @@ namespace YiboFile.Services.QuickAccess
                                 }
                                 catch (Exception ex)
                                 {
-                                    YiboFile.DialogService.Warning($"无法打开驱动器: {path}\n\n{ex.Message}");
+                                    _dialogService?.ShowWarning($"无法打开驱动器: {path}\n\n{ex.Message}");
                                     e.Handled = true;
                                     return;
                                 }

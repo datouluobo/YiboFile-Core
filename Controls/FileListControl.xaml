@@ -132,39 +132,21 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <!-- 缩略图模式重命名 Popup -->
-                        <Popup x:Name="ThumbnailRenamePopup" 
-                               PlacementTarget="{Binding ElementName=ThumbnailNameGrid}"
-                               Placement="Center"
-                               HorizontalOffset="0"
-                               VerticalOffset="0"
-                               StaysOpen="True"
-                               AllowsTransparency="False"
-                               IsOpen="{Binding IsRenaming}">
-                            <Border MinHeight="24"
-                                    Width="{Binding ItemWidth, ElementName=FileListRoot, FallbackValue=120}"
-                                    Background="{DynamicResource BackgroundElevatedBrush}"
-                                    BorderBrush="{DynamicResource BorderFocusBrush}"
-                                    BorderThickness="2"
-                                    CornerRadius="2">
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
-                                </Border.Effect>
-                                <TextBox x:Name="ThumbnailRenameTextBox"
-                                         Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
-                                         VerticalAlignment="Center"
-                                         TextAlignment="Center"
-                                         TextWrapping="Wrap"
-                                         AcceptsReturn="False"
-                                         Background="Transparent"
-                                         Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                         CaretBrush="{DynamicResource AccentDefaultBrush}"
-                                         BorderThickness="0" Padding="4,2"
-                                         KeyDown="RenameTextBox_KeyDown"
-                                         IsVisibleChanged="RenameTextBox_IsVisibleChanged"
-                                         LostFocus="RenameTextBox_LostFocus"/>
-                            </Border>
-                        </Popup>
+                        <!-- 缩略图模式重命名浮层 -->
+                        <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                            IsOpen="{Binding IsRenaming}"
+                            Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            PlacementTarget="{Binding ElementName=ThumbnailFileName}"
+                            IsDirectory="{Binding IsDirectory}"
+                            TextFontSize="11"
+                            TextAlignment="Center"
+                            TextPadding="0,0,0,0"
+                            PopupHorizontalOffset="-3"
+                            PopupVerticalOffset="-2"
+                            MinTextWidth="100"
+                            MaxTextWidth="300"
+                            RenameConfirmed="RenameOverlay_RenameConfirmed"
+                            RenameCancelled="RenameOverlay_RenameCancelled"/>
                     </Grid>
                 </Grid>
             </Border>
@@ -200,22 +182,21 @@
                         <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                     </StackPanel>
 
-                    <!-- 重命名 Popup - 采用 Relative 模式实现左上角对齐，确保不遮挡图标 -->
-                    <Popup PlacementTarget="{Binding ElementName=TilesFileName}"
-                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
-                           StaysOpen="True" AllowsTransparency="False"
-                           IsOpen="{Binding IsRenaming}">
-                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
-                                BorderBrush="{DynamicResource BorderFocusBrush}"
-                                BorderThickness="2" CornerRadius="2">
-                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
-                                     MinWidth="200" Padding="4,2" BorderThickness="0" Background="Transparent"
-                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                     KeyDown="RenameTextBox_KeyDown"
-                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
-                                     LostFocus="RenameTextBox_LostFocus"/>
-                        </Border>
-                    </Popup>
+                    <!-- 平铺重命名 Overlay -->
+                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        IsOpen="{Binding IsRenaming}"
+                        Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        PlacementTarget="{Binding ElementName=TilesFileName}"
+                        IsDirectory="{Binding IsDirectory}"
+                        TextFontSize="13"
+                        TextFontWeight="SemiBold"
+                        TextPadding="0,0,0,0"
+                        PopupHorizontalOffset="-3"
+                        PopupVerticalOffset="-2"
+                        MinTextWidth="180"
+                        MaxTextWidth="300"
+                        RenameConfirmed="RenameOverlay_RenameConfirmed"
+                        RenameCancelled="RenameOverlay_RenameCancelled"/>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -260,22 +241,21 @@
                     <TextBlock Grid.Column="2" Text="{Binding Notes}" MaxWidth="200" TextTrimming="CharacterEllipsis" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
 
-                    <!-- 重命名 Popup - 覆盖模式 (左上角对齐) -->
-                    <Popup PlacementTarget="{Binding ElementName=ContentFileName}"
-                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
-                           StaysOpen="True" AllowsTransparency="False"
-                           IsOpen="{Binding IsRenaming}">
-                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
-                                BorderBrush="{DynamicResource BorderFocusBrush}"
-                                BorderThickness="2" CornerRadius="2">
-                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
-                                     MinWidth="250" Padding="4,2" BorderThickness="0" Background="Transparent"
-                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                     KeyDown="RenameTextBox_KeyDown"
-                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
-                                     LostFocus="RenameTextBox_LostFocus"/>
-                        </Border>
-                    </Popup>
+                    <!-- 内容重命名 Overlay -->
+                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        IsOpen="{Binding IsRenaming}"
+                        Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        PlacementTarget="{Binding ElementName=ContentFileName}"
+                        IsDirectory="{Binding IsDirectory}"
+                        TextFontSize="13"
+                        TextFontWeight="SemiBold"
+                        TextPadding="0,0,0,0"
+                        PopupHorizontalOffset="-3"
+                        PopupVerticalOffset="-2"
+                        MinTextWidth="280"
+                        MaxTextWidth="600"
+                        RenameConfirmed="RenameOverlay_RenameConfirmed"
+                        RenameCancelled="RenameOverlay_RenameCancelled"/>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -300,22 +280,20 @@
                             </TextBlock.Style>
                         </TextBlock>
                     </StackPanel>
-                    <!-- 重命名 Popup - 居中覆盖 (改为左侧对齐) -->
-                    <Popup PlacementTarget="{Binding ElementName=SmallIconFileName}"
-                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
-                           StaysOpen="True" AllowsTransparency="False"
-                           IsOpen="{Binding IsRenaming}">
-                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
-                                BorderBrush="{DynamicResource BorderFocusBrush}"
-                                BorderThickness="2" CornerRadius="2">
-                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
-                                     MinWidth="120" Padding="4,2" BorderThickness="0" Background="Transparent"
-                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                     KeyDown="RenameTextBox_KeyDown"
-                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
-                                     LostFocus="RenameTextBox_LostFocus"/>
-                        </Border>
-                    </Popup>
+                    <!-- 小图标重命名 Overlay -->
+                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        IsOpen="{Binding IsRenaming}"
+                        Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        PlacementTarget="{Binding ElementName=SmallIconFileName}"
+                        IsDirectory="{Binding IsDirectory}"
+                        TextFontSize="13"
+                        TextPadding="0,0,0,0"
+                        PopupHorizontalOffset="-3"
+                        PopupVerticalOffset="-2"
+                        MinTextWidth="140"
+                        MaxTextWidth="400"
+                        RenameConfirmed="RenameOverlay_RenameConfirmed"
+                        RenameCancelled="RenameOverlay_RenameCancelled"/>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -350,22 +328,20 @@
                     <TextBlock Grid.Column="3" Text="{Binding ModifiedDate}" HorizontalAlignment="Right" VerticalAlignment="Center" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
 
-                    <!-- 重命名 Popup - 居中覆盖 (左侧对齐) -->
-                    <Popup PlacementTarget="{Binding ElementName=CompactFileName}"
-                           Placement="Relative" HorizontalOffset="0" VerticalOffset="-2"
-                           StaysOpen="True" AllowsTransparency="False"
-                           IsOpen="{Binding IsRenaming}">
-                        <Border Background="{DynamicResource BackgroundElevatedBrush}"
-                                BorderBrush="{DynamicResource BorderFocusBrush}"
-                                BorderThickness="2" CornerRadius="2">
-                            <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
-                                     MinWidth="180" Padding="4,2" BorderThickness="0" Background="Transparent"
-                                     Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                     KeyDown="RenameTextBox_KeyDown"
-                                     IsVisibleChanged="RenameTextBox_IsVisibleChanged"
-                                     LostFocus="RenameTextBox_LostFocus"/>
-                        </Border>
-                    </Popup>
+                    <!-- 紧凑重命名 Overlay -->
+                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        IsOpen="{Binding IsRenaming}"
+                        Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        PlacementTarget="{Binding ElementName=CompactFileName}"
+                        IsDirectory="{Binding IsDirectory}"
+                        TextFontSize="13"
+                        TextPadding="0,0,0,0"
+                        PopupHorizontalOffset="-3"
+                        PopupVerticalOffset="-2"
+                        MinTextWidth="160"
+                        MaxTextWidth="400"
+                        RenameConfirmed="RenameOverlay_RenameConfirmed"
+                        RenameCancelled="RenameOverlay_RenameCancelled"/>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -395,6 +371,7 @@
                       SelectionMode="Extended"
                       Background="Transparent"
                       BorderThickness="0"
+                      Padding="0"
                       FocusVisualStyle="{x:Null}"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.IsVirtualizingWhenGrouping="False"
@@ -467,49 +444,32 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
-                                            <!-- 重命名 Popup - 左对齐模式 -->
-                                            <Popup x:Name="RenamePopup" 
-                                                   PlacementTarget="{Binding ElementName=FileNameText}"
-                                                   Placement="Relative"
-                                                   HorizontalOffset="0"
-                                                   VerticalOffset="-2"
-                                                   StaysOpen="True"
-                                                   AllowsTransparency="False"
-                                                   IsOpen="{Binding IsRenaming}">
-                                                <Border MinHeight="24"
-                                                        Background="{DynamicResource BackgroundElevatedBrush}"
-                                                        BorderBrush="{DynamicResource BorderFocusBrush}"
-                                                        BorderThickness="2"
-                                                        CornerRadius="2">
-                                                    <Border.Effect>
-                                                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
-                                                    </Border.Effect>
-                                                    <TextBox x:Name="RenameTextBox"
-                                                             Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}" 
-                                                             MinWidth="350"
-                                                             VerticalAlignment="Center"
-                                                             TextAlignment="Left"
-                                                             Background="Transparent"
-                                                             Foreground="{DynamicResource ForegroundPrimaryBrush}"
-                                                             CaretBrush="{DynamicResource AccentDefaultBrush}"
-                                                             BorderThickness="0" Padding="4,2"
-                                                             KeyDown="RenameTextBox_KeyDown"
-                                                             IsVisibleChanged="RenameTextBox_IsVisibleChanged"
-                                                             LostFocus="RenameTextBox_LostFocus"/>
-                                                </Border>
-                                            </Popup>
+                                            <!-- 列表视图重命名 Overlay -->
+                                            <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                                                IsOpen="{Binding IsRenaming}"
+                                                Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                PlacementTarget="{Binding ElementName=FileNameText}"
+                                                IsDirectory="{Binding IsDirectory}"
+                                                TextFontSize="13"
+                                                TextPadding="0"
+                                                PopupHorizontalOffset="-4"
+                                                PopupVerticalOffset="-3"
+                                                MinTextWidth="180"
+                                                MaxTextWidth="500"
+                                                RenameConfirmed="RenameOverlay_RenameConfirmed"
+                                                RenameCancelled="RenameOverlay_RenameCancelled"/>
                                         </Grid>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             
-                            <GridViewColumn x:Name="ColType" Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Type}">
+                            <GridViewColumn x:Name="ColType" Width="80" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Type}">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="{i18n:Loc Key=FileList.Columns.Type}" Tag="Type"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
 
-                            <GridViewColumn x:Name="ColSize" Width="90" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
+                            <GridViewColumn x:Name="ColSize" Width="100" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="{i18n:Loc Key=FileList.Columns.Size}" Tag="Size"/>
                                 </GridViewColumn.Header>
@@ -526,15 +486,35 @@
                                 </GridViewColumn.Header>
                             </GridViewColumn>
 
-                            <GridViewColumn Width="60" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}">
+                            <GridViewColumn x:Name="ColCreatedTime" Width="70">
                                 <GridViewColumn.Header>
                                     <TextBlock Text="{i18n:Loc Key=FileList.Columns.CreatedTime}" Tag="CreatedTime"/>
                                 </GridViewColumn.Header>
+                                <GridViewColumn.HeaderContainerStyle>
+                                    <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource NonResizableFileColumnHeaderStyle}">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                        <Setter Property="Padding" Value="4,8"/>
+                                    </Style>
+                                </GridViewColumn.HeaderContainerStyle>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Grid ClipToBounds="True">
-                                            <Border Background="{Binding CreatedTimeBrush}" Margin="-6,0" Padding="8,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="{Binding CreatedTime}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundOnAccentBrush}"/>
+                                        <Grid>
+                                            <Border Background="{Binding CreatedTimeBrush}" 
+                                                    CornerRadius="10" 
+                                                    MinWidth="48"
+                                                    Padding="6,2"
+                                                    Height="20"
+                                                    VerticalAlignment="Center" 
+                                                    HorizontalAlignment="Center">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.12"/>
+                                                </Border.Effect>
+                                                <TextBlock Text="{Binding CreatedTime}" 
+                                                           HorizontalAlignment="Center" 
+                                                           VerticalAlignment="Center" 
+                                                           FontSize="10.5"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ForegroundOnAccentBrush}"/>
                                             </Border>
                                         </Grid>
                                     </DataTemplate>

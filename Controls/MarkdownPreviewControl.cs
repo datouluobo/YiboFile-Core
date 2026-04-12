@@ -93,7 +93,10 @@ namespace YiboFile.Controls
             try
             {
                 await YiboFile.Helpers.WebView2Helper.EnsureInitializedAsync(_webView);
-                _webView.NavigateToString(html);
+                if (_webView != null)
+                {
+                    _webView.NavigateToString(html);
+                }
             }
             catch { }
         }

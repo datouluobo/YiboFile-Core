@@ -57,7 +57,7 @@ namespace YiboFile.ViewModels.Previews
             OpenExternalCommand = new RelayCommand(() => PreviewHelper.OpenInDefaultApp(FilePath));
         }
 
-        public async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
+        public override async Task LoadAsync(string filePath, System.Threading.CancellationToken token = default)
         {
             if (token.IsCancellationRequested) return;
             FilePath = filePath;
@@ -97,30 +97,53 @@ namespace YiboFile.ViewModels.Previews
 
         private async Task HandleDocFile(string filePath)
         {
+            // Get theme info on UI thread first
+            string themeCss = await Application.Current.Dispatcher.InvokeAsync(() => GetThemeCss());
+
             // For .doc, we need to convert to .docx first using Word COM
             string tempDocx = Path.Combine(Path.GetTempPath(), $"word_preview_{Guid.NewGuid()}.docx");
 
-            string error = null;
-            bool success = await Task.Run(() => ConvertDocToDocx(filePath, tempDocx, out error));
-
-            if (success)
+            try
             {
-                await HandleDocxFile(tempDocx);
-                // Clean up temp file
-                try { File.Delete(tempDocx); } catch { }
+                var timeoutSource = new System.Threading.CancellationTokenSource(20000);
+                string error = null;
+                bool success = false;
+
+                await Task.Run(() =>
+                {
+                    success = ConvertDocToDocx(filePath, tempDocx, out error);
+                }, timeoutSource.Token);
+
+                if (success)
+                {
+                    await HandleDocxFile(tempDocx);
+                    // Clean up temp file
+                    try { File.Delete(tempDocx); } catch { }
+                    return;
+                }
             }
-            else
+            catch (Exception) { }
+
+            // If we are here, either success was false or we timed out
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 NeedsConversion = true;
-                ConversionMessage = error ?? "该文件格式需要 Microsoft Word 才能预览。";
-                HtmlContent = "<html><body style='background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div style='text-align:center;color:#666'><h3>需要转换格式</h3><p>此格式需要安装 Microsoft Word 才能预览</p></div></body></html>";
-            }
+                ConversionMessage = "该文件格式处理超时或需要 Microsoft Word。";
+                HtmlContent = "<html><body style='background:#f5f5f5;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:20px;color:#666'><h3>预览生成超时</h3><p>此格式需要安装 Microsoft Word 并且响应正常才能预览。</p></div></body></html>";
+            });
         }
 
         private async Task HandleDocxFile(string filePath)
         {
-            string html = await Task.Run(() => GenerateHtmlFromDocx(filePath));
-            HtmlContent = html;
+            // Get theme info on UI thread
+            string themeCss = await Application.Current.Dispatcher.InvokeAsync(() => GetThemeCss());
+            
+            string html = await Task.Run(() => GenerateHtmlFromDocx(filePath, themeCss));
+            
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                HtmlContent = html;
+            });
         }
 
         private async Task ConvertToDocxAsync()
@@ -182,10 +205,12 @@ namespace YiboFile.ViewModels.Previews
                 try
                 {
                     try { wordApp.Visible = false; } catch { }
-                    wordApp.DisplayAlerts = 0; // wdAlertsNone
+                    wordApp.DisplayAlerts = 0; // 0 = wdAlertsNone
+                    
                     // Use ConfirmConversions: false to avoid dialogs
+                    // 12 = wdFormatXMLDocument
                     dynamic document = wordApp.Documents.Open(FileName: docPath, ConfirmConversions: false, ReadOnly: true, AddToRecentFiles: false, Visible: false);
-                    document.SaveAs2(docxPath, 12); // wdFormatXMLDocument = 12
+                    document.SaveAs2(docxPath, 12); 
                     document.Close(false);
                     return true;
                 }
@@ -203,11 +228,10 @@ namespace YiboFile.ViewModels.Previews
         }
 
         // --- Logic from DocxPreviewHandler ---
-        private string GenerateHtmlFromDocx(string filePath)
+        private string GenerateHtmlFromDocx(string filePath, string themeCss = "")
         {
             try
             {
-                string themeCss = GetThemeCss();
                 var sb = new StringBuilder();
                 sb.Append("<!DOCTYPE html><html><head><meta charset='utf-8'>");
                 sb.Append("<style>");

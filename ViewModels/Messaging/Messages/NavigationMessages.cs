@@ -120,5 +120,6 @@ namespace YiboFile.ViewModels.Messaging.Messages
         string Path,
         System.Collections.Generic.Stack<string> BackStack,
         System.Collections.Generic.Stack<string> ForwardStack,
-        PaneId Pane);
+        PaneId Pane,
+        YiboFile.Models.Enums.FileListViewMode? ViewMode = null);
 }

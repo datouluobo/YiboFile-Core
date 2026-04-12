@@ -175,7 +175,7 @@ namespace YiboFile.Controls.Helpers
             filesListView.ItemTemplateSelector = null;
             filesListView.ItemsPanel = (ItemsPanelTemplate)findResource("StackPanelTemplate");
             if (filesGridView != null) filesListView.View = filesGridView;
-            ScrollViewer.SetHorizontalScrollBarVisibility(filesListView, ScrollBarVisibility.Auto);
+            ScrollViewer.SetHorizontalScrollBarVisibility(filesListView, ScrollBarVisibility.Disabled);
 
             // 启用缩略图加载 (16px for small icons)
             if (filesListView.ItemsSource != null)

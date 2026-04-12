@@ -145,6 +145,10 @@ namespace YiboFile
         public System.Collections.Generic.List<string> OpenTabsSecondary { get; set; } = new System.Collections.Generic.List<string>();
         public string ActiveTabKeySecondary { get; set; } = string.Empty;
 
+        // 每标签页视图模式映射 (tabKey → ViewMode 枚举名)
+        public System.Collections.Generic.Dictionary<string, string> TabViewModes { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
+        public System.Collections.Generic.Dictionary<string, string> TabViewModes_Secondary { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
+
         // 字体设置
         public double UIFontSize { get; set; } = 16; // 界面字体大小（默认16）
         public double TagFontSize { get; set; } = 16; // Tag字体大小（默认16）
@@ -156,9 +160,12 @@ namespace YiboFile
         public double RightPanelNotesHeight { get; set; } = 200; // 右侧备注区高度
         public double CenterPanelInfoHeight { get; set; } = 180; // 中间底部详情区高度
         public double SecondPanelInfoHeight { get; set; } = 180; // 副列表底部详情区高度
-        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; // 视图模式：List 或 Thumbnail
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; // 视图模式
+        public YiboFile.Models.Enums.FileListViewMode FileViewMode_Secondary { get; set; } = YiboFile.Models.Enums.FileListViewMode.List; 
         public string SortColumn { get; set; } = "Name"; // 排序字段
         public string SortDirection { get; set; } = "Ascending"; // 排序方向
+        public string SortColumn_Secondary { get; set; } = "Name";
+        public string SortDirection_Secondary { get; set; } = "Ascending";
 
         // 标签页复用策略配置
         public int ReuseTabTimeWindow { get; set; } = 10; // 复用标签页的时间窗口（秒），默认10秒
@@ -235,6 +242,9 @@ namespace YiboFile
 
         // Shell 菜单集成模式
         public string ShellMenuMode { get; set; } = "System";
+
+        // 重命名时点击空白区域的行为
+        public string RenameLostFocusBehavior { get; set; } = "Commit";
     }
 
     public class AllSettingsConfig

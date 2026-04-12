@@ -74,7 +74,7 @@ namespace YiboFile.Handlers
 
             _navigateToPath = navigateToPath ?? throw new ArgumentNullException(nameof(navigateToPath));
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
-
+            _isLibraryMode = isLibraryMode ?? (() => false);
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
 
             _messageBus = messageBus;
