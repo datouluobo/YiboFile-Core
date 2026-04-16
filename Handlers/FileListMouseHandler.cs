@@ -95,6 +95,23 @@ namespace YiboFile.Handlers
                 return;
             }
 
+            // 最开始就检查是否有任何项正在重命名，如果有，直接返回
+            bool isAnyItemRenaming = false;
+            foreach (var item in listView.Items)
+            {
+                if (item is FileSystemItem fsItem && fsItem.IsRenaming)
+                {
+                    isAnyItemRenaming = true;
+                    break;
+                }
+            }
+            
+            if (isAnyItemRenaming)
+            {
+                System.Diagnostics.Debug.WriteLine("[FileListMouseHandler] Any item is renaming, skipping all mouse down handling");
+                return;
+            }
+
             if (e.ClickCount == 2)
             {
                 var src = e.OriginalSource as DependencyObject;
@@ -227,6 +244,31 @@ namespace YiboFile.Handlers
 
         public void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            var listView = sender as ListView;
+            if (listView == null)
+            {
+                _isMouseDownOnListView = false;
+                return;
+            }
+
+            // 最开始就检查是否有任何项正在重命名，如果有，直接返回
+            bool isAnyItemRenaming = false;
+            foreach (var item in listView.Items)
+            {
+                if (item is FileSystemItem fsItem && fsItem.IsRenaming)
+                {
+                    isAnyItemRenaming = true;
+                    break;
+                }
+            }
+            
+            if (isAnyItemRenaming)
+            {
+                System.Diagnostics.Debug.WriteLine("[FileListMouseHandler] Any item is renaming, skipping all mouse up handling");
+                _isMouseDownOnListView = false;
+                return;
+            }
+
             if (_isMouseDownOnColumnHeader)
             {
                 _isMouseDownOnColumnHeader = false;
@@ -236,13 +278,6 @@ namespace YiboFile.Handlers
 
             if (!_isMouseDownOnListView)
                 return;
-
-            var listView = sender as ListView;
-            if (listView == null)
-            {
-                _isMouseDownOnListView = false;
-                return;
-            }
 
             var originalSource = e.OriginalSource as DependencyObject;
             DependencyObject checkSource = originalSource;

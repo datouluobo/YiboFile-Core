@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace YiboFile.Dialogs
@@ -14,10 +15,21 @@ namespace YiboFile.Dialogs
         public PathInputDialog(string prompt = "请输入路径:")
         {
             InitializeComponent();
-            PromptTextBlock.Text = prompt;
-            PathTextBox.Focus();
+            this.PromptText = prompt;
             this.KeyDown += PathInputDialog_KeyDown;
-            this.MouseLeftButtonDown += (s, e) => { if (e.LeftButton == MouseButtonState.Pressed) this.DragMove(); };
+            this.MouseLeftButtonDown += (s, e) => 
+            { 
+                // 获取点击位置相对于窗口的坐标
+                Point clickPos = e.GetPosition(this);
+                
+                // 检查点击位置是否在 TextBox 边界内
+                Point textBoxPos = PathTextBox.TransformToAncestor(this).Transform(new Point(0, 0));
+                Rect textBoxBounds = new Rect(textBoxPos, PathTextBox.RenderSize);
+                if (textBoxBounds.Contains(clickPos)) return;
+                
+                // 允许窗口拖动
+                if (e.LeftButton == MouseButtonState.Pressed) this.DragMove(); 
+            };
         }
 
         private void PathInputDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

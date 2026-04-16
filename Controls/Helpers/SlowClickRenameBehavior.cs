@@ -53,6 +53,7 @@ namespace YiboFile.Controls.Helpers
             // 快速双击 → 取消慢单击候选
             if (e.ClickCount >= 2)
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Double click detected, canceling");
                 Cancel();
                 return;
             }
@@ -60,14 +61,50 @@ namespace YiboFile.Controls.Helpers
             // 仅处理左键单击
             if (e.ChangedButton != MouseButton.Left || e.ClickCount != 1)
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Not left click or not single click, canceling");
                 Cancel();
                 return;
+            }
+
+            // 首先检查是否有任何项正在重命名，如果有，直接取消
+            if (listView.Items.Count > 0)
+            {
+                foreach (var item in listView.Items)
+                {
+                    if (item is FileSystemItem renamingItem && renamingItem.IsRenaming)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[SlowClickRename] Any item is renaming, canceling");
+                        Cancel();
+                        return;
+                    }
+                }
+            }
+
+            // 检查点击是否在 RenameOverlay 上
+            var hitResult = VisualTreeHelper.HitTest(listView, e.GetPosition(listView));
+            if (hitResult != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SlowClickRename] HitTest result: {hitResult.VisualHit.GetType().Name}");
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listView)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SlowClickRename] Checking ancestor: {current.GetType().Name}");
+                    if (current.GetType().Name == "RenameOverlay")
+                    {
+                        System.Diagnostics.Debug.WriteLine("[SlowClickRename] Click on RenameOverlay detected, canceling");
+                        // 点击在重命名覆盖层上，取消慢单击逻辑
+                        Cancel();
+                        return;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
             }
 
             // 如果正在重命名，不要介入
             var hitItem = HitTestForItem(listView, e);
             if (hitItem?.DataContext is FileSystemItem fsItem && fsItem.IsRenaming)
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Item is already renaming, canceling");
                 Cancel();
                 return;
             }
@@ -75,6 +112,7 @@ namespace YiboFile.Controls.Helpers
             // 检查：该项是否在本次点击之前就已被选中？
             if (hitItem != null && hitItem.IsSelected)
             {
+                System.Diagnostics.Debug.WriteLine($"[SlowClickRename] Item is selected, recording candidate: {hitItem.DataContext}");
                 // 记录候选，但不立即启动计时器
                 _candidateItem = hitItem.DataContext as FileSystemItem;
                 _candidateContainer = hitItem;
@@ -82,6 +120,7 @@ namespace YiboFile.Controls.Helpers
             }
             else
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Item not selected or clicked on blank area, canceling");
                 // 点到了未选中的项 或 空白区 → 重置
                 Cancel();
             }
@@ -93,12 +132,50 @@ namespace YiboFile.Controls.Helpers
         public void OnMouseUp(ListView listView, MouseButtonEventArgs e)
         {
             if (!_wasAlreadySelected || _candidateItem == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] No candidate or not already selected, returning");
                 return;
+            }
+
+            // 首先检查是否有任何项正在重命名，如果有，直接取消
+            if (listView.Items.Count > 0)
+            {
+                foreach (var item in listView.Items)
+                {
+                    if (item is FileSystemItem renamingItem && renamingItem.IsRenaming)
+                    {
+                        System.Diagnostics.Debug.WriteLine("[SlowClickRename] Any item is renaming, canceling");
+                        Cancel();
+                        return;
+                    }
+                }
+            }
+
+            // 检查点击是否在 RenameOverlay 上
+            var hitResult = VisualTreeHelper.HitTest(listView, e.GetPosition(listView));
+            if (hitResult != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SlowClickRename] MouseUp HitTest result: {hitResult.VisualHit.GetType().Name}");
+                DependencyObject current = hitResult.VisualHit;
+                while (current != null && current != listView)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SlowClickRename] Checking MouseUp ancestor: {current.GetType().Name}");
+                    if (current.GetType().Name == "RenameOverlay")
+                    {
+                        System.Diagnostics.Debug.WriteLine("[SlowClickRename] MouseUp on RenameOverlay detected, canceling");
+                        // 点击在重命名覆盖层上，取消慢单击逻辑
+                        Cancel();
+                        return;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            }
 
             // 确认松手时仍在同一个 Item 上
             var hitItem = HitTestForItem(listView, e);
             if (hitItem != _candidateContainer)
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] MouseUp not on same item, canceling");
                 Cancel();
                 return;
             }
@@ -106,6 +183,7 @@ namespace YiboFile.Controls.Helpers
             // 如果是多选操作（Ctrl/Shift），不触发
             if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != ModifierKeys.None)
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Multi-select modifier detected, canceling");
                 Cancel();
                 return;
             }
@@ -113,6 +191,7 @@ namespace YiboFile.Controls.Helpers
             // 仅当只有 1 个选中项时才能触发慢单击重命名
             if (listView.SelectedItems.Count != 1)
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Not single selection, canceling");
                 Cancel();
                 return;
             }
@@ -120,11 +199,13 @@ namespace YiboFile.Controls.Helpers
             // 仅当点击在文件名区域时才触发
             if (!IsHitOnFileName(listView, e))
             {
+                System.Diagnostics.Debug.WriteLine("[SlowClickRename] Not hit on file name, canceling");
                 Cancel();
                 return;
             }
 
             // 记录选中时间戳（用于在计时器回调中判断一个完整的"慢单击"周期）
+            System.Diagnostics.Debug.WriteLine("[SlowClickRename] Starting rename timer");
             _selectionTimestamp = DateTime.UtcNow;
             _timer.Start();
         }

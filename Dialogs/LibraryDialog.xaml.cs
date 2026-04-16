@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Forms;
+using System.Windows.Input;
 
 namespace YiboFile.Dialogs
 {
@@ -18,7 +20,22 @@ namespace YiboFile.Dialogs
             InitializeComponent();
             LibraryNameTextBox.Focus();
             this.KeyDown += LibraryDialog_KeyDown;
-            this.MouseLeftButtonDown += (s, e) => { if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed) this.DragMove(); };
+            this.MouseLeftButtonDown += (s, e) => 
+            { 
+                // 获取点击位置相对于窗口的坐标
+                Point clickPos = e.GetPosition(this);
+                
+                // 检查点击位置是否在任何 TextBox 边界内
+                foreach (var textBox in new[] { LibraryNameTextBox, LibraryPathTextBox })
+                {
+                    Point textBoxPos = textBox.TransformToAncestor(this).Transform(new Point(0, 0));
+                    Rect textBoxBounds = new Rect(textBoxPos, textBox.RenderSize);
+                    if (textBoxBounds.Contains(clickPos)) return;
+                }
+                
+                // 允许窗口拖动
+                if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed) this.DragMove(); 
+            };
         }
 
         private void LibraryDialog_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

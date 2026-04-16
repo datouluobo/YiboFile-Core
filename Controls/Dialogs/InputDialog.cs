@@ -86,6 +86,15 @@ namespace YiboFile.Controls.Dialogs
             // 允许拖动窗口 (在窗口级别监听以确保覆盖所有非交互区域)
             this.MouseLeftButtonDown += (s, e) =>
             {
+                // 获取点击位置相对于窗口的坐标
+                Point clickPos = e.GetPosition(this);
+                
+                // 检查点击位置是否在 TextBox 边界内
+                Point textBoxPos = _textBox.TransformToAncestor(this).Transform(new Point(0, 0));
+                Rect textBoxBounds = new Rect(textBoxPos, _textBox.RenderSize);
+                if (textBoxBounds.Contains(clickPos)) return;
+                
+                // 允许窗口拖动
                 if (e.LeftButton == MouseButtonState.Pressed)
                 {
                     try { this.DragMove(); } catch { }

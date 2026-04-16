@@ -31,7 +31,24 @@ namespace YiboFile.Dialogs
         {
             InitializeComponent();
             this.KeyDown += ConfirmDialog_KeyDown;
-            this.MouseLeftButtonDown += (s, e) => { if (e.LeftButton == MouseButtonState.Pressed) this.DragMove(); };
+            this.MouseLeftButtonDown += (s, e) => 
+            { 
+                // 检查点击位置是否在任何按钮的边界内
+                Point clickPos = e.GetPosition(this);
+                
+                // 检查可见的按钮
+                foreach (var button in new[] { NoButton, CancelButton, ConfirmButton, YesButton })
+                {
+                    if (button.Visibility == Visibility.Visible)
+                    {
+                        Point buttonPos = button.TransformToAncestor(this).Transform(new Point(0, 0));
+                        Rect buttonBounds = new Rect(buttonPos, button.RenderSize);
+                        if (buttonBounds.Contains(clickPos)) return;
+                    }
+                }
+                
+                if (e.LeftButton == MouseButtonState.Pressed) this.DragMove(); 
+            };
         }
 
         public static AppDialogResult Show(string message, string title = "确认", 

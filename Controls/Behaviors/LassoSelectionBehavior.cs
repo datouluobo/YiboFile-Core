@@ -107,6 +107,12 @@ namespace YiboFile.Controls.Behaviors
         {
             if (hitElement == null) return false;
 
+            // 检查 TextBox（如重命名输入框）
+            if (FindAncestor<System.Windows.Controls.TextBox>(hitElement) != null)
+            {
+                return true;
+            }
+
             // 检查滚动条相关元素
             if (FindAncestor<System.Windows.Controls.Primitives.ScrollBar>(hitElement) != null)
             {

@@ -258,12 +258,113 @@ namespace YiboFile.Controls
             }
         }
 
+        /// <summary>拦截 TextBox 上的鼠标点击事件，确保 TextBox 获得焦点</summary>
+        private void OnTextBoxPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // 确保点击时 TextBox 获得焦点（在某些 WPF 场景下 Popup 内部点击可能不会自动焦点）
+            System.Diagnostics.Debug.WriteLine($"[RenameOverlay] TextBox.PreviewMouseDown - Source:{e.Source}, OriginalSource:{e.OriginalSource}");
+            
+            // 直接设置焦点，而不是使用 Dispatcher.BeginInvoke，避免焦点丢失
+            if (RenameTextBox.IsVisible)
+            {
+                System.Diagnostics.Debug.WriteLine("[RenameOverlay] Setting focus to TextBox");
+                RenameTextBox.Focus();
+                Keyboard.Focus(RenameTextBox);
+                System.Diagnostics.Debug.WriteLine($"[RenameOverlay] TextBox IsFocused: {RenameTextBox.IsFocused}, IsKeyboardFocused: {RenameTextBox.IsKeyboardFocused}");
+            }
+            
+            // 不设置 e.Handled，让文本框能够处理自己的鼠标事件
+            // 我们已经在 FileListMouseHandler 中添加了检查，防止事件冒泡导致退出编辑模式
+        }
+
+        /// <summary>拦截 Popup 边框上的鼠标点击，防止事件穿透到下层控件</summary>
+        private void OnPopupBorderPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[RenameOverlay] PopupBorder.PreviewMouseDown - Source:{e.Source}, OriginalSource:{e.OriginalSource}");
+            
+            // 检查点击是否在 Popup 内部的交互元素上
+            var source = e.OriginalSource as DependencyObject;
+            if (source != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RenameOverlay] OriginalSource type: {source.GetType().Name}");
+                // 如果点击在 TextBox、Button 或它们的子元素上，不设置 e.Handled，让文本框能够处理自己的鼠标事件
+                if (source == RenameTextBox || 
+                    source == ConfirmButton || 
+                    source == CancelButton ||
+                    IsDescendantOf(RenameTextBox, source) ||
+                    IsDescendantOf(ConfirmButton, source) ||
+                    IsDescendantOf(CancelButton, source))
+                {
+                    System.Diagnostics.Debug.WriteLine("[RenameOverlay] Click on TextBox/Button detected, not setting e.Handled to allow TextBox to handle events");
+                    // 不设置 e.Handled，让文本框能够处理自己的鼠标事件
+                    return;
+                }
+            }
+            
+            // 其他情况（如点击在 Border 背景上），阻止事件穿透
+            System.Diagnostics.Debug.WriteLine("[RenameOverlay] Click on border background, setting e.Handled = true");
+            e.Handled = true;
+            System.Diagnostics.Debug.WriteLine("[RenameOverlay] 拦截了穿透点击事件");
+        }
+
+        /// <summary>拦截 Popup 边框上的鼠标释放</summary>
+        private void OnPopupBorderPreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine($"[RenameOverlay] PopupBorder.PreviewMouseUp - Source:{e.Source}, OriginalSource:{e.OriginalSource}");
+            
+            // 检查点击是否在 Popup 内部的交互元素上
+            var source = e.OriginalSource as DependencyObject;
+            if (source != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RenameOverlay] MouseUp OriginalSource type: {source.GetType().Name}");
+                // 如果点击在 TextBox、Button 或它们的子元素上，不设置 e.Handled，让文本框能够处理自己的鼠标事件
+                if (source == RenameTextBox || 
+                    source == ConfirmButton || 
+                    source == CancelButton ||
+                    IsDescendantOf(RenameTextBox, source) ||
+                    IsDescendantOf(ConfirmButton, source) ||
+                    IsDescendantOf(CancelButton, source))
+                {
+                    System.Diagnostics.Debug.WriteLine("[RenameOverlay] MouseUp on TextBox/Button detected, not setting e.Handled to allow TextBox to handle events");
+                    // 不设置 e.Handled，让文本框能够处理自己的鼠标事件
+                    return;
+                }
+            }
+            
+            // 其他情况（如点击在 Border 背景上），阻止事件穿透
+            System.Diagnostics.Debug.WriteLine("[RenameOverlay] MouseUp on border background, setting e.Handled = true");
+            e.Handled = true;
+            System.Diagnostics.Debug.WriteLine("[RenameOverlay] 拦截了穿透点击事件 (MouseUp)");
+        }
+
         private void OnTextBoxLostFocus(object sender, RoutedEventArgs e)
         {
             if (_isProcessing) return;
 
             if (IsOpen)
             {
+                // 多重焦点检查：Popup 使用 AllowsTransparency="True" 创建独立 HWND，
+                // FocusManager.GetFocusedElement 无法正确跟踪跨 HWND 的焦点。
+                // 改用 Keyboard.FocusedElement + IsKeyboardFocused 做冗余判断。
+
+                // 检查1：TextBox 自身是否仍持有键盘焦点（最可靠）
+                if (RenameTextBox.IsKeyboardFocused)
+                    return;
+
+                // 检查2：键盘焦点是否在 Popup 内部的其他元素上（如确认/取消按钮）
+                var keyboardFocused = Keyboard.FocusedElement as DependencyObject;
+                if (keyboardFocused != null && IsDescendantOf(PopupBorder, keyboardFocused))
+                    return;
+
+                // 检查3：FocusManager 兜底（兼容某些特殊焦点作用域场景）
+                var focusScope = FocusManager.GetFocusScope(RenameTextBox);
+                if (focusScope != null)
+                {
+                    var fmFocused = FocusManager.GetFocusedElement(focusScope) as DependencyObject;
+                    if (fmFocused != null && IsDescendantOf(PopupBorder, fmFocused))
+                        return;
+                }
+
                 // 实时从配置服务读取，避免 DataContext 绑定的值在设置变更后未及时刷新
                 var configService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Config.IConfigurationService>(App.ServiceProvider);
                 string behavior = configService?.GetSnapshot()?.RenameLostFocusBehavior ?? "Commit";
@@ -344,6 +445,26 @@ namespace YiboFile.Controls
             _isProcessing = true;
             RenameCancelled?.Invoke(this, EventArgs.Empty);
             _isProcessing = false;
+        }
+
+        #endregion
+
+        #region 辅助方法
+
+        /// <summary>
+        /// 检查 descendant 是否是 ancestor 的视觉后代
+        /// </summary>
+        private static bool IsDescendantOf(DependencyObject? ancestor, DependencyObject descendant)
+        {
+            if (ancestor == null || descendant == null) return false;
+
+            var current = System.Windows.Media.VisualTreeHelper.GetParent(descendant);
+            while (current != null)
+            {
+                if (current == ancestor) return true;
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            return false;
         }
 
         #endregion
