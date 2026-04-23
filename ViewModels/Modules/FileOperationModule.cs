@@ -118,6 +118,23 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnDeleteItems(DeleteItemsRequestMessage message)
         {
+            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] OnDeleteItems invoked. Items count: {message.Items?.Count ?? 0}");
+            if (message.Items != null)
+            {
+                foreach (var item in message.Items)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Item to delete: {item.Name}, Path: {item.Path}");
+                }
+            }
+
+            // 清除所有面板的预览，防止文件被锁定导致删除失败
+            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Clearing previews before delete operation");
+            Publish(new PreviewChangedMessage(null, YiboFile.Services.Navigation.PaneId.Main));
+            Publish(new PreviewChangedMessage(null, YiboFile.Services.Navigation.PaneId.Second));
+            
+            // 等待一小段时间，确保预览资源被正确释放
+            await System.Threading.Tasks.Task.Delay(100);
+
             var result = await _fileOperationService.DeleteAsync(message.Items, message.Permanent);
 
             Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), result.Success, result.Message ?? (result.FailedItems?.Count > 0 ? "部分项目删除失败" : null), result.FailedItems));

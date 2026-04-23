@@ -130,36 +130,6 @@
         </Style>
         <!-- 文件右键菜单 -->
         <ContextMenu x:Key="FileListContextMenu" DataContext="{Binding Data.DataContext, Source={StaticResource ControlProxy}}">
-            <ContextMenu.Resources>
-                <!-- Shell 菜单项的层级数据模板 -->
-                <HierarchicalDataTemplate DataType="{x:Type vms:ShellMenuItemViewModel}" ItemsSource="{Binding Children}">
-                    <Grid>
-                        <!-- Header 已经在 MenuItem 容器的样式中处理了，这里我们甚至可以为空，
-                             但为了确保某些情况下的正确性，我们可以显式声明。
-                             不过最稳妥的是在 ItemContainerStyle 中直接绑定。 -->
-                    </Grid>
-                </HierarchicalDataTemplate>
-
-                <!-- Shell 菜单项的通用容器样式 -->
-                <Style x:Key="ShellMenuItemStyle" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
-                    <Setter Property="Header" Value="{Binding Text}"/>
-                    <Setter Property="Icon" Value="{Binding Icon}"/>
-                    <Setter Property="Command" Value="{Binding ExecuteCommand}"/>
-                    <Setter Property="ItemsSource" Value="{Binding Children}"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsSeparator}" Value="True">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="MenuItem">
-                                        <Separator Margin="0,2" Background="{DynamicResource BorderBrush}"/>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Setter Property="IsEnabled" Value="False"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ContextMenu.Resources>
             <MenuItem x:Name="CopyItem" Header="复制" 
                       Command="{Binding Commands.CopyCommand}" 
                       Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -269,35 +239,22 @@
                 </MenuItem.ItemContainerStyle>
             </MenuItem>
             <Separator Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            <MenuItem x:Name="RefreshItem" Header="刷新" 
-                      Command="{Binding Commands.RefreshCommand}" 
+
+            <!-- 常用 Shell 命令 -->
+            <MenuItem x:Name="OpenWithItem" Header="打开方式..."
+                      Command="{Binding Commands.OpenWithCommand}"
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Icon="🔧"/>
+
+            <Separator/>
+            <MenuItem x:Name="RefreshItem" Header="刷新"
+                      Command="{Binding Commands.RefreshCommand}"
                       Visibility="{Binding Selection.IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Icon="🔄"/>
-            <MenuItem x:Name="PropertiesItem" Header="属性" 
-                      Command="{Binding Commands.PropertiesCommand}" 
+            <MenuItem x:Name="PropertiesItem" Header="属性"
+                      Command="{Binding Commands.PropertiesCommand}"
                       Icon="ℹ️"/>
 
-            <!-- ═══ 已固定的 Shell 项 (Phase 3) ═══ -->
-            <MenuItem Header="快捷操作" 
-                      ItemsSource="{Binding PinnedShellMenuItems}"
-                      Visibility="{Binding HasPinnedShellItems, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      FontWeight="Bold"
-                      ItemContainerStyle="{StaticResource ShellMenuItemStyle}"
-                      Icon="📌" />
-
-            <Separator Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            <!-- 解析的 Shell 子菜单 (Phase 2) -->
-            <MenuItem x:Name="SystemShellMenu" Header="Shell" 
-                      ItemsSource="{Binding ShellSubMenuItems}"
-                      Visibility="{Binding IsShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      ItemContainerStyle="{StaticResource ShellMenuItemStyle}"
-                      Icon="🖥️"/>
-
-            <MenuItem x:Name="FullShellMenuItem" 
-                      Header="系统菜单" 
-                      Command="{Binding Commands.ShowNativeShellMenuCommand}"
-                      Visibility="{Binding IsFullShellMenuVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                      Icon="📋"/>
         </ContextMenu>
     </ResourceDictionary>
 </UserControl.Resources>

@@ -163,8 +163,8 @@
                 </Style>
             </Border.Style>
             <Grid>
-                <!-- 为了界面美观，加一个小的标签区分备注区 -->
-                <TextBlock Text="备注" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="8,4,8,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1" IsHitTestVisible="False"/>
+                <!-- 为了界面美观，加一个小的标签区分笔记区 -->
+                <TextBlock Text="笔记" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="8,4,8,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1" IsHitTestVisible="False"/>
                 <TextBox Name="NotesTextBox" Padding="8,22,8,4" 
                          AcceptsReturn="True" 
                          TextWrapping="Wrap"

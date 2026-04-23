@@ -488,6 +488,20 @@ namespace YiboFile.Services
 
         private void CopyDirectory(string sourceDir, string destinationDir)
         {
+            // 安全检查：防止源目录和目标目录相同，或源目录是目标目录的子目录
+            var normalizedSource = System.IO.Path.GetFullPath(sourceDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var normalizedDest = System.IO.Path.GetFullPath(destinationDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            
+            if (string.Equals(normalizedSource, normalizedDest, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("源目录和目标目录不能相同");
+            }
+            
+            if (normalizedDest.StartsWith(normalizedSource + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("目标目录不能是源目录的子目录");
+            }
+
             Directory.CreateDirectory(destinationDir);
 
             foreach (var file in Directory.GetFiles(sourceDir))

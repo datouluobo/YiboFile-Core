@@ -25,7 +25,12 @@ namespace YiboFile.ViewModels.Settings
                 {
                     _configService.Update(c => c.IsEnableFullTextSearch = value);
                     if (value && _ftsService != null)
-                        _ftsService.StartBackgroundIndexing();
+                    {
+                        // 只有配置了索引范围才启动后台索引
+                        var config = _configService.GetSnapshot();
+                        if (config.FullTextIndexPaths != null && config.FullTextIndexPaths.Any())
+                            _ftsService.StartBackgroundIndexing();
+                    }
                 }
             }
         }
@@ -215,11 +220,34 @@ namespace YiboFile.ViewModels.Settings
 
         public void StartBackgroundIndexing()
         {
+            // 如果索引范围为空，则不执行任何索引操作
+            var config = _configService.GetSnapshot();
+            if (config.FullTextIndexPaths == null || !config.FullTextIndexPaths.Any())
+            {
+                // 索引范围为空时不执行索引
+                return;
+            }
             _ftsService?.StartBackgroundIndexing();
         }
 
         private async void RebuildIndex()
         {
+            // 如果索引范围为空，则不执行任何索引操作
+            var config = _configService.GetSnapshot();
+            var scanPaths = config.FullTextIndexPaths;
+
+            if (scanPaths == null || !scanPaths.Any())
+            {
+                // 索引范围为空时不执行索引，不扫描库
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    IndexingStatusText = "未配置索引范围，请先添加目录";
+                    IsIndexing = false;
+                    IndexingProgress = 0;
+                });
+                return;
+            }
+
             IsIndexing = true;
             IndexingStatusText = "正在清理...";
             IndexingProgress = 0;
@@ -230,16 +258,6 @@ namespace YiboFile.ViewModels.Settings
                 {
                     if (_ftsService == null) return;
                     _ftsService.ClearIndex();
-
-                    var config = _configService.GetSnapshot();
-                    IEnumerable<string> scanPaths = config.FullTextIndexPaths;
-
-                    if (scanPaths == null || !scanPaths.Any())
-                    {
-                        var libRepo = App.ServiceProvider.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>();
-                        var libraries = libRepo.GetAllLibraries();
-                        scanPaths = libraries?.SelectMany(l => l.Paths ?? Enumerable.Empty<string>()) ?? Enumerable.Empty<string>();
-                    }
 
                     foreach (var path in scanPaths)
                     {

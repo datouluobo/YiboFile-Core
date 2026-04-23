@@ -11,6 +11,13 @@ namespace YiboFile.ViewModels.Messaging.Messages
     /// </summary>
     public record RequestSetScopePresetMessage(string Preset);
 
+    /// <summary>
+    /// 显示分组搜索结果
+    /// </summary>
+    public record ShowGroupedSearchResultsMessage(
+        System.Collections.Generic.Dictionary<YiboFile.Services.Search.SearchResultType, System.Collections.Generic.List<YiboFile.Models.FileSystemItem>> GroupedItems,
+        string TargetPaneId);
+
     // ===== Notification 消息（Coordinator → 订阅者） =====
 
     /// <summary>
@@ -29,7 +36,8 @@ namespace YiboFile.ViewModels.Messaging.Messages
         bool HasMore = false,
         int Offset = 0,
         string SearchTabPath = null,
-        string NormalizedKeyword = null);
+        string NormalizedKeyword = null,
+        System.Collections.Generic.Dictionary<YiboFile.Services.Search.SearchResultType, System.Collections.Generic.List<YiboFile.Models.FileSystemItem>> GroupedItems = null);
 
     /// <summary>
     /// 搜索请求

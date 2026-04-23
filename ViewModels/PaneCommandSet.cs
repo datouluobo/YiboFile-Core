@@ -70,7 +70,7 @@ namespace YiboFile.ViewModels
         public ICommand TagStatisticsCommand { get; private set; }
 
         public ICommand LoadMoreCommand { get; private set; }
-        public ICommand ShowNativeShellMenuCommand { get; private set; }
+        public ICommand OpenWithCommand { get; private set; }
 
         #endregion
 
@@ -99,8 +99,19 @@ namespace YiboFile.ViewModels
                 () => !string.IsNullOrEmpty(_pane.CurrentPath));
 
             DeleteCommand = new RelayCommand(() =>
-                _messageBus.Publish(new DeleteItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList(), false, _pane.MyPaneId)),
-                () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
+            {
+                var selectedItems = _pane.Selection?.SelectedItems?.ToList();
+                System.Diagnostics.Debug.WriteLine($"[PaneCommandSet] DeleteCommand invoked. Selected items count: {selectedItems?.Count ?? 0}");
+                if (selectedItems != null)
+                {
+                    foreach (var item in selectedItems)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[PaneCommandSet] Selected item: {item.Name}, Path: {item.Path}");
+                    }
+                }
+                _messageBus.Publish(new DeleteItemsRequestMessage(selectedItems, false, _pane.MyPaneId));
+            },
+            () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
 
             CopyCommand = new RelayCommand(() =>
                 _messageBus.Publish(new CopyItemsRequestMessage(_pane.Selection?.SelectedItems?.ToList(), _pane.MyPaneId)),
@@ -186,36 +197,14 @@ namespace YiboFile.ViewModels
             LoadMoreCommand = new RelayCommand(() => _pane.Filter?.LoadMoreCommand?.Execute(_pane.CurrentPath));
             SelectAllCommand = new RelayCommand(() => _messageBus.Publish(new SelectAllRequestMessage(_pane.IsSecondary ? PaneId.Second : PaneId.Main)));
 
-            ShowNativeShellMenuCommand = new RelayCommand(() =>
+            OpenWithCommand = new RelayCommand(() =>
             {
-                var selectedItems = _pane.Selection?.SelectedItems?.Cast<YiboFile.Models.FileSystemItem>().ToList();
-                List<string> paths;
-
-                if (selectedItems != null && selectedItems.Count > 0)
+                var selectedPaths = _pane.Selection?.SelectedItems?.Select(i => i.Path).ToList();
+                if (selectedPaths != null && selectedPaths.Count > 0)
                 {
-                    // 规约 Phase 4: 支持物理路径转换
-                    paths = selectedItems
-                        .Select(i => !string.IsNullOrEmpty(i.SourcePath) ? i.SourcePath : i.Path)
-                        .Where(p => !string.IsNullOrEmpty(p) && !p.Contains("://"))
-                        .ToList();
+                    _messageBus.Publish(new ExecuteShellVerbRequestMessage("openas", selectedPaths));
                 }
-                else if (!string.IsNullOrEmpty(_pane.CurrentPath) && !_pane.CurrentPath.Contains("://"))
-                {
-                    // 没有选中项时，显示当前目录的背景菜单
-                    paths = new List<string> { _pane.CurrentPath };
-                }
-                else return;
-
-                if (paths.Count == 0) return;
-
-                var shellService = App.ServiceProvider?.GetService<YiboFile.Services.Shell.IShellContextMenuService>();
-                if (shellService == null) return;
-
-                YiboFile.Interop.Shell.POINT mousePos;
-                YiboFile.Interop.Shell.NativeMethods.GetCursorPos(out mousePos);
-                
-                shellService.ShowNativeMenu(paths, new Point(mousePos.x, mousePos.y), Application.Current.MainWindow);
-            }, () => true); // 允许在任何时候弹出 (无论是否选中项)
+            }, () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);
         }
 
         public void NotifyCommandStatesChanged()

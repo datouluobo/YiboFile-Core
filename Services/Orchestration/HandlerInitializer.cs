@@ -275,6 +275,9 @@ namespace YiboFile.Services.Orchestration
             // 5. WindowLifecycleHandler
             LifecycleHandler = new Handlers.WindowLifecycleHandler(window, WindowStateManager, columnService);
 
+            // Shell Menu Handler
+            var shellMenuHandler = new Handlers.ShellMenuHandler(_messageBus);
+
             // 9. LibraryEventHandler
             window._libraryEventHandler = new Handlers.LibraryEventHandler(
                 window,

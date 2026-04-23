@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
 using YiboFile.Services.Features;
 using System.Windows.Input;
 using YiboFile.ViewModels.Settings;
@@ -12,6 +14,7 @@ namespace YiboFile.Controls.Settings
     {
         public event EventHandler SettingsChanged;
         private SearchSettingsViewModel _viewModel;
+        private DispatcherTimer _everythingStatusTimer;
 
         public SearchSettingsPanel()
         {
@@ -22,6 +25,77 @@ namespace YiboFile.Controls.Settings
 
             EverythingVersionText.Text = YiboFile.Services.EverythingHelper.GetVersion();
             LoadSupportedExtensions();
+            StartEverythingStatusMonitoring();
+        }
+
+        private void StartEverythingStatusMonitoring()
+        {
+            _everythingStatusTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            _everythingStatusTimer.Tick += EverythingStatusTimer_Tick;
+            _everythingStatusTimer.Start();
+            UpdateEverythingStatus();
+        }
+
+        private void EverythingStatusTimer_Tick(object sender, EventArgs e)
+        {
+            UpdateEverythingStatus();
+        }
+
+        private void UpdateEverythingStatus()
+        {
+            try
+            {
+                bool isRunning = YiboFile.Services.EverythingHelper.IsEverythingRunning();
+                
+                if (EverythingStatusIndicator != null)
+                {
+                    EverythingStatusIndicator.Fill = isRunning 
+                        ? new SolidColorBrush(Colors.LimeGreen) 
+                        : new SolidColorBrush(Colors.Gray);
+                }
+
+                if (EverythingStatusText != null)
+                {
+                    EverythingStatusText.Text = isRunning ? "运行中" : "未运行";
+                }
+
+                if (EverythingFileCountText != null && isRunning)
+                {
+                    try
+                    {
+                        var results = YiboFile.Services.EverythingHelper.SearchFiles("", 1);
+                        if (results != null)
+                        {
+                            // 获取总数需要查询一次全部结果（轻量级查询）
+                            var countResults = YiboFile.Services.EverythingHelper.SearchFiles("*", 10000);
+                            int count = countResults?.Count ?? 0;
+                            EverythingFileCountText.Text = count >= 10000 ? "10000+" : count.ToString("N0");
+                        }
+                        else
+                        {
+                            EverythingFileCountText.Text = "索引中...";
+                        }
+                    }
+                    catch
+                    {
+                        EverythingFileCountText.Text = "未知";
+                    }
+                }
+                else if (EverythingFileCountText != null)
+                {
+                    EverythingFileCountText.Text = "-";
+                }
+            }
+            catch
+            {
+                if (EverythingFileCountText != null)
+                    EverythingFileCountText.Text = "-";
+                if (EverythingStatusText != null)
+                    EverythingStatusText.Text = "未知";
+            }
         }
 
         private void RebuildEverythingButton_Click(object sender, RoutedEventArgs e)

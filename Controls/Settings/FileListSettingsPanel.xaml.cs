@@ -20,8 +20,7 @@ namespace YiboFile.Controls.Settings
 
             _viewModel.PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(FileListSettingsViewModel.ColTagsWidth) ||
-                    e.PropertyName == nameof(FileListSettingsViewModel.ColNotesWidth))
+                if (e.PropertyName == nameof(FileListSettingsViewModel.ColTagsWidth))
                 {
                     RefreshFileListColumns();
                 }
@@ -36,8 +35,6 @@ namespace YiboFile.Controls.Settings
 
         private void TagsWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColTagsWidth, 5, 50, 500, v => _viewModel.ColTagsWidth = v);
         private void TagsWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColTagsWidth, -5, 50, 500, v => _viewModel.ColTagsWidth = v);
-        private void NotesWidthUp_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColNotesWidth, 5, 100, 800, v => _viewModel.ColNotesWidth = v);
-        private void NotesWidthDown_Click(object sender, RoutedEventArgs e) => AdjustValue(_viewModel.ColNotesWidth, -5, 100, 800, v => _viewModel.ColNotesWidth = v);
 
         private void NumericTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
@@ -96,9 +93,6 @@ namespace YiboFile.Controls.Settings
                     case "ColTagsWidthInput":
                         _viewModel.ColTagsWidth = value;   // setter 会 Math.Clamp
                         break;
-                    case "ColNotesWidthInput":
-                        _viewModel.ColNotesWidth = value;   // setter 会 Math.Clamp
-                        break;
                 }
             }
             // 无论如何都刷新代理，确保显示最终合法值
@@ -136,9 +130,6 @@ namespace YiboFile.Controls.Settings
                 {
                     case "ColTagsWidthInput":
                         AdjustValue(_viewModel.ColTagsWidth, delta, 50, 500, v => _viewModel.ColTagsWidth = v);
-                        break;
-                    case "ColNotesWidthInput":
-                        AdjustValue(_viewModel.ColNotesWidth, delta, 100, 800, v => _viewModel.ColNotesWidth = v);
                         break;
                 }
             }

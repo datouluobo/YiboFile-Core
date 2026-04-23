@@ -15,6 +15,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:NullToThicknessConverter x:Key="NullToThicknessConverter"/>
+        <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter"/>
         <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter"/>
 
         <!-- Library Card Template (Grid Layout Card with Glassmorphism) -->
@@ -65,12 +66,7 @@
                 </Grid>
             </Border>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}}" Value="True">
-                    <Setter TargetName="BackgroundBorder" Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
-                    <Setter TargetName="OverlayBorder" Property="Opacity" Value="0.1"/>
-                    <Setter TargetName="BackgroundBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                    <Setter TargetName="BackgroundBorder" Property="BorderThickness" Value="2"/>
-                </DataTrigger>
+                <!-- Selection/Hover triggers - Removed ListViewItem binding to avoid binding errors -->
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.9"/>
                     <Setter TargetName="OverlayBorder" Property="Opacity" Value="0.05"/>
@@ -102,13 +98,40 @@
                     </Grid.RowDefinitions>
                     
                     <!-- 缩略图区域 -->
-                    <Image Grid.Row="0"
-                           Source="{Binding Thumbnail}" 
-                           Width="{Binding ThumbnailSize, ElementName=FileListRoot, FallbackValue=100}" 
-                           Height="{Binding ThumbnailSize, ElementName=FileListRoot, FallbackValue=100}"
-                           Stretch="Uniform" 
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
+                    <Grid Grid.Row="0">
+                        <Image Source="{Binding Thumbnail}" 
+                               Width="{Binding ThumbnailSize, ElementName=FileListRoot, FallbackValue=100}" 
+                               Height="{Binding ThumbnailSize, ElementName=FileListRoot, FallbackValue=100}"
+                               Stretch="Uniform" 
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                        <!-- 笔记图标按钮 -->
+                        <Button Width="16" 
+                                Height="16" 
+                                Margin="4,4,4,0"
+                                VerticalAlignment="Top"
+                                HorizontalAlignment="Right"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                Cursor="Hand"
+                                Click="NotesIconBtn_Click">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Button>
+                    </Grid>
                     
                     <!-- 文件名区域 -->
                     <Grid Grid.Row="1" x:Name="ThumbnailNameGrid">
@@ -160,6 +183,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="72"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <!-- 图标/缩略图 -->
                     <Image Grid.Column="0" Source="{Binding Thumbnail}" Width="64" Height="64" 
@@ -181,9 +205,36 @@
                         <TextBlock Text="{Binding Type}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                         <TextBlock Text="{Binding Size}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                     </StackPanel>
+                    <!-- 笔记图标按钮 -->
+                    <Button Grid.Column="2" 
+                            Width="16" 
+                            Height="16" 
+                            Margin="4,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Cursor="Hand"
+                            Click="NotesIconBtn_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
 
                     <!-- 平铺重命名 Overlay -->
                     <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        Grid.ColumnSpan="3"
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         PlacementTarget="{Binding ElementName=TilesFileName}"
@@ -237,12 +288,36 @@
                             <TextBlock Text="{Binding ModifiedDate}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
                         </StackPanel>
                     </StackPanel>
-                    <!-- 标签/备注 -->
-                    <TextBlock Grid.Column="2" Text="{Binding Notes}" MaxWidth="200" TextTrimming="CharacterEllipsis" 
-                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
+                    <!-- 笔记图标按钮 -->
+                    <Button Grid.Column="2" 
+                            Width="16" 
+                            Height="16" 
+                            Margin="4,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Cursor="Hand"
+                            Click="NotesIconBtn_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
 
                     <!-- 内容重命名 Overlay -->
                     <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        Grid.ColumnSpan="3"
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         PlacementTarget="{Binding ElementName=ContentFileName}"
@@ -265,7 +340,11 @@
             <Border Width="180" Height="28" Margin="2" Background="Transparent"
                     ToolTip="{Binding Path}">
                 <Grid>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
                         <Image Source="{Binding Thumbnail}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
                         <TextBlock x:Name="SmallIconFileName" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource ForegroundPrimaryBrush}">
@@ -280,6 +359,32 @@
                             </TextBlock.Style>
                         </TextBlock>
                     </StackPanel>
+                    <!-- 笔记图标按钮 -->
+                    <Button Grid.Column="1" 
+                            Width="16" 
+                            Height="16" 
+                            Margin="4,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Cursor="Hand"
+                            Click="NotesIconBtn_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
                     <!-- 小图标重命名 Overlay -->
                     <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
                         IsOpen="{Binding IsRenaming}"
@@ -307,6 +412,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="24"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="80"/>
                         <ColumnDefinition Width="80"/>
                     </Grid.ColumnDefinitions>
@@ -323,13 +429,40 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Grid.Column="2" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                    <!-- 笔记图标按钮 -->
+                    <Button Grid.Column="2" 
+                            Width="16" 
+                            Height="16" 
+                            Margin="4,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            Cursor="Hand"
+                            Click="NotesIconBtn_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Button>
+                    <TextBlock Grid.Column="3" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
-                    <TextBlock Grid.Column="3" Text="{Binding ModifiedDate}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                    <TextBlock Grid.Column="4" Text="{Binding ModifiedDate}" HorizontalAlignment="Right" VerticalAlignment="Center" 
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
 
                     <!-- 紧凑重命名 Overlay -->
                     <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}}"
+                        Grid.ColumnSpan="5"
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         PlacementTarget="{Binding ElementName=CompactFileName}"
@@ -426,6 +559,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             
                                             <!-- 图标 -->
@@ -458,6 +592,33 @@
                                                 MaxTextWidth="500"
                                                 RenameConfirmed="RenameOverlay_RenameConfirmed"
                                                 RenameCancelled="RenameOverlay_RenameCancelled"/>
+                                            <!-- 笔记图标按钮 -->
+                                            <Button Grid.Column="2" 
+                                                    x:Name="NotesIconBtn"
+                                                    Width="16" 
+                                                    Height="16" 
+                                                    Margin="4,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    Cursor="Hand"
+                                                    Click="NotesIconBtn_Click">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}" Value="True"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                            </Button>
                                         </Grid>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
@@ -569,12 +730,6 @@
                                         </ItemsControl>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-
-                            <GridViewColumn x:Name="ColNotes" Width="200" HeaderContainerStyle="{StaticResource NonResizableFileColumnHeaderStyle}" DisplayMemberBinding="{Binding Notes}">
-                                <GridViewColumn.Header>
-                                    <TextBlock Text="{i18n:Loc Key=FileList.Columns.Notes}" Tag="Notes"/>
-                                </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
                     </ListView.View>

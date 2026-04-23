@@ -140,14 +140,21 @@ namespace YiboFile.Services.Search
 
             // ... (FTS check skipped)
 
+            System.Diagnostics.Debug.WriteLine($"[SearchService] Initializing Everything...");
             var everythingReady = await EverythingHelper.InitializeAsync();
-            if (!everythingReady || !EverythingHelper.IsEverythingRunning())
+            System.Diagnostics.Debug.WriteLine($"[SearchService] Everything ready: {everythingReady}");
+            var isEverythingRunning = EverythingHelper.IsEverythingRunning();
+            System.Diagnostics.Debug.WriteLine($"[SearchService] Everything running: {isEverythingRunning}");
+            
+            if (!everythingReady || !isEverythingRunning)
             {
                 YiboFile.Services.Core.NotificationService.ShowError("Everything 服务启动失败，无法执行搜索。请检查 Everything 是否安装正确。");
                 return new SearchResult { Keyword = keyword };
             }
 
+            System.Diagnostics.Debug.WriteLine($"[SearchService] Normalizing keyword: '{keyword}'");
             var normalizedKeyword = NormalizeKeyword(keyword);
+            System.Diagnostics.Debug.WriteLine($"[SearchService] Normalized keyword: '{normalizedKeyword}'");
             var resultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // 分别收集不同类型的搜索结果
@@ -208,6 +215,8 @@ namespace YiboFile.Services.Search
                 // 名称搜索（强制使用 Everything）
                 if (doNameSearch)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[SearchService] Executing Everything search...");
+                    System.Diagnostics.Debug.WriteLine($"[SearchService] Keyword: '{normalizedKeyword}', CurrentPath: '{currentPath}'");
                     await _everythingExecutor.ExecuteAsync(
                         normalizedKeyword,
                         searchOptions,
@@ -215,6 +224,7 @@ namespace YiboFile.Services.Search
                         resultPaths,
                         progressCallback,
                         _cancellationTokenSource.Token);
+                    System.Diagnostics.Debug.WriteLine($"[SearchService] Everything search completed. Result count: {resultPaths.Count}");
 
                     // 记录文件名搜索结果
                     foreach (var path in resultPaths)
@@ -272,11 +282,15 @@ namespace YiboFile.Services.Search
 
                 // Tag filtering Logic Removed
 
-                // 限制展示：备注与文件夹全部保留，文件仅取前100条
-                const int maxFiles = 100;
+                // 严格限制搜索结果数量，防止卡顿
+                const int maxTotalResults = 200;  // 总共最多200个结果
+                const int maxFiles = 100;          // 最多100个文件
+                const int maxFolders = 50;          // 最多50个文件夹
+                const int maxNotes = 50;            // 最多50个笔记匹配
+                
                 var limited = new List<FileSystemItem>();
-                var noteItemsLimited = results.Where(r => r.SearchResultType == SearchResultType.Notes).ToList();
-                var folderItemsLimited = results.Where(r => r.IsDirectory).ToList();
+                var noteItemsLimited = results.Where(r => r.SearchResultType == SearchResultType.Notes).Take(maxNotes).ToList();
+                var folderItemsLimited = results.Where(r => r.IsDirectory).Take(maxFolders).ToList();
                 var fileItemsLimited = results
                     .Where(r => !r.IsDirectory && (r.SearchResultType == null || r.SearchResultType == SearchResultType.File))
                     .Take(maxFiles)
@@ -285,6 +299,13 @@ namespace YiboFile.Services.Search
                 limited.AddRange(noteItemsLimited);
                 limited.AddRange(folderItemsLimited);
                 limited.AddRange(fileItemsLimited);
+                
+                // 最终再限制一次，确保不超过总数
+                if (limited.Count > maxTotalResults)
+                {
+                    limited = limited.Take(maxTotalResults).ToList();
+                }
+                
                 results = limited;
 
                 // 构建分组结果

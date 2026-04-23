@@ -18,7 +18,9 @@ namespace YiboFile.ViewModels.Previews
         private readonly PaneId _paneId;
         
         private Timer _debounceTimer;
+        private Timer _notesSaveTimer;
         private string _pendingPreviewPath;
+        private string _lastSavedNotes;
 
         private bool _isVisible = false;
         public bool IsVisible
@@ -63,7 +65,42 @@ namespace YiboFile.ViewModels.Previews
         public string CurrentNotes
         {
             get => _currentNotes;
-            set => SetProperty(ref _currentNotes, value);
+            set
+            {
+                if (SetProperty(ref _currentNotes, value))
+                {
+                    // 延迟保存笔记，避免频繁保存
+                    ScheduleNotesSave();
+                }
+            }
+        }
+
+        private void ScheduleNotesSave()
+        {
+            if (_notesSaveTimer == null)
+            {
+                _notesSaveTimer = new Timer(OnNotesSaveTimerTick, null, Timeout.Infinite, Timeout.Infinite);
+            }
+            // 延迟 500ms 保存笔记
+            _notesSaveTimer.Change(500, Timeout.Infinite);
+        }
+
+        private void OnNotesSaveTimerTick(object state)
+        {
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (SelectedItem != null && !string.IsNullOrEmpty(SelectedItem.Path))
+                {
+                    // 检查笔记是否真的改变了
+                    if (CurrentNotes != _lastSavedNotes)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[PanePreviewViewModel] Saving notes for: {SelectedItem.Path}");
+                        _lastSavedNotes = CurrentNotes;
+                        // 发布保存笔记请求消息
+                        _messageBus.Publish(new SaveNotesRequestMessage(SelectedItem.Path, CurrentNotes));
+                    }
+                }
+            }));
         }
 
         private bool _isNotesVisible = true;
@@ -118,6 +155,23 @@ namespace YiboFile.ViewModels.Previews
                     if (m.SelectedItems?.Count > 0)
                     {
                         SelectedItem = m.SelectedItems[0] as FileSystemItem;
+                        // 更新当前笔记：如果 SelectedItem 有 Notes 属性，直接使用；否则从数据库加载
+                        if (SelectedItem != null && !string.IsNullOrEmpty(SelectedItem.Notes))
+                        {
+                            CurrentNotes = SelectedItem.Notes;
+                        }
+                        else if (SelectedItem != null)
+                        {
+                            // 从数据库加载笔记
+                            CurrentNotes = YiboFile.Services.FileNotes.FileNotesService.GetFileNotes(SelectedItem.Path);
+                        }
+                        else
+                        {
+                            CurrentNotes = "";
+                        }
+                        // 确保 _lastSavedNotes 也被设置，避免误触发保存
+                        _lastSavedNotes = CurrentNotes;
+                        
                         if (m.RequestPreview)
                         {
                             UpdatePreview(SelectedItem?.Path);
@@ -130,7 +184,25 @@ namespace YiboFile.ViewModels.Previews
                     else
                     {
                         SelectedItem = null;
+                        CurrentNotes = ""; // 清除笔记
+                        _lastSavedNotes = ""; // 清除最后保存的笔记
                         ActivePreview = null;
+                    }
+                }));
+            });
+
+            // 订阅笔记更新消息，实时更新笔记显示
+            _messageBus.Subscribe<NotesUpdatedMessage>(m =>
+            {
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (SelectedItem != null && string.Equals(SelectedItem.Path, m.FilePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        CurrentNotes = m.Notes;
+                        if (SelectedItem != null)
+                        {
+                            SelectedItem.Notes = m.Notes;
+                        }
                     }
                 }));
             });

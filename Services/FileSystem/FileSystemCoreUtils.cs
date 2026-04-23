@@ -100,6 +100,20 @@ namespace YiboFile.Services.FileSystem
             var dir = new DirectoryInfo(sourceDir);
             if (!dir.Exists) throw new DirectoryNotFoundException($"Source directory not found: {sourceDir}");
 
+            // 安全检查：防止源目录和目标目录相同，或源目录是目标目录的子目录
+            var normalizedSource = NormalizePath(sourceDir);
+            var normalizedDest = NormalizePath(destinationDir);
+            
+            if (string.Equals(normalizedSource, normalizedDest, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("源目录和目标目录不能相同");
+            }
+            
+            if (normalizedDest.StartsWith(normalizedSource + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("目标目录不能是源目录的子目录");
+            }
+
             Directory.CreateDirectory(destinationDir);
 
             foreach (System.IO.FileInfo file in dir.GetFiles())

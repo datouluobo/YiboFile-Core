@@ -31,7 +31,7 @@
             <RadioButton Content="{i18n:Loc Key=Settings.General.ShellMenuNative}" GroupName="ShellMenuMode" FontSize="14" MinHeight="32" VerticalAlignment="Center"
                          x:Name="ShellMenuNative" Checked="ShellMenuMode_Checked" Margin="0,0,24,0" />
             <RadioButton Content="{i18n:Loc Key=Settings.General.ShellMenuSystem}" GroupName="ShellMenuMode" FontSize="14" MinHeight="32" VerticalAlignment="Center"
-                         x:Name="ShellMenuSystem" Checked="ShellMenuMode_Checked" />
+                         x:Name="ShellMenuSystem" IsEnabled="False" Opacity="0.4" />
         </StackPanel>
         <TextBlock Text="{i18n:Loc Key=Settings.General.ShellMenuDesc}" FontSize="12" Margin="44,0,0,24" TextWrapping="Wrap" Foreground="{DynamicResource ForegroundSecondaryBrush}"  />
 

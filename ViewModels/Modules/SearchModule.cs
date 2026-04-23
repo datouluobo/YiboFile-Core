@@ -206,6 +206,13 @@ namespace YiboFile.ViewModels.Modules
                     Offset: searchResult?.Offset ?? 0,
                     SearchTabPath: searchTabPath,
                     NormalizedKeyword: normalizedKeyword));
+
+                // 暂时禁用分组功能，避免卡死
+                // 如果有分组结果，发布分组显示消息
+                // if (groupedItems != null && groupedItems.Count > 0)
+                // {
+                //     Publish(new ShowGroupedSearchResultsMessage(groupedItems, targetPaneId));
+                // }
             }
             catch (Exception ex)
             {

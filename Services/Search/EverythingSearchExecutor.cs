@@ -29,13 +29,13 @@ namespace YiboFile.Services.Search
         public EverythingSearchExecutor(
             SearchFilterService filterService,
             SearchResultBuilder resultBuilder,
-            int pageSize = 1000,
-            int maxResults = 5000)
+            int pageSize = 200,
+            int maxResults = 500)
         {
             _filterService = filterService ?? throw new ArgumentNullException(nameof(filterService));
             _resultBuilder = resultBuilder ?? throw new ArgumentNullException(nameof(resultBuilder));
-            _pageSize = pageSize > 0 ? pageSize : 1000;
-            _maxResults = maxResults > 0 ? maxResults : 5000;
+            _pageSize = pageSize > 0 ? pageSize : 200;
+            _maxResults = maxResults > 0 ? maxResults : 500;
         }
 
         /// <summary>

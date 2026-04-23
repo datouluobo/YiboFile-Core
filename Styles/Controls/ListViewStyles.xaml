@@ -273,8 +273,8 @@
                 <Setter Property="MinHeight" Value="0" />
             </Trigger>
 
-            <!-- Highlight Logic -->
-            <DataTrigger Binding="{Binding Notes}" Value="文件名日期匹配">
+            <!-- Highlight Logic (Deprecated - Notes now used for actual notes content) -->
+            <!-- <DataTrigger Binding="{Binding Notes}" Value="文件名日期匹配">
                 <Setter Property="Background" Value="{DynamicResource AccentLightBrush}" />
                 <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}" />
             </DataTrigger>
@@ -283,7 +283,7 @@
                 <Setter Property="Opacity" Value="0.8" />
                 <Setter Property="BorderBrush" Value="{DynamicResource StatusSuccessBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-            </DataTrigger>
+            </DataTrigger> -->
 
             <!-- States -->
             <Trigger Property="IsMouseOver" Value="True">

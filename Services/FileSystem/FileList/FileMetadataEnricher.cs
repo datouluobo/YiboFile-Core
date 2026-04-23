@@ -192,6 +192,8 @@ namespace YiboFile.Services.FileList
         private string BuildNotes(string path)
         {
             var notes = FileNotesService.GetFileNotes(path);
+            System.Diagnostics.Debug.WriteLine($"[FileMetadataEnricher] BuildNotes for path: {path}, notes: {(string.IsNullOrEmpty(notes) ? "null/empty" : notes.Substring(0, Math.Min(50, notes.Length)))}");
+            
             if (string.IsNullOrWhiteSpace(notes))
             {
                 return string.Empty;

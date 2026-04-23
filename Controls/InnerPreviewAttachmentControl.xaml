@@ -219,7 +219,7 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- 备注内容 (当BtnNotes选中时显示) -->
+                <!-- 笔记内容 (当BtnNotes选中时显示) -->
                 <Grid x:Name="NotesArea" Background="Transparent">
                     <Grid.Style>
                         <Style TargetType="Grid">
@@ -258,10 +258,10 @@
                     <TextBlock Text="览" FontSize="13" HorizontalAlignment="Center"/>
                 </StackPanel>
             </RadioButton>
-            <RadioButton x:Name="BtnNotes" Grid.Row="1" Margin="0,2,0,0" Style="{DynamicResource VerticalTabRadioButtonStyle}" MinHeight="70" ToolTip="文件备注" FocusVisualStyle="{x:Null}">
+            <RadioButton x:Name="BtnNotes" Grid.Row="1" Margin="0,2,0,0" Style="{DynamicResource VerticalTabRadioButtonStyle}" MinHeight="70" ToolTip="文件笔记" FocusVisualStyle="{x:Null}">
                 <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="备" FontSize="13" Margin="0,0,0,4" HorizontalAlignment="Center"/>
-                    <TextBlock Text="注" FontSize="13" HorizontalAlignment="Center"/>
+                    <TextBlock Text="笔" FontSize="13" Margin="0,0,0,4" HorizontalAlignment="Center"/>
+                    <TextBlock Text="记" FontSize="13" HorizontalAlignment="Center"/>
                 </StackPanel>
             </RadioButton>
         </Grid>

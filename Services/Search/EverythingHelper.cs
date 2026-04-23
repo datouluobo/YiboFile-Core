@@ -230,36 +230,75 @@ namespace YiboFile.Services
         /// </summary>
         public static async Task<bool> InitializeAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] InitializeAsync called");
             lock (_lockObject)
             {
                 if (_isInitialized)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Already initialized");
                     return true;
+                }
             }
 
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Loading Everything DLL...");
                 // 1. 加载 DLL
                 if (!LoadEverythingDLL())
                 {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Failed to load Everything DLL");
                     return false;
                 }
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything DLL loaded successfully");
 
                 // 2. 检查 Everything 是否已在运行
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Checking if Everything is running...");
                 if (IsEverythingRunning())
                 {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything is already running");
                     lock (_lockObject)
                     {
                         _isInitialized = true;
                     }
                     return true;
                 }
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything is not running, attempting to start...");
 
-                // 3. 尝试启动打包的 Everything
-                string appDir = AppDomain.CurrentDomain.BaseDirectory;
-                string everythingPath = Path.Combine(appDir, "Dependencies", "Everything", "Everything.exe");
-
-                if (!File.Exists(everythingPath))
+                // 3. 查找 Everything 可执行文件
+                string everythingPath = null;
+                
+                // 优先使用程序目录下自带的 Everything（便携版本）
+                string portablePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dependencies", "Everything", "Everything.exe");
+                if (File.Exists(portablePath))
                 {
+                    everythingPath = portablePath;
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Using portable Everything at: {everythingPath}");
+                }
+                else
+                {
+                    // 如果没有便携版本，查找系统安装的 Everything
+                    string[] systemPaths = new string[]
+                    {
+                        @"C:\Program Files\Everything\Everything.exe",
+                        @"C:\Program Files (x86)\Everything\Everything.exe",
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything", "Everything.exe"),
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything", "Everything.exe")
+                    };
+
+                    foreach (string path in systemPaths)
+                    {
+                        if (File.Exists(path))
+                        {
+                            everythingPath = path;
+                            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Found system Everything at: {everythingPath}");
+                            break;
+                        }
+                    }
+                }
+
+                if (everythingPath == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything.exe not found in any location");
                     UnloadEverythingDLL();
                     return false;
                 }
@@ -269,40 +308,95 @@ namespace YiboFile.Services
                 string everythingDataDir = Path.Combine(dataDir, "Everything");
                 Directory.CreateDirectory(everythingDataDir);
 
-                // 启动 Everything
-                // -startup: 后台运行
-                // -appdata: 指定配置文件夹
+                // 创建一个完整的 Everything.ini 配置文件，避免首次启动提示
+                string configPath = Path.Combine(everythingDataDir, "Everything.ini");
+                try
+                {
+                    // 创建完整配置 - 启用NTFS/FAT卷索引以确保搜索功能正常工作
+                    File.WriteAllText(configPath, @"[Everything]
+auto_include_fixed_ntfs_volumes=1
+auto_include_fixed_fat_volumes=1
+auto_include_removable_ntfs_volumes=0
+auto_include_removable_fat_volumes=0
+check_for_updates_on_startup=0
+show_tray_icon=0
+run_in_background=1
+minimize_to_tray=1
+start_minimized=1
+single_instance=1
+");
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Created config with NTFS/FAT indexing enabled at: {configPath}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Failed to create config: {ex.Message}");
+                }
+
+                // 启动 Everything - 使用正确的静默启动参数
+                // -startup: 后台运行，不显示主窗口（这是最重要的参数）
+                // -config: 指定配置文件路径
                 // -db: 指定数据库路径
+                // 注意：没有 -no-ntfs 参数，通过配置文件禁用 NTFS 索引
+                string arguments = $"-startup -config \"{configPath}\" -db \"{Path.Combine(everythingDataDir, "Everything.db")}\"";
+
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = everythingPath,
-                    Arguments = $"-startup -appdata \"{everythingDataDir}\" -db \"{Path.Combine(everythingDataDir, "Everything.db")}\"",
+                    Arguments = arguments,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    WorkingDirectory = everythingDataDir
                 };
 
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Starting Everything with: {startInfo.Arguments}");
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Working directory: {startInfo.WorkingDirectory}");
                 _everythingProcess = Process.Start(startInfo);
 
                 if (_everythingProcess == null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Failed to start Everything process!");
                     return false;
                 }
 
-                // 等待 Everything 初始化（最多等待 5 秒）
-                for (int i = 0; i < 50; i++)
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything process started, ID: {_everythingProcess.Id}");
+
+                // 等待 Everything 初始化（最多等待 30 秒）
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Waiting for Everything to initialize...");
+                for (int i = 0; i < 300; i++)
                 {
                     await Task.Delay(100);
-                    if (IsEverythingRunning() && IsDBLoaded())
+                    bool isRunning = IsEverythingRunning();
+                    bool dbLoaded = IsDBLoaded();
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Waiting... {i + 1}/300, IsRunning: {isRunning}, DBLoaded: {dbLoaded}");
+                    
+                    if (isRunning && dbLoaded)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything initialized successfully!");
                         lock (_lockObject)
                         {
                             _isInitialized = true;
                         }
                         return true;
                     }
+                    
+                    // 检查进程是否还在运行
+                    try
+                    {
+                        if (_everythingProcess.HasExited)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything process exited with code: {_everythingProcess.ExitCode}");
+                            UnloadEverythingDLL();
+                            return false;
+                        }
+                    }
+                    catch
+                    {
+                        // 忽略
+                    }
                 }
 
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything initialization timeout!");
                 UnloadEverythingDLL();
                 return false;
             }
@@ -346,10 +440,13 @@ namespace YiboFile.Services
             bool matchCase = false,
             bool matchWholeWord = false)
         {
+            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] SearchFiles called with searchText: '{searchText}', searchPath: '{searchPath}'");
             var results = new List<string>();
 
+            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] DLL handle: {_dllHandle}, IsDBLoaded: {(_IsDBLoaded != null ? _IsDBLoaded() : false)}");
             if (_dllHandle == IntPtr.Zero || _IsDBLoaded == null || !_IsDBLoaded())
             {
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything not running or DB not loaded");
                 throw new Exception("Everything 未运行，请先启动 Everything 程序");
             }
 
@@ -374,9 +471,11 @@ namespace YiboFile.Services
                 _SetOffset?.Invoke(0);
                 SetSearch(BuildEverythingQueryString(searchQuery));
 
+                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Executing query...");
                 if (Query(true))
                 {
                     int count = Math.Min(GetNumResults(), maxResults);
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Query returned {count} results");
                     var sb = new StringBuilder(4096);
 
                     for (int i = 0; i < count; i++)
@@ -389,6 +488,10 @@ namespace YiboFile.Services
                             results.Add(filePath);
                         }
                     }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Query returned false");
                 }
             }
             catch

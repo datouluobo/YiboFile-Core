@@ -20,14 +20,22 @@ namespace YiboFile.Interop.Shell
         void SetNameOf(IntPtr hwnd, IntPtr pidl, [MarshalAs(UnmanagedType.LPWStr)] string pszName, uint uFlags, out IntPtr ppidlOut);
     }
 
+    // 必须为 int HRESULT：若使用 [PreserveSig] void，CLR 会忽略失败 HRESULT，
+    // 调用方永远认为 InvokeCommand 成功，导致不执行回退、表现为“选菜单没反应”。
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("000214e4-0000-0000-c000-000000000046")]
     public interface IContextMenu
     {
         [PreserveSig]
         int QueryContextMenu(IntPtr hMenu, uint indexMenu, uint idCmdFirst, uint idCmdLast, uint uFlags);
-        void InvokeCommand(ref CMINVOKECOMMANDINFOEX pici);
-        void GetCommandString(uint idCmd, uint uType, IntPtr pReserved, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, uint cchMax);
+
+        // 使用 ref CMINVOKECOMMANDINFO 让 CLR 自动 marshaling，
+        // IntPtr 方式会导致 InvokeCommand 返回 E_FAIL (手动内存分配问题)。
+        [PreserveSig]
+        int InvokeCommand(ref CMINVOKECOMMANDINFO pici);
+
+        [PreserveSig]
+        int GetCommandString(uint idCmd, uint uType, IntPtr pReserved, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, uint cchMax);
     }
 
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

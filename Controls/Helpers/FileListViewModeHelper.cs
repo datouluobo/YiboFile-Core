@@ -281,14 +281,15 @@ namespace YiboFile.Controls.Helpers
 
         private static string GetGroupName(SearchResultType type)
         {
+            var locService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<YiboFile.Services.Localization.ILocalizationService>(App.ServiceProvider);
             return type switch
             {
-                SearchResultType.Notes => "备注匹配",
-                SearchResultType.Folder => "文件夹匹配",
-                SearchResultType.File => "文件匹配",
-                SearchResultType.Tag => "标签匹配",
-                SearchResultType.Date => "日期匹配",
-                _ => "其他"
+                SearchResultType.Notes => locService?["Search.NotesMatch"] ?? "笔记匹配",
+                SearchResultType.Folder => locService?["Search.FolderMatch"] ?? "文件夹匹配",
+                SearchResultType.File => locService?["Search.FileMatch"] ?? "文件匹配",
+                SearchResultType.Tag => locService?["Search.TagMatch"] ?? "标签匹配",
+                SearchResultType.Date => locService?["Search.DateMatch"] ?? "日期匹配",
+                _ => locService?["Search.OtherMatch"] ?? "其他"
             };
         }
 

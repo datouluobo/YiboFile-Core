@@ -17,7 +17,6 @@ namespace YiboFile.ViewModels.Settings
         {
             var config = _configService.GetSnapshot();
             _colTagsWidth = config.ColTagsWidth > 0 ? config.ColTagsWidth : 150;
-            _colNotesWidth = config.ColNotesWidth > 0 ? config.ColNotesWidth : 200;
         }
 
         private double _colTagsWidth;
@@ -58,44 +57,6 @@ namespace YiboFile.ViewModels.Settings
             set => SetProtectedNumber(ref _colTagsWidthInput, ref _colTagsWidth, value, 50, 500, v => ColTagsWidth = v);
         }
 
-        private double _colNotesWidth;
-        private string _colNotesWidthInput;
-        public double ColNotesWidth
-        {
-            get => _colNotesWidth;
-            set
-            {
-                value = Math.Clamp(value, 100, 800);
-                if (Math.Abs(_colNotesWidth - value) < 0.001)
-                {
-                    _colNotesWidthInput = null;
-                    OnPropertyChanged(nameof(ColNotesWidthInput));
-                    return;
-                }
-
-                // 1. 同步底层模型
-                _colNotesWidth = value;
-                SyncNotesWidthToState(value);
-
-                // 2. 同步配置门面
-                _configService.Update(c => {
-                    c.ColNotesWidth = value;
-                    c.ColNotesWidth_Secondary = value;
-                });
-
-                // 3. 通知 UI
-                OnPropertyChanged();
-                _colNotesWidthInput = null;
-                OnPropertyChanged(nameof(ColNotesWidthInput));
-            }
-        }
-
-        public string ColNotesWidthInput
-        {
-            get => _colNotesWidthInput ?? _colNotesWidth.ToString();
-            set => SetProtectedNumber(ref _colNotesWidthInput, ref _colNotesWidth, value, 100, 800, v => ColNotesWidth = v);
-        }
-
         /// <summary>
         /// 将标签列宽度同步到 AppState 的所有面板
         /// </summary>
@@ -109,25 +70,6 @@ namespace YiboFile.ViewModels.Settings
                     foreach (var pane in state.Panes)
                     {
                         pane.Columns.ColTagsWidth = width;
-                    }
-                }
-            }
-            catch { }
-        }
-
-        /// <summary>
-        /// 将备注列宽度同步到 AppState 的所有面板
-        /// </summary>
-        private void SyncNotesWidthToState(double width)
-        {
-            try
-            {
-                var state = ConfigurationService.Instance.State;
-                if (state?.Panes != null)
-                {
-                    foreach (var pane in state.Panes)
-                    {
-                        pane.Columns.ColNotesWidth = width;
                     }
                 }
             }

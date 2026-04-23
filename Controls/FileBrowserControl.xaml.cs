@@ -16,6 +16,8 @@ using YiboFile.Services.UI;
 using YiboFile; // For Library class
 using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services.Navigation;
+using YiboFile.Services.Config;
+using YiboFile.Services.Shell;
 
 namespace YiboFile.Controls
 {
@@ -41,6 +43,7 @@ namespace YiboFile.Controls
         public event MouseButtonEventHandler FilesPreviewMouseDoubleClickForBlank;
         public event MouseEventHandler FilesPreviewMouseMove;
         public event EventHandler<string> ViewModeChanged;
+        public event EventHandler<FileSystemItem> NotesIconClicked;
 #pragma warning restore CS0067
 
         public FileBrowserControl()
@@ -117,6 +120,25 @@ namespace YiboFile.Controls
                 }
 
                 FileList.TagClicked += (s, e) => TagClicked?.Invoke(s, e);
+                FileList.NotesIconClicked += (s, item) => 
+                {
+                    // 选中该文件并打开笔记弹窗
+                    if (FileList != null && item != null)
+                    {
+                        FileList.FilesList.SelectedItem = item;
+                        
+                        // 打开笔记编辑窗口
+                        var currentNotes = YiboFile.Services.FileNotes.FileNotesService.GetFileNotes(item.Path);
+                        var notesWindow = new YiboFile.Windows.NotesEditWindow(item.Path, item.Name, currentNotes);
+                        notesWindow.Owner = Window.GetWindow(this);
+                        
+                        if (notesWindow.ShowDialog() == true && notesWindow.NotesSaved)
+                        {
+                            // 笔记已保存，刷新一下
+                        }
+                    }
+                    NotesIconClicked?.Invoke(s, item);
+                };
             }
 
             this.PreviewMouseDown += OnPreviewMouseDown;
@@ -171,6 +193,16 @@ namespace YiboFile.Controls
                     bool isThisMain = !(newVm.IsSecondary);
                     if (isMain == isThisMain) FileList?.FilesList?.SelectAll();
                 });
+
+                newVm.MessageBus.Subscribe<ShowGroupedSearchResultsMessage>(msg =>
+                {
+                    bool isMain = msg.TargetPaneId == "Primary" || msg.TargetPaneId == "Any";
+                    bool isThisMain = !(newVm.IsSecondary);
+                    if ((isMain && isThisMain) || (!isMain && !isThisMain))
+                    {
+                        FileList?.SetGroupedSearchResults(msg.GroupedItems);
+                    }
+                });
             }
         }
 
@@ -178,99 +210,52 @@ namespace YiboFile.Controls
         {
             if (FileList?.FilesList != null)
             {
-                if (FileList.FilesList.ContextMenu == null)
+                if (FileList.FilesList.IsLoaded)
                 {
-                    try
-                    {
-                        FileList.FilesList.ContextMenu = (ContextMenu)FindResource("FileListContextMenu");
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Failed to load ContextMenu: {ex.Message}");
-                    }
+                    SetupFileListContextMenu();
                 }
-
-                // Phase 2: Hook ContextMenuOpening to update shell menu items
-                FileList.FilesList.ContextMenuOpening += FileList_ContextMenuOpening;
+                else
+                {
+                    FileList.FilesList.Loaded += (s, args) => SetupFileListContextMenu();
+                }
             }
+        }
+
+        private void SetupFileListContextMenu()
+        {
+            if (FileList?.FilesList == null) return;
+            
+            if (FileList.FilesList.ContextMenu == null)
+            {
+                try
+                {
+                    FileList.FilesList.ContextMenu = (ContextMenu)FindResource("FileListContextMenu");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load ContextMenu: {ex.Message}");
+                }
+            }
+
+            // Phase 2: Hook ContextMenuOpening to update shell menu items
+            FileList.FilesList.ContextMenuOpening += FileList_ContextMenuOpening;
         }
 
         private void FileList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            if (DataContext is ViewModels.PaneViewModel vm)
+            // 固定使用 Native 模式：显示 WPF 自定义菜单
+            // 修复：手动设置 ContextMenu 的 DataContext，因为 BindingProxy 在 Popup 场景下不可靠
+            var menu = FileList?.FilesList?.ContextMenu;
+            if (menu != null)
             {
-                // [Binary Mode] 完全分离模式：如果设置为“系统菜单”，则直接显示原生菜单并拦截 WPF 菜单
-                if (vm.ShellMenuMode == "System")
-                {
-                    e.Handled = true;
-                    vm.Commands.ShowNativeShellMenuCommand.Execute(null);
-                    return;
-                }
-
-                // [Native Mode] 如果是“原生菜单”模式，才进行常规的 WPF 菜单准备
-                // 规约 Phase 2: 调用同步准备函数，彻底消除死锁风险
-                vm.PrepareShellMenuSync();
-                
-                // 规约 Phase 3: 为新生成的 Shell 子菜单项挂载管理事件
-                var menu = FileList.FilesList.ContextMenu;
-                if (menu != null)
-                {
-                    var systemMenu = menu.Items.OfType<MenuItem>().FirstOrDefault(m => m.Name == "SystemShellMenu");
-                    if (systemMenu != null)
-                    {
-                        systemMenu.SubmenuOpened += (s, ev) => AttachShellItemManagement(systemMenu);
-                    }
-                }
+                menu.DataContext = DataContext;
             }
-        }
 
-        private void AttachShellItemManagement(MenuItem parent)
-        {
-            foreach (var item in parent.Items)
+            if (DataContext is ViewModels.PaneViewModel vm2)
             {
-                if (item is MenuItem mi && mi.DataContext is ViewModels.ShellMenuItemViewModel vm)
-                {
-                    // 移除旧事件防止重复挂载
-                    mi.PreviewMouseRightButtonUp -= ShellItem_PreviewMouseRightButtonUp;
-                    mi.PreviewMouseRightButtonUp += ShellItem_PreviewMouseRightButtonUp;
-                }
+                // 更新动态菜单项（库、标签、收藏）
+                vm2.Menu?.UpdateDynamicMenuItems();
             }
-        }
-
-        private void ShellItem_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is MenuItem mi && mi.DataContext is ViewModels.ShellMenuItemViewModel vm)
-            {
-                e.Handled = true; // 阻止冒泡到主菜单
-                ShowPinManagementMenu(mi, vm);
-            }
-        }
-
-        private void ShowPinManagementMenu(MenuItem target, ViewModels.ShellMenuItemViewModel vm)
-        {
-            var menu = new ContextMenu();
-            
-            var pinItem = new MenuItem 
-            { 
-                Header = vm.IsPinned ? "📌 取消固定" : "📌 固定到主菜单",
-                Icon = "📌" 
-            };
-            pinItem.Click += (s, e) => vm.PinCommand?.Execute(null);
-            
-            var hideItem = new MenuItem 
-            { 
-                Header = "🚫 隐藏此项",
-                Icon = "🚫" 
-            };
-            hideItem.Click += (s, e) => vm.HideCommand?.Execute(null);
-
-            menu.Items.Add(pinItem);
-            menu.Items.Add(new Separator());
-            menu.Items.Add(hideItem);
-
-            menu.PlacementTarget = target;
-            menu.Placement = PlacementMode.Mouse;
-            menu.IsOpen = true;
         }
 
         // 公共属性

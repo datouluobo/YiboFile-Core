@@ -24,6 +24,11 @@ namespace YiboFile.ViewModels
 
         public event EventHandler SelectionChanged;
 
+        protected void OnPropertyChanged(string propertyName)
+        {
+            base.OnPropertyChanged(propertyName);
+        }
+
         public SelectionViewModel(IMessageBus messageBus, bool isSecondary)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
@@ -70,6 +75,11 @@ namespace YiboFile.ViewModels
             }
             SelectedItem = _selectedItems.FirstOrDefault();
 
+            // 触发属性变更通知以更新菜单项的可见性
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(IsSingleSelection));
+            OnPropertyChanged(nameof(IsNoSelection));
+
             SelectionChanged?.Invoke(this, EventArgs.Empty);
 
             // 发送消息以便其他模块（如预览面板）同步
@@ -100,6 +110,12 @@ namespace YiboFile.ViewModels
         {
             _selectedItems.Clear();
             SelectedItem = null;
+
+            // 触发属性变更通知以更新菜单项的可见性
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(IsSingleSelection));
+            OnPropertyChanged(nameof(IsNoSelection));
+
             SelectionChanged?.Invoke(this, EventArgs.Empty);
 
             var paneId = IsSecondary ? PaneId.Second : PaneId.Main;
@@ -116,6 +132,11 @@ namespace YiboFile.ViewModels
                 _selectedItems.Add(item);
             }
             SelectedItem = _selectedItems.FirstOrDefault();
+
+            // 触发属性变更通知以更新菜单项的可见性
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(IsSingleSelection));
+            OnPropertyChanged(nameof(IsNoSelection));
 
             SelectionChanged?.Invoke(this, EventArgs.Empty);
             var paneId = IsSecondary ? PaneId.Second : PaneId.Main;

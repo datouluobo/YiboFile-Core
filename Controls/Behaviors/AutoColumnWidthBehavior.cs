@@ -138,16 +138,16 @@ namespace YiboFile.Controls.Behaviors
             
             if (_cachedHeader != null)
             {
-                // 表头右侧计算：必须同步包含计算列宽时扣除的 safetyPadding，否则会导致 WPF 渲染 Filler Header (即图中末尾的多余色块)
+                // 表头右侧边距计算：
+                // 关键点：表头的 Margin 必须与行内容的视觉边界对齐。
+                // 对于标准滚动条模式，行内容的右边界 = rightCorrection + safetyPadding
+                // 表头也应该使用相同的值，确保与滚动内容严格对齐。
+                // 
+                // 注意：标准模式下滚动条位于 ScrollViewer 内部（ListView 的默认行为），
+                // 表头的 rightCorrection + safetyPadding 自然与行内容的可用宽度对齐，
+                // 不需要额外加减 scrollBarWidth。
                 double headerRightCorrection = rightCorrection + safetyPadding;
                 
-                // 处理滚动条占位：如果滚动条不是覆盖模式（即占用物理宽度），且表头在 ScrollViewer 外部（标准 WPF ListView 行为），
-                // 必须在 Margin 中包含滚动条宽度，使表头物理结束位置与视窗 (Viewport) 对齐。
-                if (!isOverlay)
-                {
-                    headerRightCorrection += scrollBarWidth;
-                }
-
                 _cachedHeader.Margin = new Thickness(leftCorrection, 0, headerRightCorrection, 0);
             }
 

@@ -34,21 +34,6 @@
         </Grid>
         <TextBlock Text="{i18n:Loc Key=Settings.FileList.Range50_500}" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
 
-        <Grid Margin="0,12,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{i18n:Loc Key=Settings.FileList.NotesColumnWidth}" FontSize="14" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="140" MinHeight="32" Grid.Column="0" />
-            <TextBox MaxLength="4" Text="{Binding ColNotesWidthInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Width="60" Height="32" VerticalContentAlignment="Center" TextAlignment="Center" Padding="5,0,5,0" Margin="0,0,8,0" Grid.Column="1" />
-            <StackPanel Orientation="Vertical" Grid.Column="2">
-                <Button Content="▲" Width="24" Height="16" FontSize="10" Padding="0" Margin="0,0,0,2" VerticalAlignment="Center" Click="NotesWidthUp_Click" Style="{DynamicResource ModernButtonStyle}" />
-                <Button Content="▼" Width="24" Height="16" FontSize="10" Padding="0" VerticalAlignment="Center" Click="NotesWidthDown_Click" Style="{DynamicResource ModernButtonStyle}" />
-            </StackPanel>
-        </Grid>
-        <TextBlock Text="{i18n:Loc Key=Settings.FileList.Range100_800}" FontSize="12" Foreground="Gray" Margin="152,-8,0,0" />
-
         <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,24,0,24" />
 
         <TextBlock Text="{i18n:Loc Key=Settings.FileList.RenameBehavior}" FontSize="18" FontWeight="Bold" Margin="0,0,0,8" />

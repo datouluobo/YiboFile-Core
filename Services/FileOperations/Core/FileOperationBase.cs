@@ -73,6 +73,20 @@ namespace YiboFile.Services.FileOperations
         /// </summary>
         protected void CopyDirectoryRecursive(string source, string dest, CancellationToken ct)
         {
+            // 安全检查：防止源目录和目标目录相同，或源目录是目标目录的子目录
+            var normalizedSource = System.IO.Path.GetFullPath(source).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var normalizedDest = System.IO.Path.GetFullPath(dest).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            
+            if (string.Equals(normalizedSource, normalizedDest, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("源目录和目标目录不能相同");
+            }
+            
+            if (normalizedDest.StartsWith(normalizedSource + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("目标目录不能是源目录的子目录");
+            }
+
             Directory.CreateDirectory(dest);
 
             foreach (var file in Directory.GetFiles(source))

@@ -244,22 +244,42 @@ namespace YiboFile.Controls
             if (e.Key == Key.Enter)
             {
                 var path = AddressTextBox.Text;
+                System.Diagnostics.Debug.WriteLine($"[AddressBarControl] AddressTextBox_KeyDown - Enter pressed, text: '{path}', SearchModeToggle: {SearchModeToggle?.IsChecked}");
 
                 // 处理搜索模式
-                if (SearchModeToggle != null && SearchModeToggle.IsChecked == true)
+                if (SearchModeToggle != null)
                 {
-                    // 全文搜索模式：确保有 content:// 前缀
-                    // 注意：这里使用 content:// 作为强制全文搜索的协议头，区别于 content:
-                    // 这样可以彻底隔离 Everything 和 Lucene
-                    if (!string.IsNullOrWhiteSpace(path) && !path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                    if (SearchModeToggle.IsChecked == true)
                     {
-                        path = "content://" + path;
+                        // 全文搜索模式：确保有 content:// 前缀
+                        System.Diagnostics.Debug.WriteLine($"[AddressBarControl] Full text search mode");
+                        if (!string.IsNullOrWhiteSpace(path) && !path.StartsWith("content://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            path = "content://" + path;
+                            System.Diagnostics.Debug.WriteLine($"[AddressBarControl] Added content:// prefix: '{path}'");
+                        }
+                    }
+                    else
+                    {
+                        // 文件名搜索模式（Everything搜索）：确保有 search:// 前缀
+                        System.Diagnostics.Debug.WriteLine($"[AddressBarControl] Filename search mode");
+                        if (!string.IsNullOrWhiteSpace(path) && 
+                            !path.StartsWith("search://", StringComparison.OrdinalIgnoreCase) &&
+                            !path.StartsWith("content://", StringComparison.OrdinalIgnoreCase) &&
+                            !path.StartsWith("lib://", StringComparison.OrdinalIgnoreCase) &&
+                            !path.StartsWith("tag://", StringComparison.OrdinalIgnoreCase) &&
+                            !Directory.Exists(path) && !File.Exists(path))
+                        {
+                            path = "search://" + path;
+                            System.Diagnostics.Debug.WriteLine($"[AddressBarControl] Added search:// prefix: '{path}'");
+                        }
                     }
                 }
 
                 // Update the DP to sync with bound ViewModel
                 AddressText = path;
 
+                System.Diagnostics.Debug.WriteLine($"[AddressBarControl] Publishing PathChanged event with path: '{path}'");
                 PathChanged?.Invoke(this, path);
 
                 SwitchToBreadcrumbMode();

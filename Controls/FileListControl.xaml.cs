@@ -247,12 +247,22 @@ namespace YiboFile.Controls
         }
 
         public event EventHandler<TagViewModel> TagClicked;
+        public event EventHandler<FileSystemItem> NotesIconClicked;
 
         private void Tag_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.DataContext is TagViewModel tag)
             {
                 TagClicked?.Invoke(this, tag);
+                e.Handled = true;
+            }
+        }
+
+        private void NotesIconBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is FileSystemItem item)
+            {
+                NotesIconClicked?.Invoke(this, item);
                 e.Handled = true;
             }
         }

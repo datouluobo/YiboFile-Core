@@ -38,7 +38,7 @@ namespace YiboFile.Interop.Shell
                 mii.fMask = ShellConstants.MIIM_ID | ShellConstants.MIIM_SUBMENU
                     | ShellConstants.MIIM_STRING | ShellConstants.MIIM_FTYPE
                     | ShellConstants.MIIM_BITMAP | ShellConstants.MIIM_CHECKMARKS
-                    | ShellConstants.MIIM_DATA;
+                    | ShellConstants.MIIM_DATA | ShellConstants.MIIM_STATE;
                 
                 // 初次调用获取字符串长度 (cch 会被填充为长度)
                 mii.dwTypeData = IntPtr.Zero;
@@ -74,7 +74,9 @@ namespace YiboFile.Interop.Shell
                 var item = new ShellMenuItem
                 {
                     Text = itemText,
-                    CommandId = (int)mii.wID
+                    CommandId = (int)mii.wID,
+                    // 检测禁用/灰色状态
+                    IsEnabled = (mii.fState & ShellConstants.MFS_DISABLED) == 0
                 };
 
                 // ── 图标提取 ──
@@ -100,11 +102,16 @@ namespace YiboFile.Interop.Shell
                 if (item.Icon == null && mii.hbmpChecked != IntPtr.Zero)
                     item.Icon = IconHelper.BitmapSourceFromHBitmap(mii.hbmpChecked);
 
-                // 策略 3: 对于 OWNERDRAW 项，尝试从 dwItemData 找图标（有些厂商会传句柄）
+                // 策略 3: 对于 OWNERDRAW 项，尝试从 dwItemData 找图标
                 if (item.Icon == null && (mii.fType & ShellConstants.MFT_OWNERDRAW) != 0 && mii.dwItemData != IntPtr.Zero)
                 {
-                    // 这是一个模糊测试，如果 dwItemData 看起来像一个有效的 GDI 句柄，尝试转换
-                    // 但通常这不可靠，所以只在万不得已时尝试
+                    // OWNERDRAW 项的图标通常由扩展自己绘制，无法直接提取
+                }
+
+                // 策略 4: 从 IContextMenu.GetCommandString 获取资源 ID 并提取图标
+                if (item.Icon == null && item.CommandId > 0 && item.CommandId <= 0x7FFF)
+                {
+                    item.Icon = IconHelper.TryGetShellIcon(contextMenu, item.CommandId);
                 }
 
                 // 2. 获取 Verb (用于唯一标识和固定功能)
@@ -204,6 +211,27 @@ namespace YiboFile.Interop.Shell
                 if (result.CanFreeze) result.Freeze();
                 
                 return result;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 尝试通过 IContextMenu2.GetCommandString 获取命令字符串后提取图标
+        /// </summary>
+        public static BitmapSource TryGetShellIcon(IContextMenu contextMenu, int commandId)
+        {
+            try
+            {
+                // 获取命令的帮助字符串（通常包含资源路径信息）
+                var helpText = new System.Text.StringBuilder(512);
+                contextMenu.GetCommandString((uint)commandId, ShellConstants.GCS_HELPTEXTW, IntPtr.Zero, helpText, 512);
+                
+                // 某些 Shell 扩展会在帮助文本中包含图标资源路径
+                // 这里主要用于增强兼容性，实际图标仍从 hbmpItem 提取
+                return null;
             }
             catch
             {

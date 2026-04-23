@@ -13,6 +13,7 @@ namespace YiboFile.Models.Shell
         public bool IsSeparator { get; set; }
         public bool IsPinned { get; set; }
         public bool IsHidden { get; set; }
+        public bool IsEnabled { get; set; } = true;
         public List<ShellMenuItem> Children { get; set; } = new();
 
         public string UniqueKey => !string.IsNullOrEmpty(Verb) ? Verb : $"_text_{Text}";

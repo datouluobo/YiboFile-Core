@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Data.Sqlite;
+using YiboFile.ViewModels.Messaging;
+using YiboFile.ViewModels.Messaging.Messages;
 
 namespace YiboFile.Services.FileNotes
 {
@@ -48,11 +50,36 @@ namespace YiboFile.Services.FileNotes
                 insertFts.Parameters.AddWithValue("@filePath", filePath);
                 insertFts.Parameters.AddWithValue("@notes", notes);
                 insertFts.ExecuteNonQuery();
+
+                // 发布笔记更新消息
+                System.Diagnostics.Debug.WriteLine($"[FileNotesService] Publishing NotesUpdatedMessage for: {filePath}");
+                var messageBus = App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
+                if (messageBus != null)
+                {
+                    var summary = GetSummary(notes);
+                    messageBus.Publish(new NotesUpdatedMessage(filePath, notes, summary));
+                }
             }
             catch (Exception)
             {
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 获取备注摘要
+        /// </summary>
+        private static string GetSummary(string notes, int maxLength = 100)
+        {
+            if (string.IsNullOrEmpty(notes)) return string.Empty;
+
+            var lines = notes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var firstLine = lines.Length > 0 ? lines[0] : notes;
+
+            if (firstLine.Length <= maxLength)
+                return firstLine;
+
+            return firstLine.Substring(0, maxLength) + "...";
         }
 
         /// <summary>

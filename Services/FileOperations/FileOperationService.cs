@@ -377,6 +377,14 @@ namespace YiboFile.Services.FileOperations
         public async Task<FileOperationResult> DeleteAsync(IEnumerable<FileSystemItem> items, bool permanent = false, CancellationToken ct = default)
         {
             var itemList = items?.ToList();
+            System.Diagnostics.Debug.WriteLine($"[FileOperationService] DeleteAsync invoked. Items count: {itemList?.Count ?? 0}");
+            if (itemList != null)
+            {
+                foreach (var item in itemList)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] Item to delete: {item.Name}, Path: {item.Path}");
+                }
+            }
             if (itemList == null || itemList.Count == 0) return FileOperationResult.Failed("没有选中任何项目");
 
             var message = itemList.Count == 1 ? $"确定要删除 \"{itemList[0].Name}\" 吗？" : $"确定要删除这 {itemList.Count} 个项目吗？";
@@ -399,8 +407,10 @@ namespace YiboFile.Services.FileOperations
 
             await Task.Run(async () =>
             {
+                System.Diagnostics.Debug.WriteLine($"[FileOperationService] Starting deletion loop. Items count: {itemList.Count}");
                 foreach (var item in itemList)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] Processing item: {item.Name}, Path: {item.Path}");
                     if (ct.IsCancellationRequested || (task != null && task.Status == TaskStatus.Canceling)) break;
                     if (task != null) 
                     { 
@@ -415,6 +425,7 @@ namespace YiboFile.Services.FileOperations
 
                     try
                     {
+                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] Deleting item: {item.Name}");
                         if (permanent)
                         {
                             if (item.IsDirectory) Directory.Delete(item.Path, true);
@@ -439,12 +450,17 @@ namespace YiboFile.Services.FileOperations
                             }
                         }
                         processedCount++;
+                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] Successfully deleted item: {item.Name}. Processed count: {processedCount}");
                     }
-                    catch (Exception ex) { failedItems.Add($"{item.Name}: {ex.Message}"); }
+                    catch (Exception ex) { 
+                        failedItems.Add($"{item.Name}: {ex.Message}"); 
+                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] Failed to delete item: {item.Name}. Error: {ex.Message}");
+                    }
 
                     if (task != null) task.Progress = (int)((double)processedCount / task.TotalItems * 100);
                     _messageBus?.Publish(new FileOperationProgressMessage(processedCount, itemList.Count, item.Name));
                 }
+                System.Diagnostics.Debug.WriteLine($"[FileOperationService] Deletion loop completed. Processed count: {processedCount}, Failed count: {failedItems.Count}");
             }, ct);
 
             if (undoActions.Count > 0 && _undoService != null)
