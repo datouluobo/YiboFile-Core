@@ -6,6 +6,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using YiboFile.Controls.Helpers;
 
+#nullable enable
+
 namespace YiboFile.Controls
 {
     public class RenameConfirmedEventArgs : EventArgs
@@ -262,15 +264,12 @@ namespace YiboFile.Controls
         private void OnTextBoxPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             // 确保点击时 TextBox 获得焦点（在某些 WPF 场景下 Popup 内部点击可能不会自动焦点）
-            System.Diagnostics.Debug.WriteLine($"[RenameOverlay] TextBox.PreviewMouseDown - Source:{e.Source}, OriginalSource:{e.OriginalSource}");
             
             // 直接设置焦点，而不是使用 Dispatcher.BeginInvoke，避免焦点丢失
             if (RenameTextBox.IsVisible)
             {
-                System.Diagnostics.Debug.WriteLine("[RenameOverlay] Setting focus to TextBox");
                 RenameTextBox.Focus();
                 Keyboard.Focus(RenameTextBox);
-                System.Diagnostics.Debug.WriteLine($"[RenameOverlay] TextBox IsFocused: {RenameTextBox.IsFocused}, IsKeyboardFocused: {RenameTextBox.IsKeyboardFocused}");
             }
             
             // 不设置 e.Handled，让文本框能够处理自己的鼠标事件
@@ -280,13 +279,11 @@ namespace YiboFile.Controls
         /// <summary>拦截 Popup 边框上的鼠标点击，防止事件穿透到下层控件</summary>
         private void OnPopupBorderPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RenameOverlay] PopupBorder.PreviewMouseDown - Source:{e.Source}, OriginalSource:{e.OriginalSource}");
             
             // 检查点击是否在 Popup 内部的交互元素上
             var source = e.OriginalSource as DependencyObject;
             if (source != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[RenameOverlay] OriginalSource type: {source.GetType().Name}");
                 // 如果点击在 TextBox、Button 或它们的子元素上，不设置 e.Handled，让文本框能够处理自己的鼠标事件
                 if (source == RenameTextBox || 
                     source == ConfirmButton || 
@@ -295,28 +292,23 @@ namespace YiboFile.Controls
                     IsDescendantOf(ConfirmButton, source) ||
                     IsDescendantOf(CancelButton, source))
                 {
-                    System.Diagnostics.Debug.WriteLine("[RenameOverlay] Click on TextBox/Button detected, not setting e.Handled to allow TextBox to handle events");
                     // 不设置 e.Handled，让文本框能够处理自己的鼠标事件
                     return;
                 }
             }
             
             // 其他情况（如点击在 Border 背景上），阻止事件穿透
-            System.Diagnostics.Debug.WriteLine("[RenameOverlay] Click on border background, setting e.Handled = true");
             e.Handled = true;
-            System.Diagnostics.Debug.WriteLine("[RenameOverlay] 拦截了穿透点击事件");
         }
 
         /// <summary>拦截 Popup 边框上的鼠标释放</summary>
         private void OnPopupBorderPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[RenameOverlay] PopupBorder.PreviewMouseUp - Source:{e.Source}, OriginalSource:{e.OriginalSource}");
             
             // 检查点击是否在 Popup 内部的交互元素上
             var source = e.OriginalSource as DependencyObject;
             if (source != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[RenameOverlay] MouseUp OriginalSource type: {source.GetType().Name}");
                 // 如果点击在 TextBox、Button 或它们的子元素上，不设置 e.Handled，让文本框能够处理自己的鼠标事件
                 if (source == RenameTextBox || 
                     source == ConfirmButton || 
@@ -325,16 +317,13 @@ namespace YiboFile.Controls
                     IsDescendantOf(ConfirmButton, source) ||
                     IsDescendantOf(CancelButton, source))
                 {
-                    System.Diagnostics.Debug.WriteLine("[RenameOverlay] MouseUp on TextBox/Button detected, not setting e.Handled to allow TextBox to handle events");
                     // 不设置 e.Handled，让文本框能够处理自己的鼠标事件
                     return;
                 }
             }
             
             // 其他情况（如点击在 Border 背景上），阻止事件穿透
-            System.Diagnostics.Debug.WriteLine("[RenameOverlay] MouseUp on border background, setting e.Handled = true");
             e.Handled = true;
-            System.Diagnostics.Debug.WriteLine("[RenameOverlay] 拦截了穿透点击事件 (MouseUp)");
         }
 
         private void OnTextBoxLostFocus(object sender, RoutedEventArgs e)

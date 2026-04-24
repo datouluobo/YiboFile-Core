@@ -107,12 +107,10 @@ namespace YiboFile.ViewModels.Settings
         {
             get 
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] GET SelectedTheme => {_selectedTheme?.Id ?? "null"}");
                 return _selectedTheme;
             }
             set
             {
-                System.Diagnostics.Debug.WriteLine($"[Settings] SET SelectedTheme called with value => {value?.Id ?? "null"}");
                 if (value == null) return;
                 if (SetProperty(ref _selectedTheme, value))
                 {

@@ -52,14 +52,12 @@ namespace YiboFile.Controllers
             // 业务逻辑：验证模式是否有效
             if (!IsValidNavigationMode(message.Mode))
             {
-                System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Invalid navigation mode: {message.Mode}");
                 return;
             }
 
             // 特殊处理：Tag 模式需要检查功能是否可用
             if (message.Mode == "Tag" && !App.IsTagTrainAvailable)
             {
-                System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Tag feature is not available");
                 return;
             }
 
@@ -69,7 +67,6 @@ namespace YiboFile.Controllers
             // ✅ 发布状态变更通知（供其他组件订阅）
             _messageBus.Publish(new NavigationModeChangedMessage(message.Mode));
 
-            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Navigation mode changed to: {message.Mode}");
         }
 
         /// <summary>
@@ -83,7 +80,6 @@ namespace YiboFile.Controllers
             // 业务逻辑：验证模式是否有效
             if (!IsValidLayoutMode(message.Mode))
             {
-                System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Invalid layout mode: {message.Mode}");
                 return;
             }
 
@@ -93,7 +89,6 @@ namespace YiboFile.Controllers
             // ❌ 不再发布 LayoutModeChangedMessage，因为 LayoutModule 已经处理并发布了
             // _messageBus.Publish(new LayoutModeChangedMessage(message.Mode));
 
-            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Layout mode updated in VM: {message.Mode}");
         }
 
         /// <summary>
@@ -110,7 +105,6 @@ namespace YiboFile.Controllers
             // ❌ 不再发布 DualPaneModeToggledMessage，因为 LayoutModule 已经处理并发布了
             // _messageBus.Publish(new DualPaneModeToggledMessage(newState));
 
-            System.Diagnostics.Debug.WriteLine($"[NavigationRailCoordinator] Dual list mode toggled in VM: {newState}");
         }
 
         #region 业务规则验证

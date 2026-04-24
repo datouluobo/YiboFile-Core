@@ -66,8 +66,10 @@ namespace YiboFile.Handlers
                     return;
                 }
             }
-            HandleDoubleClick(e);
+            // 先取消慢双击重命名，再处理双击打开
+            // 避免导航操作导致 cancel 不及时
             _slowClickRename.OnDoubleClick();
+            HandleDoubleClick(e);
         }
 
         public void OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -82,8 +84,8 @@ namespace YiboFile.Handlers
                     return;
                 }
             }
-            HandleDoubleClick(e);
             _slowClickRename.OnDoubleClick();
+            HandleDoubleClick(e);
         }
 
         public void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -108,7 +110,6 @@ namespace YiboFile.Handlers
             
             if (isAnyItemRenaming)
             {
-                System.Diagnostics.Debug.WriteLine("[FileListMouseHandler] Any item is renaming, skipping all mouse down handling");
                 return;
             }
 
@@ -264,7 +265,6 @@ namespace YiboFile.Handlers
             
             if (isAnyItemRenaming)
             {
-                System.Diagnostics.Debug.WriteLine("[FileListMouseHandler] Any item is renaming, skipping all mouse up handling");
                 _isMouseDownOnListView = false;
                 return;
             }

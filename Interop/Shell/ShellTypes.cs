@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace YiboFile.Interop.Shell
 {
@@ -195,6 +196,13 @@ namespace YiboFile.Interop.Shell
 
         [DllImport("user32.dll")]
         public static extern int TrackPopupMenuEx(IntPtr hMenu, uint uFlags, int x, int y, IntPtr hwnd, IntPtr lptpm);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern int GetMenuStringW(IntPtr hMenu, uint uIDItem,
+            [Out] StringBuilder lpString, int nMaxCount, uint uFlag);
 
         [DllImport("user32.dll")]
         public static extern bool GetCursorPos(out POINT lpPoint);

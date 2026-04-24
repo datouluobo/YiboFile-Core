@@ -80,7 +80,6 @@ namespace YiboFile.Controls
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Word Preview WebView2 error: {ex.Message}");
             }
         }
     }

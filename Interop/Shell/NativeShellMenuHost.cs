@@ -1,528 +1,650 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
+using WinForms = System.Windows.Forms;
 
 namespace YiboFile.Interop.Shell
 {
     public sealed class NativeShellMenuHost : IDisposable
     {
-        private IntPtr _contextMenuPtr;
-        private IContextMenu _contextMenuRCW;
-        private IContextMenu2 _contextMenu2RCW;
-        private IContextMenu3 _contextMenu3RCW;
+        private IShellFolder _desktopFolder;
+        private IShellFolder _parentFolder;
+        private IContextMenu _cm1;
+        private IContextMenu2 _cm2;
+        private IContextMenu3 _cm3;
         private IntPtr _hMenu;
+        private MenuHostForm _hostForm;
+        private Dictionary<int, string> _menuTextMap;
+        private Dictionary<int, string> _menuVerbMap;
+        private List<string> _paths;
+        private uint _idCmdFirst = 1;
         private bool _disposed;
 
-        private const string MENU_WND_CLASS = "YiboFileShellMenuHost";
-        private static bool _classRegistered;
-        private IntPtr _hostWnd;
-        private static NativeShellMenuHost _currentHost;
-        
-        // v36: 保持 COM 对象引用，防止过早释放
-        private IShellFolder _retainedDesktopFolder;
-        private IShellFolder _retainedParentFolder;
-        
-        // v34: 菜单项 ID → 文本 映射（用于推断动词 / ShellExecute 回退）
-        private Dictionary<int, string> _menuTextMap;
+        public event Action<string> RenameRequested;
 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern ushort RegisterClassW(ref WNDCLASS lpWndClass);
+        private static bool HrSucceeded(int hr) => hr >= 0;
 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr CreateWindowExW(
-            uint dwExStyle, string lpClassName, string lpWindowName, uint dwStyle,
-            int x, int y, int nWidth, int nHeight,
-            IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
-
-        [DllImport("user32.dll")]
-        private static extern bool DestroyWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr DefWindowProcW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetMenuStringW(IntPtr hMenu, uint uIDItem, [Out] StringBuilder lpString, int nMaxCount, uint uFlag);
-
-        private static bool HrSucceeded(int hr) => (uint)hr < 0x80000000;
-
-        /// <summary>让部分通过 PostMessage/异步分发的壳扩展在返回前有机会完成。</summary>
-        private static void PumpThreadMessages()
-        {
-            try
-            {
-                for (int i = 0; i < 24; i++)
-                    System.Windows.Forms.Application.DoEvents();
-            }
-            catch
-            {
-                // ignore
-            }
-        }
-        
-        [DllImport("kernel32.dll")]
-        private static extern IntPtr GetModuleHandle(string lpModuleName);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr ShellExecuteW(
-            IntPtr hwnd, [MarshalAs(UnmanagedType.LPWStr)] string lpOperation,
-            [MarshalAs(UnmanagedType.LPWStr)] string lpFile,
-            [MarshalAs(UnmanagedType.LPWStr)] string lpParameters,
-            [MarshalAs(UnmanagedType.LPWStr)] string lpDirectory, int nShowCmd);
-
-        private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-        private static WndProcDelegate _wndProcDelegate;
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct WNDCLASS
-        {
-            public uint style;
-            public WndProcDelegate lpfnWndProc;
-            public int cbClsExtra;
-            public int cbWndExtra;
-            public IntPtr hInstance;
-            public IntPtr hIcon;
-            public IntPtr hCursor;
-            public IntPtr hbrBackground;
-            public string lpszMenuName;
-            public string lpszClassName;
-        }
-
+        /// <summary>
+        /// Show a native Win32 popup menu at the specified screen position (modal, blocking).
+        /// </summary>
         public void ShowNativeMenu(IEnumerable<string> paths, Point screenPoint, Window owner)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(NativeShellMenuHost));
-            Cleanup();
+            if (paths == null) return;
 
             var pathList = new List<string>(paths);
             if (pathList.Count == 0) return;
 
-            // 保存 owner 窗口句柄供 InvokeCommand 使用
-            IntPtr _ownerHwnd = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
+            IntPtr ownerHwnd = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
 
-            if (GetContextMenu(pathList, _ownerHwnd) == false)
+            Cleanup();
+            _paths = pathList;
+
+            try
+            {
+                if (!GetContextMenu(pathList, ownerHwnd))
+                    return;
+
+                _hMenu = NativeMethods.CreatePopupMenu();
+                if (_hMenu == IntPtr.Zero)
+                    return;
+
+                uint flags = ShellConstants.CMF_EXPLORE | ShellConstants.CMF_CANRENAME;
+                int hr = _cm1.QueryContextMenu(_hMenu, 0, _idCmdFirst, 0x7FFF, flags);
+                if (hr < 0)
+                    return;
+
+                int itemCount = NativeMethods.GetMenuItemCount(_hMenu);
+                BuildMenuMaps(itemCount);
+
+                _hostForm = new MenuHostForm(_cm2, _cm3);
+                _ = _hostForm.Handle;
+
+                NativeMethods.SetForegroundWindow(_hostForm.Handle);
+
+                uint tpmFlags = ShellConstants.TPM_LEFTALIGN | ShellConstants.TPM_TOPALIGN
+                    | ShellConstants.TPM_RIGHTBUTTON | ShellConstants.TPM_RETURNCMD;
+
+                int selectedId = NativeMethods.TrackPopupMenuEx(
+                    _hMenu, tpmFlags, (int)screenPoint.X, (int)screenPoint.Y,
+                    _hostForm.Handle, IntPtr.Zero);
+
+                if (selectedId > 0)
+                {
+                    ExecuteWithFallback(selectedId, _paths[0], ownerHwnd);
+                }
+
+                Cleanup();
+            }
+            catch (Exception)
             {
                 Cleanup();
+            }
+        }
+
+        /// <summary>
+        /// Build WPF MenuItem list from the native shell context menu for the given paths.
+        /// The caller must call <see cref="Dispose"/> after the menu is closed and commands are executed.
+        /// COM objects are kept alive until disposal.
+        /// </summary>
+        public List<MenuItem> BuildWpfMenuItems(IEnumerable<string> paths, IntPtr ownerHwnd)
+        {
+            var result = new List<MenuItem>();
+            if (_disposed || paths == null) return result;
+
+            var pathList = new List<string>(paths);
+            if (pathList.Count == 0) return result;
+
+            Cleanup();
+            _paths = pathList;
+
+            try
+            {
+                if (!GetContextMenu(pathList, ownerHwnd))
+                    return result;
+
+                _hMenu = NativeMethods.CreatePopupMenu();
+                if (_hMenu == IntPtr.Zero)
+                    return result;
+
+                uint flags = ShellConstants.CMF_EXPLORE | ShellConstants.CMF_CANRENAME;
+                int hr = _cm1.QueryContextMenu(_hMenu, 0, _idCmdFirst, 0x7FFF, flags);
+                if (hr < 0)
+                    return result;
+
+                int itemCount = NativeMethods.GetMenuItemCount(_hMenu);
+                BuildMenuMaps(itemCount);
+
+                for (int i = 0; i < itemCount; i++)
+                {
+                    var mii = MENUITEMINFO.Create();
+                    mii.fMask = ShellConstants.MIIM_FTYPE | ShellConstants.MIIM_STATE | ShellConstants.MIIM_ID | ShellConstants.MIIM_SUBMENU;
+                    if (!NativeMethods.GetMenuItemInfoW(_hMenu, (uint)i, true, ref mii))
+                        continue;
+
+                    // Separator
+                    if ((mii.fType & ShellConstants.MFT_SEPARATOR) != 0)
+                    {
+                        var sep = new Separator();
+                        result.Add(null!); // placeholder for separator — handled by caller
+                        continue;
+                    }
+
+                    // Skip owner-draw items we can't represent in WPF (they still execute fine via InvokeCommand)
+                    int menuId = (int)mii.wID;
+                    string text = _menuTextMap?.TryGetValue(menuId, out var t) == true ? t : "";
+                    string verb = _menuVerbMap?.TryGetValue(menuId, out var v) == true ? v : "";
+
+                    // Submenu
+                    if (mii.hSubMenu != IntPtr.Zero)
+                    {
+                        var subParent = new MenuItem { Header = CleanMenuText(text) };
+                        BuildWpfSubMenu(subParent, mii.hSubMenu, ownerHwnd);
+                        result.Add(subParent);
+                        continue;
+                    }
+
+                    // Normal item
+                    var item = new MenuItem { Header = CleanMenuText(text) };
+
+                    if ((mii.fState & ShellConstants.MFS_DISABLED) != 0)
+                        item.IsEnabled = false;
+
+                    if ((mii.fState & ShellConstants.MFS_CHECKED) != 0)
+                    {
+                        item.IsCheckable = true;
+                        item.IsChecked = true;
+                    }
+
+                    // Capture variables for closure
+                    int capturedId = menuId;
+                    string capturedVerb = verb;
+                    item.Click += (s, e) =>
+                    {
+                        OnWpfMenuItemClick(capturedId, capturedVerb, ownerHwnd);
+                    };
+
+                    result.Add(item);
+                }
+            }
+            catch (Exception)
+            {
+                Cleanup();
+            }
+
+            return result;
+        }
+
+        private void BuildWpfSubMenu(MenuItem parent, IntPtr hSubMenu, IntPtr ownerHwnd)
+        {
+            int subCount = NativeMethods.GetMenuItemCount(hSubMenu);
+            for (int i = 0; i < subCount; i++)
+            {
+                var mii = MENUITEMINFO.Create();
+                mii.fMask = ShellConstants.MIIM_FTYPE | ShellConstants.MIIM_STATE | ShellConstants.MIIM_ID | ShellConstants.MIIM_SUBMENU;
+                if (!NativeMethods.GetMenuItemInfoW(hSubMenu, (uint)i, true, ref mii))
+                    continue;
+
+                if ((mii.fType & ShellConstants.MFT_SEPARATOR) != 0)
+                {
+                    parent.Items.Add(new Separator());
+                    continue;
+                }
+
+                int menuId = (int)mii.wID;
+
+                // Get text for submenu item
+                string text = "";
+                var sb = new StringBuilder(512);
+                int len = NativeMethods.GetMenuStringW(hSubMenu, (uint)menuId, sb, sb.Capacity, 0);
+                if (len > 0) text = sb.ToString();
+
+                string verb = "";
+                int offset = menuId - (int)_idCmdFirst;
+                if (offset >= 0)
+                {
+                    verb = GetVerbForOffset((uint)offset) ?? "";
+                    if (!_menuVerbMap.ContainsKey(menuId) && !string.IsNullOrEmpty(verb))
+                        _menuVerbMap[menuId] = verb;
+                    if (!_menuTextMap.ContainsKey(menuId))
+                        _menuTextMap[menuId] = text;
+                }
+
+                if (mii.hSubMenu != IntPtr.Zero)
+                {
+                    var subSub = new MenuItem { Header = CleanMenuText(text) };
+                    BuildWpfSubMenu(subSub, mii.hSubMenu, ownerHwnd);
+                    parent.Items.Add(subSub);
+                    continue;
+                }
+
+                var item = new MenuItem { Header = CleanMenuText(text) };
+
+                if ((mii.fState & ShellConstants.MFS_DISABLED) != 0)
+                    item.IsEnabled = false;
+
+                if ((mii.fState & ShellConstants.MFS_CHECKED) != 0)
+                {
+                    item.IsCheckable = true;
+                    item.IsChecked = true;
+                }
+
+                int capturedId = menuId;
+                string capturedVerb = verb;
+                item.Click += (s, e) =>
+                {
+                    OnWpfMenuItemClick(capturedId, capturedVerb, ownerHwnd);
+                };
+
+                parent.Items.Add(item);
+            }
+        }
+
+        private void OnWpfMenuItemClick(int menuId, string verb, IntPtr ownerHwnd)
+        {
+            if (_paths == null || _paths.Count == 0) return;
+
+            string filePath = _paths[0];
+
+            if (string.Equals(verb, "rename", StringComparison.OrdinalIgnoreCase))
+            {
+                RenameRequested?.Invoke(filePath);
                 return;
             }
 
-            _hMenu = NativeMethods.CreatePopupMenu();
-            uint queryFlags = ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE
-                | ShellConstants.CMF_CANRENAME | ShellConstants.CMF_ITEMMENU;
-            
-            // 使用 RCW 对象调用 QueryContextMenu（这是安全的）
-            int hr = _contextMenuRCW.QueryContextMenu(_hMenu, 0, 1, 0x7FFF, queryFlags);
+            ExecuteWithFallback(menuId, filePath, ownerHwnd);
+        }
 
-            _currentHost = this;
-            EnsureWindowClass();
-            
-            var ownerHandle = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
-            
-            _hostWnd = CreateWindowExW(
-                0,
-                MENU_WND_CLASS,
-                "ShellMenuHost",
-                0,
-                0, 0, 1, 1,
-                ownerHandle,
-                IntPtr.Zero,
-                GetModuleHandle(null),
-                IntPtr.Zero);
-
-            if (_hostWnd == IntPtr.Zero)
+        /// <summary>
+        /// Remove accelerator markers (&amp;) and trailing accelerator hints from menu text.
+        /// </summary>
+        private static string CleanMenuText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            // Remove & accelerator markers (but keep && as literal &)
+            var sb = new StringBuilder(text.Length);
+            for (int i = 0; i < text.Length; i++)
             {
-                Cleanup();
-                return;
+                if (text[i] == '&' && i + 1 < text.Length && text[i + 1] != '&')
+                    continue;
+                sb.Append(text[i]);
             }
+            return sb.ToString();
+        }
 
-            SetForegroundWindow(_hostWnd);
+        /// <summary>
+        /// Clean up COM objects and native resources. Call this after the WPF menu is closed.
+        /// </summary>
+        public void CleanupResources()
+        {
+            Cleanup();
+        }
 
-            // v39: 使用 GetMenuStringW 获取所有菜单项的文本
+        private void BuildMenuMaps(int itemCount)
+        {
             _menuTextMap = new Dictionary<int, string>();
-            int itemCount = NativeMethods.GetMenuItemCount(_hMenu);
-            
+            _menuVerbMap = new Dictionary<int, string>();
+
             for (int i = 0; i < itemCount; i++)
             {
                 try
                 {
-                    // 先获取菜单项 ID
                     var mii = MENUITEMINFO.Create();
                     mii.fMask = ShellConstants.MIIM_ID;
-                    
-                    if (NativeMethods.GetMenuItemInfoW(_hMenu, (uint)i, true, ref mii))
+                    if (!NativeMethods.GetMenuItemInfoW(_hMenu, (uint)i, true, ref mii)) continue;
+
+                    int menuId = (int)mii.wID;
+                    if (menuId <= 0) continue;
+
+                    var sb = new StringBuilder(512);
+                    int len = NativeMethods.GetMenuStringW(_hMenu, (uint)menuId, sb, sb.Capacity, 0);
+                    if (len > 0)
+                        _menuTextMap[menuId] = sb.ToString();
+
+                    int offset = menuId - (int)_idCmdFirst;
+                    string verb = GetVerbForOffset((uint)offset);
+                    if (verb != null)
+                        _menuVerbMap[menuId] = verb;
+                }
+                catch { }
+            }
+        }
+
+        private string GetVerbForOffset(uint offset)
+        {
+            if (_cm1 == null) return null;
+            try
+            {
+                var sb = new StringBuilder(256);
+                int hr = _cm1.GetCommandString(offset, ShellConstants.GCS_VERBW, IntPtr.Zero, sb, 256);
+                if (hr >= 0 && sb.Length > 0) return sb.ToString();
+
+                sb.Clear();
+                hr = _cm1.GetCommandString(offset, ShellConstants.GCS_VERBA, IntPtr.Zero, sb, 256);
+                if (hr >= 0 && sb.Length > 0) return sb.ToString();
+            }
+            catch { }
+            return null;
+        }
+
+        private bool ExecuteWithFallback(int menuId, string filePath, IntPtr hwnd)
+        {
+            if (_cm1 == null) return false;
+
+            int offset = menuId - (int)_idCmdFirst;
+            if (offset < 0) return false;
+
+            string verb = _menuVerbMap?.TryGetValue(menuId, out var v) == true ? v : null;
+
+            if (string.Equals(verb, "rename", StringComparison.OrdinalIgnoreCase))
+            {
+                RenameRequested?.Invoke(filePath);
+                return true;
+            }
+
+            int hr = InvokeCommandEx(offset, null, hwnd);
+            if (HrSucceeded(hr))
+            {
+                PumpMessages();
+                return true;
+            }
+
+            if (!string.IsNullOrEmpty(verb))
+            {
+                hr = InvokeCommandEx(-1, verb, hwnd);
+                if (HrSucceeded(hr))
+                {
+                    PumpMessages();
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(verb))
+            {
+                if (TryShellExecute(verb, filePath))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private int InvokeCommandEx(int verbOffset, string verbName, IntPtr hwnd)
+        {
+            try
+            {
+                if (verbName == null)
+                {
+                    int cbBasic = Marshal.SizeOf<CMINVOKECOMMANDINFO>();
+                    IntPtr pMem = Marshal.AllocHGlobal(cbBasic);
+                    try
                     {
-                        int menuId = (int)mii.wID;
-                        if (menuId > 0)
-                        {
-                            // 使用 GetMenuStringW 获取文本（更可靠的方法）
-                            var sb = new StringBuilder(256);
-                            int len = GetMenuStringW(_hMenu, (uint)menuId, sb, sb.Capacity, 0x00000000);  // MF_BYCOMMAND
-                            
-                            if (len > 0)
-                            {
-                                string text = sb.ToString();
-                                _menuTextMap[menuId] = text;
-                            }
-                        }
+                        var basic = new CMINVOKECOMMANDINFO();
+                        basic.cbSize = (uint)cbBasic;
+                        basic.fMask = 0;
+                        basic.hwnd = hwnd;
+                        basic.lpVerb = (IntPtr)verbOffset;
+                        basic.nShow = NativeMethods.SW_SHOWNORMAL;
+
+                        Marshal.StructureToPtr(basic, pMem, false);
+                        return _cm1.InvokeCommand(pMem);
                     }
-                }
-                catch
-                {
-                    // Ignore menu item parsing errors
-                }
-            }
-            
-
-            uint flags = ShellConstants.TPM_LEFTALIGN | ShellConstants.TPM_TOPALIGN
-                | ShellConstants.TPM_RIGHTBUTTON | ShellConstants.TPM_RETURNCMD;
-            
-            int selectedId = NativeMethods.TrackPopupMenuEx(
-                _hMenu,
-                flags,
-                (int)screenPoint.X,
-                (int)screenPoint.Y,
-                _hostWnd,
-                IntPtr.Zero);
-
-            // 必须在 TrackPopupMenuEx 返回后、同一调用栈中同步执行 InvokeCommand。
-            // 依赖 PostMessage(WM_COMMAND) 在 WPF 下经常无法在本轮消息泵中分发给壳窗口，导致“菜单有，点了没反应”。
-            if (selectedId > 0)
-            {
-                ExecuteCommand(selectedId, pathList[0], _ownerHwnd);
-            }
-
-            Cleanup();
-        }
-
-
-        public void InvokeDirect(int commandId, IEnumerable<string> paths, Window owner)
-        {
-            if (_disposed) throw new ObjectDisposedException(nameof(NativeShellMenuHost));
-            Cleanup();
-
-            var pathList = new List<string>(paths);
-            if (pathList.Count == 0) return;
-
-            var hwnd = owner != null ? new WindowInteropHelper(owner).Handle : IntPtr.Zero;
-            if (GetContextMenu(pathList, hwnd) == false) return;
-
-            ExecuteCommand(commandId, pathList[0], hwnd);
-            
-            Cleanup();
-        }
-
-        private void ExecuteCommand(int menuId, string filePath, IntPtr hwnd)
-        {
-            if (_contextMenuRCW == null) return;
-
-            int offset = menuId - 1; // 与 QueryContextMenu 的 idCmdFirst=1 一致
-            if (offset < 0) return;
-
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"[ShellMenu] ExecuteCommand: menuId={menuId}, offset={offset}");
-
-                // 与备份版本完全一致的方式：ref CMINVOKECOMMANDINFO + 偏移量
-                // CLR 自动 marshaling，不需要手动 AllocHGlobal/StructureToPtr
-                var pici = new CMINVOKECOMMANDINFO();
-                pici.cbSize = (uint)Marshal.SizeOf(typeof(CMINVOKECOMMANDINFO));
-                pici.fMask = 0;
-                pici.hwnd = hwnd;
-                pici.lpVerb = (IntPtr)offset;
-                pici.nShow = NativeMethods.SW_SHOWNORMAL;
-
-                System.Diagnostics.Debug.WriteLine($"[ShellMenu]   cbSize={pici.cbSize}, lpVerb={offset}, nShow={pici.nShow}");
-
-                int hr = _contextMenuRCW.InvokeCommand(ref pici);
-                System.Diagnostics.Debug.WriteLine($"[ShellMenu]   hr=0x{hr:X8} ({HResultToString(hr)})");
-
-                if (hr >= 0)
-                {
-                    PumpThreadMessages();
-                    return;
-                }
-
-                ShowShellError($"命令执行失败 (ID={menuId}): {HResultToString(hr)}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ShellMenu] InvokeCommand EX: {ex.GetType().Name}: {ex.Message}");
-                ShowShellError($"命令执行异常: {ex.Message}");
-            }
-        }
-
-
-        private static IntPtr ShellMenuWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
-        {
-            var host = _currentHost;
-            if (host != null && !host._disposed)
-            {
-                switch (msg)
-                {
-                    case ShellConstants.WM_INITMENUPOPUP:
-                    case ShellConstants.WM_MEASUREITEM:
-                    case ShellConstants.WM_DRAWITEM:
-                        if (host._contextMenu3RCW != null)
-                        {
-                            host._contextMenu3RCW.HandleMenuMsg2(msg, wParam, lParam, out _);
-                            return (msg != ShellConstants.WM_INITMENUPOPUP) ? (IntPtr)1 : IntPtr.Zero;
-                        }
-                        if (host._contextMenu2RCW != null)
-                        {
-                            host._contextMenu2RCW.HandleMenuMsg(msg, wParam, lParam);
-                            return (msg != ShellConstants.WM_INITMENUPOPUP) ? (IntPtr)1 : IntPtr.Zero;
-                        }
-                        break;
-
-                    case ShellConstants.WM_MENUCHAR:
-                        if (host._contextMenu3RCW != null)
-                        {
-                            host._contextMenu3RCW.HandleMenuMsg2(msg, wParam, lParam, out var result);
-                            return result;
-                        }
-                        break;
-                }
-            }
-            return DefWindowProcW(hWnd, msg, wParam, lParam);
-        }
-
-        private static void EnsureWindowClass()
-        {
-            if (_classRegistered) return;
-            _wndProcDelegate = ShellMenuWndProc;
-            var wc = new WNDCLASS
-            {
-                style = 0,
-                lpfnWndProc = _wndProcDelegate,
-                cbClsExtra = 0,
-                cbWndExtra = 0,
-                hInstance = GetModuleHandle(null),
-                hIcon = IntPtr.Zero,
-                hCursor = IntPtr.Zero,
-                hbrBackground = IntPtr.Zero,
-                lpszMenuName = null,
-                lpszClassName = MENU_WND_CLASS
-            };
-            ushort atom = RegisterClassW(ref wc);
-            _classRegistered = atom != 0;
-        }
-
-        private bool GetContextMenu(List<string> pathList, IntPtr ownerHwnd)
-        {
-            return GetContextMenuClassic(pathList, ownerHwnd);
-        }
-
-        private bool GetContextMenuClassic(List<string> pathList, IntPtr ownerHwnd)
-        {
-            IShellFolder desktopFolder = null;
-            try
-            {
-                NativeMethods.SHGetDesktopFolder(out desktopFolder);
-                if (desktopFolder == null) return false;
-
-                // v36: 保存引用，防止过早释放
-                _retainedDesktopFolder = desktopFolder;
-
-                var iidCM = new Guid("000214E4-0000-0000-C000-000000000046");
-                string firstPath = pathList[0];
-                string parentDirPath = Path.GetDirectoryName(firstPath);
-
-                IShellFolder parentFolder = null;
-                IntPtr parentDirPidl = IntPtr.Zero;
-
-                if (string.IsNullOrEmpty(parentDirPath))
-                {
-                    parentFolder = desktopFolder;
-                    _retainedParentFolder = desktopFolder;
+                    finally
+                    {
+                        Marshal.FreeHGlobal(pMem);
+                    }
                 }
                 else
                 {
-                    parentDirPidl = NativeMethods.ILCreateFromPathW(parentDirPath);
-                    if (parentDirPidl == IntPtr.Zero)
-                    {
-                        Marshal.ReleaseComObject(desktopFolder);
-                        return false;
-                    }
-
-                    var guid = new Guid("000214E6-0000-0000-C000-000000000046");
-                    IntPtr folderPtr = IntPtr.Zero;
+                    int cbEx = Marshal.SizeOf<CMINVOKECOMMANDINFOEX>();
+                    IntPtr pMem = Marshal.AllocHGlobal(cbEx);
                     try
                     {
-                        desktopFolder.BindToObject(parentDirPidl, IntPtr.Zero, ref guid, out folderPtr);
-                        if (folderPtr == IntPtr.Zero) return false;
-                        parentFolder = (IShellFolder)Marshal.GetObjectForIUnknown(folderPtr);
-                        
-                        // v36: 保存父文件夹引用
-                        _retainedParentFolder = parentFolder;
-                        
-                        Marshal.Release(folderPtr);
+                        var ex = new CMINVOKECOMMANDINFOEX();
+                        ex.cbSize = (uint)cbEx;
+                        ex.fMask = ShellConstants.CMIC_MASK_UNICODE;
+                        ex.hwnd = hwnd;
+                        ex.lpVerb = Marshal.StringToHGlobalAnsi(verbName);
+                        ex.lpVerbW = Marshal.StringToHGlobalUni(verbName);
+                        ex.nShow = NativeMethods.SW_SHOWNORMAL;
+
+                        Marshal.StructureToPtr(ex, pMem, false);
+                        int hr = _cm1.InvokeCommand(pMem);
+
+                        Marshal.FreeHGlobal(ex.lpVerb);
+                        Marshal.FreeHGlobal(ex.lpVerbW);
+                        return hr;
                     }
-                    catch { return false; }
                     finally
                     {
-                        NativeMethods.ILFree(parentDirPidl);
-                        // v36: 不再释放 desktopFolder！保持引用直到 Cleanup()
-                        // Marshal.ReleaseComObject(desktopFolder);  ← 移除这行
+                        Marshal.FreeHGlobal(pMem);
                     }
-                }
-
-                if (parentFolder == null) return false;
-
-                IntPtr childPidl = IntPtr.Zero;
-                try
-                {
-                    uint eaten = 0;
-                    uint attr = 0;
-                    string fileName = Path.GetFileName(firstPath);
-                    parentFolder.ParseDisplayName(ownerHwnd, IntPtr.Zero, fileName, ref eaten, out childPidl, ref attr);
-
-                    if (childPidl == IntPtr.Zero) return false;
-
-                    IntPtr menuPtr = IntPtr.Zero;
-                    try
-                    {
-                        parentFolder.GetUIObjectOf(ownerHwnd, 1, new[] { childPidl }, ref iidCM, IntPtr.Zero, out menuPtr);
-                        if (menuPtr != IntPtr.Zero)
-                        {
-                            
-                            // 创建 RCW 并保存引用
-                            _contextMenuRCW = (IContextMenu)Marshal.GetObjectForIUnknown(menuPtr);
-                            
-                            // 同时保存原始指针供 HMenuParser 使用
-                            _contextMenuPtr = menuPtr;
-                            
-                            // 尝试获取 IContextMenu2/3
-                            var iidCM2 = new Guid("000214f4-0000-0000-c000-000000000046");
-                            IntPtr cm2Ptr = IntPtr.Zero;
-                            int hr = Marshal.QueryInterface(menuPtr, ref iidCM2, out cm2Ptr);
-                            if (hr >= 0 && cm2Ptr != IntPtr.Zero)
-                            {
-                                _contextMenu2RCW = (IContextMenu2)Marshal.GetObjectForIUnknown(cm2Ptr);
-                                _contextMenu3RCW = _contextMenu2RCW as IContextMenu3;
-                                
-                                Marshal.Release(cm2Ptr); // RCW 会保持引用
-                            }
-
-                            return true;
-                        }
-                    }
-                    catch { return false; }
-                }
-                finally
-                {
-                    if (childPidl != IntPtr.Zero) NativeMethods.ILFree(childPidl);
-                    // v36: 不再释放 parentFolder！保持引用直到 Cleanup()
-                    // if (parentFolder != desktopFolder)
-                    //     Marshal.ReleaseComObject(parentFolder);  ← 移除这行
-                }
-
-                return false;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        private static string HResultToString(int hr)
-        {
-            if (hr >= 0) return "S_OK/S_FALSE";
-            return hr switch
-            {
-                unchecked((int)0x80070057) => "E_INVALIDARG",
-                unchecked((int)0x80004001) => "E_NOTIMPL",
-                unchecked((int)0x80004002) => "E_NOINTERFACE",
-                unchecked((int)0x800401F0) => "CO_E_NOTINITIALIZED",
-                unchecked((int)0x80010108) => "RPC_E_DISCONNECTED",
-                unchecked((int)0x800704C7) => "ERROR_CANCELLED",
-                unchecked((int)0x80070005) => "E_ACCESSDENIED",
-                unchecked((int)0x80070006) => "E_HANDLE",
-                unchecked((int)0x80070490) => "ERROR_NOT_FOUND",
-                unchecked((int)0x8007007B) => "ERROR_INVALID_NAME",
-                _ => $"Unknown(0x{hr:X8})"
-            };
-        }
-
-        private static void ShowShellError(string message)
-        {
-            try
-            {
-                var app = System.Windows.Application.Current;
-                if (app?.Dispatcher.CheckAccess() == true)
-                {
-                    System.Windows.MessageBox.Show(
-                        $"Shell 命令执行失败：\n{message}\n\n请确认已安装相应的程序并重新尝试。",
-                        "YiboFile",
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Warning);
                 }
             }
             catch
             {
+                return unchecked((int)0x80004005);
             }
+        }
+
+        private bool TryShellExecute(string verb, string filePath)
+        {
+            try
+            {
+                var sei = SHELLEXECUTEINFO.Create();
+                sei.fMask = NativeMethods.SEE_MASK_INVOKEIDLIST | NativeMethods.SEE_MASK_FLAG_NO_UI;
+                sei.lpVerb = verb;
+                sei.lpFile = filePath;
+                sei.nShow = NativeMethods.SW_SHOWNORMAL;
+                return NativeMethods.ShellExecuteExW(ref sei);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void PumpMessages()
+        {
+            try
+            {
+                for (int i = 0; i < 20; i++)
+                    WinForms.Application.DoEvents();
+            }
+            catch { }
+        }
+
+        private bool GetContextMenu(List<string> pathList, IntPtr ownerHwnd)
+        {
+            string firstPath = pathList[0];
+            string parentDir = Path.GetDirectoryName(firstPath);
+            string fileName = Path.GetFileName(firstPath);
+
+            int hr = NativeMethods.SHGetDesktopFolder(out _desktopFolder);
+            if (hr < 0 || _desktopFolder == null)
+                return false;
+
+            if (string.IsNullOrEmpty(parentDir))
+            {
+                _parentFolder = _desktopFolder;
+            }
+            else
+            {
+                IntPtr parentPidl = NativeMethods.ILCreateFromPathW(parentDir);
+                if (parentPidl == IntPtr.Zero)
+                    return false;
+
+                try
+                {
+                    var iidSF = typeof(IShellFolder).GUID;
+                    hr = _desktopFolder.BindToObject(parentPidl, IntPtr.Zero, ref iidSF, out var folderPtr);
+                    if (hr < 0 || folderPtr == IntPtr.Zero)
+                        return false;
+
+                    _parentFolder = (IShellFolder)Marshal.GetObjectForIUnknown(folderPtr);
+                    Marshal.Release(folderPtr);
+                }
+                finally
+                {
+                    NativeMethods.ILFree(parentPidl);
+                }
+            }
+
+            uint eaten = 0, attr = 0;
+            hr = _parentFolder.ParseDisplayName(ownerHwnd, IntPtr.Zero, fileName, ref eaten, out var childPidl, ref attr);
+            if (hr < 0 || childPidl == IntPtr.Zero)
+                return false;
+
+            try
+            {
+                var iidCM = typeof(IContextMenu).GUID;
+                IntPtr[] apidl = { childPidl };
+
+                if (pathList.Count > 1)
+                    apidl = BuildChildPidls(pathList, ownerHwnd);
+
+                hr = _parentFolder.GetUIObjectOf(ownerHwnd, (uint)apidl.Length, apidl, ref iidCM, IntPtr.Zero, out var menuPtr);
+                if (hr < 0 || menuPtr == IntPtr.Zero)
+                    return false;
+
+                _cm1 = (IContextMenu)Marshal.GetObjectForIUnknown(menuPtr);
+
+                var iidCM2 = typeof(IContextMenu2).GUID;
+                hr = Marshal.QueryInterface(menuPtr, ref iidCM2, out var cm2Ptr);
+                if (hr >= 0 && cm2Ptr != IntPtr.Zero)
+                {
+                    _cm2 = (IContextMenu2)Marshal.GetObjectForIUnknown(cm2Ptr);
+                    Marshal.Release(cm2Ptr);
+                }
+
+                var iidCM3 = typeof(IContextMenu3).GUID;
+                hr = Marshal.QueryInterface(menuPtr, ref iidCM3, out var cm3Ptr);
+                if (hr >= 0 && cm3Ptr != IntPtr.Zero)
+                {
+                    _cm3 = (IContextMenu3)Marshal.GetObjectForIUnknown(cm3Ptr);
+                    Marshal.Release(cm3Ptr);
+                }
+
+                Marshal.Release(menuPtr);
+                return _cm1 != null;
+            }
+            finally
+            {
+                NativeMethods.ILFree(childPidl);
+            }
+        }
+
+        private IntPtr[] BuildChildPidls(List<string> paths, IntPtr ownerHwnd)
+        {
+            var pidls = new List<IntPtr>();
+            foreach (var path in paths)
+            {
+                string fileName = Path.GetFileName(path);
+                uint eaten = 0, attr = 0;
+                int hr = _parentFolder.ParseDisplayName(ownerHwnd, IntPtr.Zero, fileName, ref eaten, out var pidl, ref attr);
+                if (hr >= 0 && pidl != IntPtr.Zero)
+                    pidls.Add(pidl);
+            }
+            return pidls.Count > 0 ? pidls.ToArray() : new[] { IntPtr.Zero };
         }
 
         private void Cleanup()
         {
-            if (_hostWnd != IntPtr.Zero)
+            if (_hostForm != null)
             {
-                DestroyWindow(_hostWnd);
-                _hostWnd = IntPtr.Zero;
+                try { _hostForm.Close(); _hostForm.Dispose(); } catch { }
+                _hostForm = null;
             }
 
             if (_hMenu != IntPtr.Zero)
             {
-                NativeMethods.DestroyMenu(_hMenu);
+                try { NativeMethods.DestroyMenu(_hMenu); } catch { }
                 _hMenu = IntPtr.Zero;
             }
 
-            // 释放 RCW 对象
-            if (_contextMenu3RCW != null)
-            {
-                try { Marshal.ReleaseComObject(_contextMenu3RCW); } catch { }
-                _contextMenu3RCW = null;
-            }
-            if (_contextMenu2RCW != null && _contextMenu2RCW != _contextMenu3RCW)
-            {
-                try { Marshal.ReleaseComObject(_contextMenu2RCW); } catch { }
-                _contextMenu2RCW = null;
-            }
-            if (_contextMenuRCW != null)
-            {
-                try { Marshal.ReleaseComObject(_contextMenuRCW); } catch { }
-                _contextMenuRCW = null;
-            }
-            _contextMenuPtr = IntPtr.Zero;
-            
-            // v36: 释放保留的文件夹引用
-            if (_retainedParentFolder != null && _retainedParentFolder != _retainedDesktopFolder)
-            {
-                try { Marshal.ReleaseComObject(_retainedParentFolder); } catch { }
-                _retainedParentFolder = null;
-            }
-            if (_retainedDesktopFolder != null)
-            {
-                try { Marshal.ReleaseComObject(_retainedDesktopFolder); } catch { }
-                _retainedDesktopFolder = null;
-            }
-            
-            // 清理菜单文本映射
-            _menuTextMap?.Clear();
             _menuTextMap = null;
+            _menuVerbMap = null;
 
-            if (_currentHost == this)
-                _currentHost = null;
+            if (_cm3 != null) { try { Marshal.ReleaseComObject(_cm3); } catch { } _cm3 = null; }
+            if (_cm2 != null) { try { Marshal.ReleaseComObject(_cm2); } catch { } _cm2 = null; }
+            if (_cm1 != null) { try { Marshal.ReleaseComObject(_cm1); } catch { } _cm1 = null; }
+
+            if (_parentFolder != null && _parentFolder != _desktopFolder)
+            {
+                try { Marshal.ReleaseComObject(_parentFolder); } catch { }
+            }
+            _parentFolder = null;
+
+            if (_desktopFolder != null)
+            {
+                try { Marshal.ReleaseComObject(_desktopFolder); } catch { }
+                _desktopFolder = null;
+            }
         }
 
         public void Dispose()
         {
-            if (!_disposed) { Cleanup(); _disposed = true; }
+            if (!_disposed)
+            {
+                Cleanup();
+                _disposed = true;
+            }
+        }
+
+        // ── WinForms host for native menu message handling ──
+        private class MenuHostForm : WinForms.Form
+        {
+            private readonly IContextMenu2 _cm2;
+            private readonly IContextMenu3 _cm3;
+
+            public MenuHostForm(IContextMenu2 cm2, IContextMenu3 cm3)
+            {
+                _cm2 = cm2;
+                _cm3 = cm3;
+
+                Opacity = 0;
+                ShowInTaskbar = false;
+                FormBorderStyle = WinForms.FormBorderStyle.None;
+                Size = new System.Drawing.Size(0, 0);
+            }
+
+            protected override void WndProc(ref WinForms.Message m)
+            {
+                switch (m.Msg)
+                {
+                    case (int)ShellConstants.WM_INITMENUPOPUP:
+                    case (int)ShellConstants.WM_MEASUREITEM:
+                    case (int)ShellConstants.WM_DRAWITEM:
+                        if (_cm3 != null)
+                        {
+                            _cm3.HandleMenuMsg2((uint)m.Msg, m.WParam, m.LParam, out _);
+                            if (m.Msg != ShellConstants.WM_INITMENUPOPUP) { m.Result = (IntPtr)1; return; }
+                            return;
+                        }
+                        if (_cm2 != null)
+                        {
+                            _cm2.HandleMenuMsg((uint)m.Msg, m.WParam, m.LParam);
+                            if (m.Msg != ShellConstants.WM_INITMENUPOPUP) { m.Result = (IntPtr)1; return; }
+                            return;
+                        }
+                        break;
+
+                    case (int)ShellConstants.WM_MENUCHAR:
+                        if (_cm3 != null)
+                        {
+                            _cm3.HandleMenuMsg2((uint)m.Msg, m.WParam, m.LParam, out var result);
+                            m.Result = result;
+                            return;
+                        }
+                        break;
+                }
+                base.WndProc(ref m);
+            }
         }
     }
 

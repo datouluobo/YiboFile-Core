@@ -80,7 +80,6 @@ namespace YiboFile.Services.FileSystem.FileOperations
                         "    {",
                         "        static void Main(string[] args)",
                         "        {",
-                        "            Console.WriteLine(\"Hello World\");",
                         "        }",
                         "    }",
                         "}",

@@ -377,12 +377,10 @@ namespace YiboFile.Services.FileOperations
         public async Task<FileOperationResult> DeleteAsync(IEnumerable<FileSystemItem> items, bool permanent = false, CancellationToken ct = default)
         {
             var itemList = items?.ToList();
-            System.Diagnostics.Debug.WriteLine($"[FileOperationService] DeleteAsync invoked. Items count: {itemList?.Count ?? 0}");
             if (itemList != null)
             {
                 foreach (var item in itemList)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] Item to delete: {item.Name}, Path: {item.Path}");
                 }
             }
             if (itemList == null || itemList.Count == 0) return FileOperationResult.Failed("没有选中任何项目");
@@ -407,10 +405,8 @@ namespace YiboFile.Services.FileOperations
 
             await Task.Run(async () =>
             {
-                System.Diagnostics.Debug.WriteLine($"[FileOperationService] Starting deletion loop. Items count: {itemList.Count}");
                 foreach (var item in itemList)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationService] Processing item: {item.Name}, Path: {item.Path}");
                     if (ct.IsCancellationRequested || (task != null && task.Status == TaskStatus.Canceling)) break;
                     if (task != null) 
                     { 
@@ -425,7 +421,6 @@ namespace YiboFile.Services.FileOperations
 
                     try
                     {
-                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] Deleting item: {item.Name}");
                         if (permanent)
                         {
                             if (item.IsDirectory) Directory.Delete(item.Path, true);
@@ -450,17 +445,14 @@ namespace YiboFile.Services.FileOperations
                             }
                         }
                         processedCount++;
-                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] Successfully deleted item: {item.Name}. Processed count: {processedCount}");
                     }
                     catch (Exception ex) { 
                         failedItems.Add($"{item.Name}: {ex.Message}"); 
-                        System.Diagnostics.Debug.WriteLine($"[FileOperationService] Failed to delete item: {item.Name}. Error: {ex.Message}");
                     }
 
                     if (task != null) task.Progress = (int)((double)processedCount / task.TotalItems * 100);
                     _messageBus?.Publish(new FileOperationProgressMessage(processedCount, itemList.Count, item.Name));
                 }
-                System.Diagnostics.Debug.WriteLine($"[FileOperationService] Deletion loop completed. Processed count: {processedCount}, Failed count: {failedItems.Count}");
             }, ct);
 
             if (undoActions.Count > 0 && _undoService != null)
@@ -647,14 +639,26 @@ namespace YiboFile.Services.FileOperations
             if (string.IsNullOrEmpty(parentPath)) return null;
             try
             {
-                string fileName = string.IsNullOrEmpty(name) ? (locService?["FileOp.NewTextDocument"] ?? "新建文本文档") : name;
+                string defaultName = GetDefaultFileName(extension);
+                string fileName = string.IsNullOrEmpty(name) ? defaultName : name;
                 if (!fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
                 {
                     fileName += extension;
                 }
 
                 string finalPath = FileSystemCoreUtils.GetUniquePath(Path.Combine(parentPath, fileName));
-                await Task.Run(() => File.WriteAllBytes(finalPath, Array.Empty<byte>()));
+                await Task.Run(() =>
+                {
+                    var templateService = App.ServiceProvider?.GetService<YiboFile.Services.FileSystem.FileOperations.IFileTemplateService>();
+                    if (templateService != null)
+                    {
+                        templateService.CreateFileWithProperFormat(finalPath, extension);
+                    }
+                    else
+                    {
+                        File.WriteAllBytes(finalPath, Array.Empty<byte>());
+                    }
+                });
 
                 if (_undoService != null && _backupService != null)
                 {
@@ -675,6 +679,41 @@ namespace YiboFile.Services.FileOperations
             {
                 _undoService.RecordAction(new BackupRestoreUndoAction(_backupService, filePath));
             }
+        }
+
+        private static string GetDefaultFileName(string extension)
+        {
+            return extension?.ToLowerInvariant() switch
+            {
+                ".txt" => "新建文本文档",
+                ".md" => "新建 Markdown 文件",
+                ".html" or ".htm" => "新建网页",
+                ".js" => "新建 JavaScript 文件",
+                ".ts" => "新建 TypeScript 文件",
+                ".py" => "新建 Python 文件",
+                ".json" => "新建 JSON 文件",
+                ".xml" => "新建 XML 文件",
+                ".css" => "新建样式表",
+                ".java" => "新建 Java 文件",
+                ".bat" => "新建批处理文件",
+                ".ps1" => "新建 PowerShell 脚本",
+                ".ini" or ".cfg" or ".conf" => "新建配置文件",
+                ".png" => "新建图片",
+                ".jpg" or ".jpeg" => "新建图片",
+                ".svg" => "新建 SVG 图片",
+                ".docx" => "新建 Word 文档",
+                ".xlsx" => "新建 Excel 工作簿",
+                ".pptx" => "新建 PowerPoint 演示文稿",
+                ".cs" => "新建 C# 文件",
+                ".cpp" or ".c" => "新建 C++ 文件",
+                ".h" => "新建头文件",
+                ".sql" => "新建 SQL 文件",
+                ".sh" => "新建 Shell 脚本",
+                ".yaml" or ".yml" => "新建 YAML 文件",
+                ".log" => "新建日志文件",
+                ".csv" => "新建 CSV 文件",
+                _ => "新建文件"
+            };
         }
     }
 }

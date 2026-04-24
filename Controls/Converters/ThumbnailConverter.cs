@@ -324,7 +324,6 @@ namespace YiboFile.Controls.Converters
                                 }
                                 catch (Exception ex)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Magick error for {path}: {ex.Message}");
                                     // 如果是严重的初始化问题，禁用 Magick
                                     if (ex is TypeInitializationException || ex is DllNotFoundException)
                                     {

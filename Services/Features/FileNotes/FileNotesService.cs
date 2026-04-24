@@ -52,7 +52,6 @@ namespace YiboFile.Services.FileNotes
                 insertFts.ExecuteNonQuery();
 
                 // 发布笔记更新消息
-                System.Diagnostics.Debug.WriteLine($"[FileNotesService] Publishing NotesUpdatedMessage for: {filePath}");
                 var messageBus = App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
                 if (messageBus != null)
                 {

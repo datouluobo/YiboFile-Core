@@ -140,11 +140,8 @@ namespace YiboFile.Services.Search
 
             // ... (FTS check skipped)
 
-            System.Diagnostics.Debug.WriteLine($"[SearchService] Initializing Everything...");
             var everythingReady = await EverythingHelper.InitializeAsync();
-            System.Diagnostics.Debug.WriteLine($"[SearchService] Everything ready: {everythingReady}");
             var isEverythingRunning = EverythingHelper.IsEverythingRunning();
-            System.Diagnostics.Debug.WriteLine($"[SearchService] Everything running: {isEverythingRunning}");
             
             if (!everythingReady || !isEverythingRunning)
             {
@@ -152,9 +149,7 @@ namespace YiboFile.Services.Search
                 return new SearchResult { Keyword = keyword };
             }
 
-            System.Diagnostics.Debug.WriteLine($"[SearchService] Normalizing keyword: '{keyword}'");
             var normalizedKeyword = NormalizeKeyword(keyword);
-            System.Diagnostics.Debug.WriteLine($"[SearchService] Normalized keyword: '{normalizedKeyword}'");
             var resultPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // 分别收集不同类型的搜索结果
@@ -215,8 +210,6 @@ namespace YiboFile.Services.Search
                 // 名称搜索（强制使用 Everything）
                 if (doNameSearch)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[SearchService] Executing Everything search...");
-                    System.Diagnostics.Debug.WriteLine($"[SearchService] Keyword: '{normalizedKeyword}', CurrentPath: '{currentPath}'");
                     await _everythingExecutor.ExecuteAsync(
                         normalizedKeyword,
                         searchOptions,
@@ -224,7 +217,6 @@ namespace YiboFile.Services.Search
                         resultPaths,
                         progressCallback,
                         _cancellationTokenSource.Token);
-                    System.Diagnostics.Debug.WriteLine($"[SearchService] Everything search completed. Result count: {resultPaths.Count}");
 
                     // 记录文件名搜索结果
                     foreach (var path in resultPaths)

@@ -174,6 +174,21 @@ namespace YiboFile.ViewModels.Messaging.Messages
     }
 
     /// <summary>
+    /// 请求显示新建文件类型选择菜单
+    /// </summary>
+    public class ShowNewFileMenuMessage
+    {
+        public string ParentPath { get; }
+        public YiboFile.Services.Navigation.PaneId Pane { get; }
+
+        public ShowNewFileMenuMessage(string parentPath, YiboFile.Services.Navigation.PaneId pane = YiboFile.Services.Navigation.PaneId.Main)
+        {
+            ParentPath = parentPath;
+            Pane = pane;
+        }
+    }
+
+    /// <summary>
     /// 重命名完成（或取消）消息，用于在重命名结束后触发挂起的刷新请求
     /// </summary>
     public class RenameCompletedMessage { }

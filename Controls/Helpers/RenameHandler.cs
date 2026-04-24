@@ -141,12 +141,10 @@ namespace YiboFile.Controls.Helpers
             if (item == null || !item.IsRenaming) return;
 
             // Debug: 显示 RenameText 和 Name 的值
-            System.Diagnostics.Debug.WriteLine($"[Rename] RenameText='{item.RenameText}', Name='{item.Name}', Path='{item.Path}'");
 
             // Check if name actually changed
             if (string.IsNullOrWhiteSpace(item.RenameText) || item.RenameText == item.Name)
             {
-                System.Diagnostics.Debug.WriteLine($"[Rename] Skipped: RenameText == Name");
                 item.IsRenaming = false;
                 PublishRenameCompleted(controlDataContext);
                 return;

@@ -113,8 +113,11 @@ namespace YiboFile.Controls.Settings
             else
                 NewTabActionDesktop.IsChecked = true;
 
-            // 系统菜单集成模式 - 固定使用 Native
-            ShellMenuNative.IsChecked = true;
+            // 系统菜单集成模式
+            if (_generalViewModel.ShellMenuMode == "System")
+                ShellMenuSystem.IsChecked = true;
+            else
+                ShellMenuNative.IsChecked = true;
 
             UpdateUI();
         }
@@ -151,8 +154,9 @@ namespace YiboFile.Controls.Settings
 
         private void ShellMenuMode_Checked(object sender, RoutedEventArgs e)
         {
-            // 固定使用 Native 模式（Windows 菜单已禁用）
-            if (ShellMenuNative?.IsChecked == true)
+            if (ShellMenuSystem?.IsChecked == true)
+                _generalViewModel.ShellMenuMode = "System";
+            else if (ShellMenuNative?.IsChecked == true)
                 _generalViewModel.ShellMenuMode = "Native";
         }
 

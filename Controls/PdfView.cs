@@ -108,7 +108,6 @@ namespace YiboFile.Controls
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"WebView2 init failed: {ex.Message}");
             }
         }
 
@@ -180,7 +179,6 @@ namespace YiboFile.Controls
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load PDF failed: {ex.Message}");
             }
         }
 

@@ -394,6 +394,9 @@ namespace YiboFile.Services.Startup
             mainWindow.Show();
             FileLogger.Log("MainWindow.Show called.");
 
+            // 首次启动创建桌面快捷方式
+            EnsureDesktopShortcut();
+
             // 应用窗口透明度和全局字体设置
             try
             {
@@ -557,6 +560,58 @@ namespace YiboFile.Services.Startup
                 FileLogger.LogException("Failed to register tab contents", ex);
             }
         }
+
+        #region Desktop Shortcut
+
+        /// <summary>
+        /// 首次启动时在桌面创建快捷方式（仅执行一次，通过标记文件判断）。
+        /// MS Store 不允许 MSIX manifest 声明桌面快捷方式，因此通过代码实现。
+        /// </summary>
+        private void EnsureDesktopShortcut()
+        {
+            try
+            {
+                string baseDir = ConfigManager.GetBaseDirectory();
+                string markerPath = Path.Combine(baseDir, ".desktop_shortcut_created");
+
+                // 已创建过则跳过
+                if (File.Exists(markerPath)) return;
+
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                string shortcutPath = Path.Combine(desktopPath, "YiboFile.lnk");
+
+                // 快捷方式已存在也标记为完成
+                if (File.Exists(shortcutPath))
+                {
+                    File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
+                    return;
+                }
+
+                string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName
+                    ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "YiboFile-Core.exe");
+
+                // 使用 WshShell COM 创建 .lnk
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                dynamic shell = Activator.CreateInstance(shellType);
+                dynamic shortcut = shell.CreateShortcut(shortcutPath);
+                shortcut.TargetPath = exePath;
+                shortcut.WorkingDirectory = Path.GetDirectoryName(exePath);
+                shortcut.Description = "YiboFile - 文件资源管理器";
+                shortcut.Save();
+
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shortcut);
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);
+
+                File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
+                FileLogger.Log("Desktop shortcut created successfully.");
+            }
+            catch (Exception ex)
+            {
+                FileLogger.LogException("Failed to create desktop shortcut", ex);
+            }
+        }
+
+        #endregion
 
         #region Single Instance Activation
 

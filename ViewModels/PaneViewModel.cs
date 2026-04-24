@@ -432,7 +432,6 @@ namespace YiboFile.ViewModels
             else if (NavigationMode == "Search") 
             {
                 // 处理搜索模式：提取搜索关键词并发布执行搜索消息
-                System.Diagnostics.Debug.WriteLine($"[PaneViewModel] RequestRefresh called for Search mode, path: {CurrentPath}");
                 
                 // 提取搜索关键词
                 string searchKeyword = CurrentPath;
@@ -454,7 +453,6 @@ namespace YiboFile.ViewModels
                 
                 // 发布执行搜索消息
                 var targetPaneId = _isSecondary ? "Secondary" : "Primary";
-                System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Publishing ExecuteSearchMessage, keyword: '{searchKeyword}', searchNames: {searchNames}, searchNotes: {searchNotes}, targetPane: {targetPaneId}");
                 _messageBus.Publish(new ExecuteSearchMessage(
                     searchKeyword, 
                     searchNames, 
@@ -587,7 +585,6 @@ namespace YiboFile.ViewModels
 
         private void OnNotesUpdated(Messaging.Messages.NotesUpdatedMessage msg)
         {
-            System.Diagnostics.Debug.WriteLine($"[PaneViewModel] OnNotesUpdated - FilePath: {msg.FilePath}, Notes: {(string.IsNullOrEmpty(msg.Notes) ? "null/empty" : msg.Notes.Substring(0, Math.Min(50, msg.Notes.Length)))}");
             
             // 更新文件列表中的对应项
             if (FileList?.Files != null)
@@ -596,7 +593,6 @@ namespace YiboFile.ViewModels
                 {
                     if (string.Equals(item.Path, msg.FilePath, StringComparison.OrdinalIgnoreCase))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PaneViewModel] Updating notes for item: {item.Name}");
                         // 更新 Notes 属性（只存储第一行，最多100字符）
                         if (string.IsNullOrWhiteSpace(msg.Notes))
                         {

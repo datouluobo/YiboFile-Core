@@ -40,7 +40,6 @@ namespace YiboFile.Handlers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to execute shell verb '{msg.Verb}': {ex.Message}");
             }
         }
 

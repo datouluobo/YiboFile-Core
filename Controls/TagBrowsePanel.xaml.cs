@@ -146,7 +146,6 @@ namespace YiboFile.Controls
             catch (Exception ex)
             {
                 // Fallback logging
-                System.Diagnostics.Debug.WriteLine($"Error loading tags: {ex.Message}");
             }
         }
 

@@ -94,7 +94,6 @@ namespace YiboFile.ViewModels.Previews
                     // 检查笔记是否真的改变了
                     if (CurrentNotes != _lastSavedNotes)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[PanePreviewViewModel] Saving notes for: {SelectedItem.Path}");
                         _lastSavedNotes = CurrentNotes;
                         // 发布保存笔记请求消息
                         _messageBus.Publish(new SaveNotesRequestMessage(SelectedItem.Path, CurrentNotes));

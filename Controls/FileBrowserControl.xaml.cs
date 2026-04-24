@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Interop;
 using YiboFile.Dialogs;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -18,6 +19,8 @@ using YiboFile.ViewModels.Messaging.Messages;
 using YiboFile.Services.Navigation;
 using YiboFile.Services.Config;
 using YiboFile.Services.Shell;
+using YiboFile.Interop.Shell;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace YiboFile.Controls
 {
@@ -203,6 +206,16 @@ namespace YiboFile.Controls
                         FileList?.SetGroupedSearchResults(msg.GroupedItems);
                     }
                 });
+
+                newVm.MessageBus.Subscribe<ShowNewFileMenuMessage>(msg =>
+                {
+                    bool isMain = msg.Pane == PaneId.Main;
+                    bool isThisMain = !(newVm.IsSecondary);
+                    if ((isMain && isThisMain) || (!isMain && !isThisMain))
+                    {
+                        ShowNewFileContextMenu(msg.ParentPath, msg.Pane);
+                    }
+                });
             }
         }
 
@@ -233,18 +246,45 @@ namespace YiboFile.Controls
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Failed to load ContextMenu: {ex.Message}");
                 }
             }
 
-            // Phase 2: Hook ContextMenuOpening to update shell menu items
+            // Hook ContextMenuOpening to update shell menu items or intercept for native menu
             FileList.FilesList.ContextMenuOpening += FileList_ContextMenuOpening;
         }
 
         private void FileList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            // 固定使用 Native 模式：显示 WPF 自定义菜单
-            // 修复：手动设置 ContextMenu 的 DataContext，因为 BindingProxy 在 Popup 场景下不可靠
+            // Check if System mode is active
+            var configService = App.ServiceProvider?.GetService(typeof(Services.Config.IConfigurationService))
+                as Services.Config.IConfigurationService;
+            string shellMenuMode = configService?.Config?.ShellMenuMode ?? "Native";
+
+            if (shellMenuMode == "System")
+            {
+                // Suppress WPF context menu and show native shell menu instead
+                e.Handled = true;
+
+                if (DataContext is ViewModels.PaneViewModel vm && vm.Selection?.HasSelection == true)
+                {
+                    var paths = vm.Selection.SelectedItems.Select(item => item.Path).ToList();
+                    if (paths.Count > 0)
+                    {
+                        var shellService = App.ServiceProvider?.GetService(typeof(IShellContextMenuService))
+                            as IShellContextMenuService;
+                        if (shellService != null)
+                        {
+                            shellService.RenameRequested -= OnNativeRenameRequested;
+                            shellService.RenameRequested += OnNativeRenameRequested;
+                            shellService.ShowNativeMenu(paths, PointToScreen(Mouse.GetPosition(this)),
+                                Window.GetWindow(this));
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Native mode: show WPF custom menu
             var menu = FileList?.FilesList?.ContextMenu;
             if (menu != null)
             {
@@ -253,8 +293,68 @@ namespace YiboFile.Controls
 
             if (DataContext is ViewModels.PaneViewModel vm2)
             {
-                // 更新动态菜单项（库、标签、收藏）
                 vm2.Menu?.UpdateDynamicMenuItems();
+            }
+        }
+
+        private void OnNativeRenameRequested(string filePath)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (FileList?.FilesList == null) return;
+
+                foreach (var item in FileList.FilesList.Items)
+                {
+                    if (item is Models.FileSystemItem fsi && fsi.Path == filePath)
+                    {
+                        fsi.RenameText = fsi.Name;
+                        fsi.IsRenaming = true;
+                        break;
+                    }
+                }
+            }));
+        }
+
+        private NativeShellMenuHost _pendingShellMenuHost;
+
+        private void WindowsShellMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem) return;
+            if (!ReferenceEquals(e.OriginalSource, menuItem)) return;
+
+            // Clear previous items and release COM
+            menuItem.Items.Clear();
+            _pendingShellMenuHost?.CleanupResources();
+            _pendingShellMenuHost?.Dispose();
+            _pendingShellMenuHost = null;
+
+            if (DataContext is not ViewModels.PaneViewModel vm || vm.Selection?.HasSelection != true)
+                return;
+
+            var paths = vm.Selection.SelectedItems.Select(item => item.Path).ToList();
+            if (paths.Count == 0) return;
+
+            var window = Window.GetWindow(this);
+            IntPtr hwnd = window != null ? new WindowInteropHelper(window).Handle : IntPtr.Zero;
+
+            var host = new NativeShellMenuHost();
+            host.RenameRequested += OnNativeRenameRequested;
+            _pendingShellMenuHost = host;
+
+            var wpfItems = host.BuildWpfMenuItems(paths, hwnd);
+
+            foreach (var item in wpfItems)
+            {
+                if (item == null)
+                    menuItem.Items.Add(new Separator());
+                else
+                    menuItem.Items.Add(item);
+            }
+
+            // If no items were added, show a disabled placeholder
+            if (menuItem.Items.Count == 0)
+            {
+                menuItem.Items.Add(new MenuItem { Header = "(无可用命令)", IsEnabled = false });
             }
         }
 
@@ -479,6 +579,124 @@ namespace YiboFile.Controls
                 DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
                 if (child != null && child is T t) yield return t;
                 foreach (T childOfChild in FindVisualChildren<T>(child)) yield return childOfChild;
+            }
+        }
+
+        private void ShowNewFileContextMenu(string parentPath, PaneId pane)
+        {
+            try
+            {
+                var contextMenu = new ContextMenu
+                {
+                    Placement = PlacementMode.MousePoint,
+                    PlacementTarget = this
+                };
+
+                // 常用文件类型列表
+                var fileTypes = new (string Header, string Extension)[]
+                {
+                    ("📄 文本文件 (.txt)", ".txt"),
+                    ("📝 Markdown (.md)", ".md"),
+                    ("🌐 HTML 网页 (.html)", ".html"),
+                    ("⚡ JavaScript (.js)", ".js"),
+                    ("🐍 Python (.py)", ".py"),
+                    ("📋 JSON (.json)", ".json"),
+                    ("📋 XML (.xml)", ".xml"),
+                    ("🎨 CSS (.css)", ".css"),
+                    ("☕ Java (.java)", ".java"),
+                    ("📦 批处理 (.bat)", ".bat"),
+                    ("🔧 PowerShell (.ps1)", ".ps1"),
+                    ("⚙️ 配置文件 (.ini)", ".ini"),
+                    ("🖼️ PNG 图片 (.png)", ".png"),
+                    ("🖼️ JPEG 图片 (.jpg)", ".jpg"),
+                    ("🖼️ SVG 矢量图 (.svg)", ".svg"),
+                    ("📝 Word 文档 (.docx)", ".docx"),
+                    ("📊 Excel 表格 (.xlsx)", ".xlsx"),
+                    ("📽️ PowerPoint (.pptx)", ".pptx"),
+                };
+
+                foreach (var (header, extension) in fileTypes)
+                {
+                    var ext = extension; // capture for lambda
+                    var menuItem = new MenuItem
+                    {
+                        Header = header,
+                        Tag = extension,
+                        Padding = new Thickness(10, 5, 10, 5)
+                    };
+                    menuItem.Click += (s, args) =>
+                    {
+                        if (DataContext is ViewModels.PaneViewModel vm)
+                        {
+                            vm.MessageBus.Publish(new CreateFileRequestMessage(parentPath, null, ext, pane));
+                        }
+                    };
+                    contextMenu.Items.Add(menuItem);
+                }
+
+                // 分隔符 + 自定义扩展名选项
+                contextMenu.Items.Add(new Separator());
+
+                var customMenuItem = new MenuItem
+                {
+                    Header = "✏️ 自定义扩展名...",
+                    Padding = new Thickness(10, 5, 10, 5)
+                };
+                customMenuItem.Click += (s, args) =>
+                {
+                    var dialogService = App.ServiceProvider?.GetService<Services.UI.IDialogService>();
+                    var inputExtension = dialogService?.ShowInput("请输入文件扩展名（如 .txt）：", ".txt", "新建文件");
+
+                    if (inputExtension != null)
+                    {
+                        var ext = inputExtension.Trim();
+                        if (!ext.StartsWith(".")) ext = "." + ext;
+                        if (DataContext is ViewModels.PaneViewModel vm)
+                        {
+                            vm.MessageBus.Publish(new CreateFileRequestMessage(parentPath, null, ext, pane));
+                        }
+                    }
+                };
+                contextMenu.Items.Add(customMenuItem);
+
+                contextMenu.IsOpen = true;
+            }
+            catch (Exception ex)
+            {
+                Services.Core.NotificationService.ShowError($"显示菜单失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 右键菜单中的新建文件类型项点击
+        /// </summary>
+        private void NewFileMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.Tag is string extension)
+            {
+                if (DataContext is ViewModels.PaneViewModel vm && !string.IsNullOrEmpty(vm.CurrentPath))
+                {
+                    vm.MessageBus.Publish(new CreateFileRequestMessage(vm.CurrentPath, null, extension, vm.MyPaneId));
+                }
+            }
+        }
+
+        /// <summary>
+        /// 右键菜单中的"自定义扩展名"点击
+        /// </summary>
+        private void NewFileCustomMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.PaneViewModel vm && !string.IsNullOrEmpty(vm.CurrentPath))
+            {
+                var dialogService = App.ServiceProvider?.GetService<Services.UI.IDialogService>();
+                var inputExtension = dialogService?.ShowInput("请输入文件扩展名（如 .txt）：", ".txt", "新建文件");
+
+                if (inputExtension != null)
+                {
+                    var ext = inputExtension.Trim();
+                    if (!ext.StartsWith(".")) ext = "." + ext;
+                    vm.MessageBus.Publish(new CreateFileRequestMessage(vm.CurrentPath, null, ext, vm.MyPaneId));
+                }
             }
         }
 

@@ -659,8 +659,6 @@ namespace YiboFile.Controls
         // Quick Access logic updated to prevent simultaneous navigation
         private void QuickAccessListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[NavigationPanelControl] QuickAccessListBox_PreviewMouseDown fired. Sender: {sender}, Source: {e.Source}, OriginalSource: {e.OriginalSource}");
-
             // ... (rest of logic)
             // Traverse to item
             var element = e.OriginalSource as FrameworkElement;

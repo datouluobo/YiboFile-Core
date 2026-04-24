@@ -79,11 +79,9 @@ namespace YiboFile.Controllers
                     break;
 
                 default:
-                    System.Diagnostics.Debug.WriteLine($"[SearchCoordinator] Unknown scope preset: {message.Preset}");
                     return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[SearchCoordinator] Scope preset applied: {message.Preset}");
         }
 
         #region 公共方法（供外部调用）

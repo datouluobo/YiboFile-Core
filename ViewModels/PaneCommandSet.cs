@@ -95,20 +95,12 @@ namespace YiboFile.ViewModels
             NewFolderCommand = new RelayCommand(() => _messageBus.Publish(new CreateFolderRequestMessage(_pane.CurrentPath, null, _pane.MyPaneId)),
                 () => !string.IsNullOrEmpty(_pane.CurrentPath));
 
-            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new CreateFileRequestMessage(_pane.CurrentPath, null, ".txt", _pane.MyPaneId)),
+            NewFileCommand = new RelayCommand(() => _messageBus.Publish(new ShowNewFileMenuMessage(_pane.CurrentPath, _pane.MyPaneId)),
                 () => !string.IsNullOrEmpty(_pane.CurrentPath));
 
             DeleteCommand = new RelayCommand(() =>
             {
                 var selectedItems = _pane.Selection?.SelectedItems?.ToList();
-                System.Diagnostics.Debug.WriteLine($"[PaneCommandSet] DeleteCommand invoked. Selected items count: {selectedItems?.Count ?? 0}");
-                if (selectedItems != null)
-                {
-                    foreach (var item in selectedItems)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[PaneCommandSet] Selected item: {item.Name}, Path: {item.Path}");
-                    }
-                }
                 _messageBus.Publish(new DeleteItemsRequestMessage(selectedItems, false, _pane.MyPaneId));
             },
             () => (_pane.Selection?.SelectedItems?.Count ?? 0) > 0);

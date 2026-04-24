@@ -58,7 +58,6 @@ namespace YiboFile.Services.Shell
                     if (!result)
                     {
                         int error = Marshal.GetLastWin32Error();
-                        Debug.WriteLine($"ShellExecuteEx failed for verb '{verb}' on '{path}': Error {error}");
 
                         // 如果失败，尝试使用 Process.Start 作为后备
                         TryFallbackExecution(verb, path);
@@ -69,7 +68,6 @@ namespace YiboFile.Services.Shell
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to execute shell verb '{verb}': {ex.Message}");
                 return false;
             }
         }
@@ -112,7 +110,6 @@ namespace YiboFile.Services.Shell
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Fallback execution also failed: {ex.Message}");
             }
         }
 

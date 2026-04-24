@@ -24,7 +24,7 @@ namespace YiboFile.ViewModels
 
         public event EventHandler SelectionChanged;
 
-        protected void OnPropertyChanged(string propertyName)
+        protected new void OnPropertyChanged(string propertyName)
         {
             base.OnPropertyChanged(propertyName);
         }

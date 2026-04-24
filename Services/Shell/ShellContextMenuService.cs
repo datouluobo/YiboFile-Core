@@ -9,17 +9,20 @@ namespace YiboFile.Services.Shell
     public interface IShellContextMenuService
     {
         void ShowNativeMenu(IEnumerable<string> paths, Point screenPoint, Window owner);
+        event Action<string> RenameRequested;
     }
 
     public class ShellContextMenuService : IShellContextMenuService
     {
-        private readonly NativeShellMenuHost _nativeHost = new();
+        public event Action<string> RenameRequested;
 
         public void ShowNativeMenu(IEnumerable<string> paths, Point screenPoint, Window owner)
         {
             if (paths == null || !paths.Any()) return;
 
-            _nativeHost.ShowNativeMenu(paths, screenPoint, owner);
+            using var host = new NativeShellMenuHost();
+            host.RenameRequested += (path) => RenameRequested?.Invoke(path);
+            host.ShowNativeMenu(paths, screenPoint, owner);
         }
     }
 }

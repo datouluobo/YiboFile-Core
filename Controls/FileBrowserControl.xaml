@@ -144,7 +144,24 @@
             <Separator Visibility="{Binding Selection.IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem Header="新建" Visibility="{Binding Selection.IsNoSelection, Converter={StaticResource BooleanToVisibilityConverter}}" Icon="➕">
                 <MenuItem Header="文件夹" Command="{Binding Commands.NewFolderCommand}" Icon="📁"/>
-                <MenuItem Header="文本文档" Command="{Binding Commands.NewFileCommand}" Icon="📄"/>
+                <MenuItem Header="文本文件 (.txt)" Icon="📄" Click="NewFileMenuItem_Click" Tag=".txt"/>
+                <Separator/>
+                <MenuItem Header="Markdown (.md)" Icon="📝" Click="NewFileMenuItem_Click" Tag=".md"/>
+                <MenuItem Header="HTML 网页 (.html)" Icon="🌐" Click="NewFileMenuItem_Click" Tag=".html"/>
+                <MenuItem Header="JavaScript (.js)" Icon="⚡" Click="NewFileMenuItem_Click" Tag=".js"/>
+                <MenuItem Header="Python (.py)" Icon="🐍" Click="NewFileMenuItem_Click" Tag=".py"/>
+                <MenuItem Header="JSON (.json)" Icon="📋" Click="NewFileMenuItem_Click" Tag=".json"/>
+                <MenuItem Header="XML (.xml)" Icon="📋" Click="NewFileMenuItem_Click" Tag=".xml"/>
+                <MenuItem Header="CSS (.css)" Icon="🎨" Click="NewFileMenuItem_Click" Tag=".css"/>
+                <Separator/>
+                <MenuItem Header="PNG 图片 (.png)" Icon="🖼️" Click="NewFileMenuItem_Click" Tag=".png"/>
+                <MenuItem Header="JPEG 图片 (.jpg)" Icon="🖼️" Click="NewFileMenuItem_Click" Tag=".jpg"/>
+                <Separator/>
+                <MenuItem Header="Word 文档 (.docx)" Icon="📝" Click="NewFileMenuItem_Click" Tag=".docx"/>
+                <MenuItem Header="Excel 表格 (.xlsx)" Icon="📊" Click="NewFileMenuItem_Click" Tag=".xlsx"/>
+                <MenuItem Header="PowerPoint (.pptx)" Icon="📽️" Click="NewFileMenuItem_Click" Tag=".pptx"/>
+                <Separator/>
+                <MenuItem Header="自定义扩展名..." Icon="✏️" Click="NewFileCustomMenuItem_Click"/>
             </MenuItem>
             <Separator Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <MenuItem x:Name="DeleteItem" Header="删除" 
@@ -254,6 +271,13 @@
             <MenuItem x:Name="PropertiesItem" Header="属性"
                       Command="{Binding Commands.PropertiesCommand}"
                       Icon="ℹ️"/>
+            <Separator/>
+            <MenuItem x:Name="WindowsShellMenuItem" Header="⊞ Windows 菜单"
+                      Icon="🪟"
+                      SubmenuOpened="WindowsShellMenuItem_SubmenuOpened"
+                      Visibility="{Binding Selection.HasSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <MenuItem Header="加载中..." IsEnabled="False" x:Name="WindowsShellPlaceholder"/>
+            </MenuItem>
 
         </ContextMenu>
     </ResourceDictionary>

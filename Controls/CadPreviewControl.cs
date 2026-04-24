@@ -189,7 +189,6 @@ namespace YiboFile.Controls
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"CAD Preview LoadHtml failed: {ex.Message}");
                 }
             }
         }

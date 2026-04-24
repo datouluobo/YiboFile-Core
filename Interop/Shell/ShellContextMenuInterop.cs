@@ -8,20 +8,46 @@ namespace YiboFile.Interop.Shell
     [Guid("000214E6-0000-0000-C000-000000000046")]
     public interface IShellFolder
     {
-        void ParseDisplayName(IntPtr hwnd, IntPtr pbc, [MarshalAs(UnmanagedType.LPWStr)] string pszDisplayName, ref uint pchEaten, out IntPtr ppidl, ref uint pdwAttributes);
-        void EnumObjects(IntPtr hwnd, uint grfFlags, out IntPtr ppenumIDList);
-        void BindToObject(IntPtr pidl, IntPtr pbc, ref Guid riid, out IntPtr ppv);
-        void BindToStorage(IntPtr pidl, IntPtr pbc, ref Guid riid, out IntPtr ppv);
+        [PreserveSig]
+        int ParseDisplayName(IntPtr hwnd, IntPtr pbc,
+            [MarshalAs(UnmanagedType.LPWStr)] string pszDisplayName,
+            ref uint pchEaten, out IntPtr ppidl, ref uint pdwAttributes);
+
+        [PreserveSig]
+        int EnumObjects(IntPtr hwnd, uint grfFlags, out IntPtr ppenumIDList);
+
+        [PreserveSig]
+        int BindToObject(IntPtr pidl, IntPtr pbc, ref Guid riid, out IntPtr ppv);
+
+        [PreserveSig]
+        int BindToStorage(IntPtr pidl, IntPtr pbc, ref Guid riid, out IntPtr ppv);
+
+        [PreserveSig]
         int CompareIDs(IntPtr lParam, IntPtr pidl1, IntPtr pidl2);
-        void CreateViewObject(IntPtr hwndOwner, ref Guid riid, out IntPtr ppv);
-        void GetAttributesOf(uint cidl, [MarshalAs(UnmanagedType.LPArray)] IntPtr[] apidl, ref uint rgfInOut);
-        void GetUIObjectOf(IntPtr hwndOwner, uint cidl, [MarshalAs(UnmanagedType.LPArray)] IntPtr[] apidl, ref Guid riid, IntPtr rgfReserved, out IntPtr ppv);
-        void GetDisplayNameOf(IntPtr pidl, uint uFlags, IntPtr pName);
-        void SetNameOf(IntPtr hwnd, IntPtr pidl, [MarshalAs(UnmanagedType.LPWStr)] string pszName, uint uFlags, out IntPtr ppidlOut);
+
+        [PreserveSig]
+        int CreateViewObject(IntPtr hwndOwner, ref Guid riid, out IntPtr ppv);
+
+        [PreserveSig]
+        int GetAttributesOf(uint cidl,
+            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] IntPtr[] apidl,
+            ref uint rgfInOut);
+
+        [PreserveSig]
+        int GetUIObjectOf(IntPtr hwndOwner, uint cidl,
+            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] IntPtr[] apidl,
+            ref Guid riid, IntPtr rgfReserved, out IntPtr ppv);
+
+        [PreserveSig]
+        int GetDisplayNameOf(IntPtr pidl, uint uFlags, IntPtr pName);
+
+        [PreserveSig]
+        int SetNameOf(IntPtr hwnd, IntPtr pidl,
+            [MarshalAs(UnmanagedType.LPWStr)] string pszName,
+            uint uFlags, out IntPtr ppidlOut);
     }
 
-    // 必须为 int HRESULT：若使用 [PreserveSig] void，CLR 会忽略失败 HRESULT，
-    // 调用方永远认为 InvokeCommand 成功，导致不执行回退、表现为“选菜单没反应”。
+    // InvokeCommand uses IntPtr so we can pass both CMINVOKECOMMANDINFO and CMINVOKECOMMANDINFOEX
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("000214e4-0000-0000-c000-000000000046")]
     public interface IContextMenu
@@ -29,27 +55,50 @@ namespace YiboFile.Interop.Shell
         [PreserveSig]
         int QueryContextMenu(IntPtr hMenu, uint indexMenu, uint idCmdFirst, uint idCmdLast, uint uFlags);
 
-        // 使用 ref CMINVOKECOMMANDINFO 让 CLR 自动 marshaling，
-        // IntPtr 方式会导致 InvokeCommand 返回 E_FAIL (手动内存分配问题)。
         [PreserveSig]
-        int InvokeCommand(ref CMINVOKECOMMANDINFO pici);
+        int InvokeCommand(IntPtr pici);
 
         [PreserveSig]
-        int GetCommandString(uint idCmd, uint uType, IntPtr pReserved, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, uint cchMax);
+        int GetCommandString(uint idCmd, uint uType, IntPtr pReserved,
+            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, uint cchMax);
     }
 
+    // Flat interface (non-inheriting) to avoid vtable slot issues with COM interop
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("000214f4-0000-0000-c000-000000000046")]
-    public interface IContextMenu2 : IContextMenu
+    public interface IContextMenu2
     {
+        [PreserveSig]
+        int QueryContextMenu(IntPtr hMenu, uint indexMenu, uint idCmdFirst, uint idCmdLast, uint uFlags);
+
+        [PreserveSig]
+        int InvokeCommand(IntPtr pici);
+
+        [PreserveSig]
+        int GetCommandString(uint idCmd, uint uType, IntPtr pReserved,
+            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, uint cchMax);
+
         [PreserveSig]
         int HandleMenuMsg(uint uMsg, IntPtr wParam, IntPtr lParam);
     }
 
     [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     [Guid("bcfce0a0-ec17-11d0-8d10-00a0c90f2719")]
-    public interface IContextMenu3 : IContextMenu2
+    public interface IContextMenu3
     {
+        [PreserveSig]
+        int QueryContextMenu(IntPtr hMenu, uint indexMenu, uint idCmdFirst, uint idCmdLast, uint uFlags);
+
+        [PreserveSig]
+        int InvokeCommand(IntPtr pici);
+
+        [PreserveSig]
+        int GetCommandString(uint idCmd, uint uType, IntPtr pReserved,
+            [MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, uint cchMax);
+
+        [PreserveSig]
+        int HandleMenuMsg(uint uMsg, IntPtr wParam, IntPtr lParam);
+
         [PreserveSig]
         int HandleMenuMsg2(uint uMsg, IntPtr wParam, IntPtr lParam, out IntPtr result);
     }

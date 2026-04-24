@@ -118,17 +118,14 @@ namespace YiboFile.ViewModels.Modules
 
         private async void OnDeleteItems(DeleteItemsRequestMessage message)
         {
-            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] OnDeleteItems invoked. Items count: {message.Items?.Count ?? 0}");
             if (message.Items != null)
             {
                 foreach (var item in message.Items)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Item to delete: {item.Name}, Path: {item.Path}");
                 }
             }
 
             // 清除所有面板的预览，防止文件被锁定导致删除失败
-            System.Diagnostics.Debug.WriteLine($"[FileOperationModule] Clearing previews before delete operation");
             Publish(new PreviewChangedMessage(null, YiboFile.Services.Navigation.PaneId.Main));
             Publish(new PreviewChangedMessage(null, YiboFile.Services.Navigation.PaneId.Second));
             

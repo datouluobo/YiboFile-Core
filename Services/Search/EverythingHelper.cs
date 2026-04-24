@@ -230,39 +230,31 @@ namespace YiboFile.Services
         /// </summary>
         public static async Task<bool> InitializeAsync()
         {
-            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] InitializeAsync called");
             lock (_lockObject)
             {
                 if (_isInitialized)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Already initialized");
                     return true;
                 }
             }
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Loading Everything DLL...");
                 // 1. 加载 DLL
                 if (!LoadEverythingDLL())
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Failed to load Everything DLL");
                     return false;
                 }
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything DLL loaded successfully");
 
                 // 2. 检查 Everything 是否已在运行
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Checking if Everything is running...");
                 if (IsEverythingRunning())
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything is already running");
                     lock (_lockObject)
                     {
                         _isInitialized = true;
                     }
                     return true;
                 }
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything is not running, attempting to start...");
 
                 // 3. 查找 Everything 可执行文件
                 string everythingPath = null;
@@ -272,7 +264,6 @@ namespace YiboFile.Services
                 if (File.Exists(portablePath))
                 {
                     everythingPath = portablePath;
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Using portable Everything at: {everythingPath}");
                 }
                 else
                 {
@@ -290,7 +281,6 @@ namespace YiboFile.Services
                         if (File.Exists(path))
                         {
                             everythingPath = path;
-                            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Found system Everything at: {everythingPath}");
                             break;
                         }
                     }
@@ -298,7 +288,6 @@ namespace YiboFile.Services
 
                 if (everythingPath == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything.exe not found in any location");
                     UnloadEverythingDLL();
                     return false;
                 }
@@ -325,11 +314,9 @@ minimize_to_tray=1
 start_minimized=1
 single_instance=1
 ");
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Created config with NTFS/FAT indexing enabled at: {configPath}");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Failed to create config: {ex.Message}");
                 }
 
                 // 启动 Everything - 使用正确的静默启动参数
@@ -349,30 +336,23 @@ single_instance=1
                     WorkingDirectory = everythingDataDir
                 };
 
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Starting Everything with: {startInfo.Arguments}");
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Working directory: {startInfo.WorkingDirectory}");
                 _everythingProcess = Process.Start(startInfo);
 
                 if (_everythingProcess == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Failed to start Everything process!");
                     return false;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything process started, ID: {_everythingProcess.Id}");
 
                 // 等待 Everything 初始化（最多等待 30 秒）
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Waiting for Everything to initialize...");
                 for (int i = 0; i < 300; i++)
                 {
                     await Task.Delay(100);
                     bool isRunning = IsEverythingRunning();
                     bool dbLoaded = IsDBLoaded();
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Waiting... {i + 1}/300, IsRunning: {isRunning}, DBLoaded: {dbLoaded}");
                     
                     if (isRunning && dbLoaded)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything initialized successfully!");
                         lock (_lockObject)
                         {
                             _isInitialized = true;
@@ -385,7 +365,6 @@ single_instance=1
                     {
                         if (_everythingProcess.HasExited)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything process exited with code: {_everythingProcess.ExitCode}");
                             UnloadEverythingDLL();
                             return false;
                         }
@@ -396,7 +375,6 @@ single_instance=1
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything initialization timeout!");
                 UnloadEverythingDLL();
                 return false;
             }
@@ -440,13 +418,10 @@ single_instance=1
             bool matchCase = false,
             bool matchWholeWord = false)
         {
-            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] SearchFiles called with searchText: '{searchText}', searchPath: '{searchPath}'");
             var results = new List<string>();
 
-            System.Diagnostics.Debug.WriteLine($"[EverythingHelper] DLL handle: {_dllHandle}, IsDBLoaded: {(_IsDBLoaded != null ? _IsDBLoaded() : false)}");
             if (_dllHandle == IntPtr.Zero || _IsDBLoaded == null || !_IsDBLoaded())
             {
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Everything not running or DB not loaded");
                 throw new Exception("Everything 未运行，请先启动 Everything 程序");
             }
 
@@ -471,11 +446,9 @@ single_instance=1
                 _SetOffset?.Invoke(0);
                 SetSearch(BuildEverythingQueryString(searchQuery));
 
-                System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Executing query...");
                 if (Query(true))
                 {
                     int count = Math.Min(GetNumResults(), maxResults);
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Query returned {count} results");
                     var sb = new StringBuilder(4096);
 
                     for (int i = 0; i < count; i++)
@@ -491,7 +464,6 @@ single_instance=1
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EverythingHelper] Query returned false");
                 }
             }
             catch
