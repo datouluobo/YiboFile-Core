@@ -47,6 +47,8 @@ namespace YiboFile.ViewModels
         private bool _showFullFileName = false;
 
         private object _collectionLock = new object();
+        private Dictionary<string, FileSystemItem> _filesByPath =
+            new Dictionary<string, FileSystemItem>(StringComparer.OrdinalIgnoreCase);
 
         public ObservableCollection<FileSystemItem> Files
         {
@@ -56,6 +58,13 @@ namespace YiboFile.ViewModels
                 if (SetProperty(ref _files, value))
                 {
                     BindingOperations.EnableCollectionSynchronization(_files, _collectionLock);
+                    // 重建 Path→Item 字典，后续按 Path 查找时为 O(1)
+                    _filesByPath = new Dictionary<string, FileSystemItem>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var item in _files)
+                    {
+                        if (!string.IsNullOrEmpty(item.Path))
+                            _filesByPath[item.Path] = item;
+                    }
                     RefreshFilter();
                 }
             }
@@ -162,6 +171,8 @@ namespace YiboFile.ViewModels
                         foreach (var item in toRemove)
                         {
                             _files.Remove(item);
+                            if (!string.IsNullOrEmpty(item.Path))
+                                _filesByPath.Remove(item.Path);
                             changed = true;
                         }
                     }
@@ -197,6 +208,8 @@ namespace YiboFile.ViewModels
                             }
                             catch { }
                             _files.Add(item);
+                            if (!string.IsNullOrEmpty(item.Path))
+                                _filesByPath[item.Path] = item;
                             changed = true;
                         }
                     }
@@ -255,7 +268,7 @@ namespace YiboFile.ViewModels
             {
                 _dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var item = Files?.FirstOrDefault(f => string.Equals(f.Path, msg.Path, StringComparison.OrdinalIgnoreCase));
+                    var item = _filesByPath.TryGetValue(msg.Path, out var found) ? found : null;
                     if (item != null)
                     {
                         item.Size = msg.FormattedSize;
@@ -269,7 +282,7 @@ namespace YiboFile.ViewModels
             {
                 _dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var item = Files?.FirstOrDefault(f => string.Equals(f.Path, msg.Item.Path, StringComparison.OrdinalIgnoreCase));
+                    var item = _filesByPath.TryGetValue(msg.Item.Path, out var foundItem) ? foundItem : null;
                     if (item != null)
                     {
                         item.Tags = msg.Item.Tags;
@@ -595,7 +608,7 @@ namespace YiboFile.ViewModels
 
             _dispatcher.BeginInvoke(new Action(() =>
             {
-                var item = Files.FirstOrDefault(f => string.Equals(f.Path, msg.FilePath, StringComparison.OrdinalIgnoreCase));
+                var item = _filesByPath.TryGetValue(msg.FilePath, out var found) ? found : null;
                 if (item != null)
                 {
                     RefreshItemTags(item);
@@ -632,7 +645,7 @@ namespace YiboFile.ViewModels
 
             _dispatcher.BeginInvoke(new Action(() =>
             {
-                var item = Files.FirstOrDefault(f => string.Equals(f.Path, msg.FilePath, StringComparison.OrdinalIgnoreCase));
+                var item = _filesByPath.TryGetValue(msg.FilePath, out var found) ? found : null;
                 if (item != null)
                 {
                     item.Notes = msg.Notes;
