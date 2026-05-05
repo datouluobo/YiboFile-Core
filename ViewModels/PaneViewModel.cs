@@ -257,7 +257,15 @@ namespace YiboFile.ViewModels
 
         public bool CanNavigateBack => _navigationService?.CanNavigateBackFor(MyPaneId) ?? false;
         public bool CanNavigateForward => _navigationService?.CanNavigateForwardFor(MyPaneId) ?? false;
-        public bool CanNavigateUp => !string.IsNullOrEmpty(CurrentPath) && CurrentPath != "Home";
+        public bool CanNavigateUp
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(CurrentPath) || CurrentPath == "Home") return false;
+                var info = ProtocolManager.Parse(CurrentPath);
+                return info.Type == ProtocolType.Local || info.Type == ProtocolType.Archive;
+            }
+        }
 
         public IEnumerable<string> BackStack => _navigationService?.GetBackStack(MyPaneId) ?? Enumerable.Empty<string>();
         public IEnumerable<string> ForwardStack => _navigationService?.GetForwardStack(MyPaneId) ?? Enumerable.Empty<string>();
@@ -735,6 +743,15 @@ namespace YiboFile.ViewModels
                 {
                     // 路径相同但列表为空（启动首次加载被跳过） → 强制刷新
                     RequestRefresh();
+                }
+
+                // [关键修复] 同步 NavigationService 内部状态。
+                // 启动恢复时 PaneViewModel.CurrentPath 已更新，但 NavigationService
+                // 的 state.CurrentPath 仍停留在初始值（Desktop），导致后续 NavigateUp
+                // 读到错误的路径，向上导航到 Desktop 的父目录（C:\Users\Administrator）。
+                if (!string.IsNullOrEmpty(msg.Path))
+                {
+                    _navigationService?.SyncCurrentPath(MyPaneId, msg.Path, msg.BackStack, msg.ForwardStack);
                 }
 
                 if (msg.ViewMode.HasValue)

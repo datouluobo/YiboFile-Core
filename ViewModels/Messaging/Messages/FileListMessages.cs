@@ -13,6 +13,14 @@ namespace YiboFile.ViewModels.Messaging.Messages
     public record RefreshFileListMessage(string Path = null, YiboFile.Services.Navigation.PaneId Pane = YiboFile.Services.Navigation.PaneId.Main);
 
     /// <summary>
+    /// 文件列表增量变更 — 添加/移除指定项目，避免整体刷新抖动
+    /// </summary>
+    public record FileItemsChangedMessage(
+        System.Collections.Generic.List<string> RemovedPaths,
+        System.Collections.Generic.List<string> InsertedPaths,
+        YiboFile.Services.Navigation.PaneId Pane = YiboFile.Services.Navigation.PaneId.Main);
+
+    /// <summary>
     /// 文件列表内容已加载通知 (包含项)
     /// </summary>
     public record FileListItemsLoadedMessage(string Path, System.Collections.Generic.List<YiboFile.Models.FileSystemItem> Items, YiboFile.Services.Navigation.PaneId Pane);

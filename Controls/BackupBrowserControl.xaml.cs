@@ -2,14 +2,13 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
-using YiboFile.Services.Backup;
+using YiboFile.Services.FileOperations.RecycleBin;
 using YiboFile.ViewModels;
 
 namespace YiboFile.Controls
 {
     public partial class BackupBrowserControl : UserControl
     {
-
         public BackupBrowserControl()
         {
             InitializeComponent();
@@ -17,19 +16,19 @@ namespace YiboFile.Controls
             // Resolve ViewModel
             if (App.ServiceProvider != null)
             {
-                var backupService = App.ServiceProvider.GetService<IBackupService>();
+                var recycleService = App.ServiceProvider.GetService<IRecycleBinService>();
                 var messageBus = App.ServiceProvider.GetService<YiboFile.ViewModels.Messaging.IMessageBus>();
-                if (backupService != null)
+                if (recycleService != null)
                 {
-                    var vm = new BackupViewModel(backupService, messageBus);
+                    var vm = new RecycleBinViewModel(recycleService, messageBus);
                     this.DataContext = vm;
 
-                    // Auto load on Visible changed (e.g. when switched to)
+                    // Auto load on Visible changed
                     this.IsVisibleChanged += async (s, e) =>
                     {
                         if (this.IsVisible && !vm.IsLoading)
                         {
-                            await vm.LoadBackupsAsync();
+                            await vm.LoadAsync();
                         }
                     };
                 }

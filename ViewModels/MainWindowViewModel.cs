@@ -227,7 +227,7 @@ namespace YiboFile.ViewModels
             IMessageBus messageBus,
             Services.Preview.PreviewService previewService,
             FileListService fileListService,
-            FolderSizeCalculationService folderSizeService)
+            FolderSizeService folderSizeService)
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             SwapPanesCommand = new RelayCommand(SwapPanes);

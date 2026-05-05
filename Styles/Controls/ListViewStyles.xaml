@@ -322,6 +322,13 @@
                 </MultiTrigger.Conditions>
                 <Setter Property="BorderThickness" Value="0" />
             </MultiTrigger>
+
+            <!-- 剪切操作视觉效果（半透明 + 虚线边框，类似 Windows 资源管理器） -->
+            <DataTrigger Binding="{Binding IsCutCandidate}" Value="True">
+                <Setter Property="Opacity" Value="0.45" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ForegroundSecondaryBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 

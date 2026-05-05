@@ -106,7 +106,7 @@ namespace YiboFile.Controls
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -177,7 +177,7 @@ namespace YiboFile.Controls
                         tryLoad();
                     }})();");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

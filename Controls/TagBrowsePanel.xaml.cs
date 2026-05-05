@@ -143,7 +143,7 @@ namespace YiboFile.Controls
 
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Fallback logging
             }

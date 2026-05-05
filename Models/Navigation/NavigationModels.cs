@@ -98,5 +98,10 @@ namespace YiboFile.Models.Navigation
         /// 导航来源标识
         /// </summary>
         public NavigationSource Source { get; set; } = NavigationSource.External;
+
+        /// <summary>
+        /// 单调递增序列号 — 用于检测过期的异步导航完成回调
+        /// </summary>
+        public long Sequence { get; set; }
     }
 }

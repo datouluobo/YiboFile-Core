@@ -38,7 +38,7 @@ namespace YiboFile.Handlers
             {
                 _verbExecutor.Execute(msg.Verb, msg.Paths);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

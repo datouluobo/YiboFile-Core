@@ -182,8 +182,8 @@ namespace YiboFile.Controls
 
         #region 事件
 
-        public event EventHandler<RenameConfirmedEventArgs> RenameConfirmed;
-        public event EventHandler RenameCancelled;
+        public event EventHandler<RenameConfirmedEventArgs> RenameConfirmed = delegate { };
+        public event EventHandler RenameCancelled = delegate { };
 
         #endregion
 
@@ -191,7 +191,7 @@ namespace YiboFile.Controls
         private static bool _isProcessing;
 
         /// <summary>原始文件名，用于判断是否变化</summary>
-        private string _originalName;
+        private string _originalName = string.Empty;
 
         public RenameOverlay()
         {

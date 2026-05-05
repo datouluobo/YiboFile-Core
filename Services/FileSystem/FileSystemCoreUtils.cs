@@ -58,6 +58,7 @@ namespace YiboFile.Services.FileSystem
             {
                 try
                 {
+                    File.SetAttributes(path, FileAttributes.Normal);
                     File.Delete(path);
                     return;
                 }
@@ -66,7 +67,14 @@ namespace YiboFile.Services.FileSystem
                     await Task.Delay(100 * (i + 1));
                 }
             }
-            File.Delete(path);
+
+            // 终试：吞掉异常，文件已复制到目标，保留源文件比崩溃好
+            try
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+                File.Delete(path);
+            }
+            catch { }
         }
 
         /// <summary>
@@ -81,6 +89,7 @@ namespace YiboFile.Services.FileSystem
             {
                 try
                 {
+                    RemoveReadOnlyRecursive(path);
                     Directory.Delete(path, true);
                     return;
                 }
@@ -89,7 +98,26 @@ namespace YiboFile.Services.FileSystem
                     await Task.Delay(100 * (i + 1));
                 }
             }
-            Directory.Delete(path, true);
+
+            // 终试
+            try
+            {
+                RemoveReadOnlyRecursive(path);
+                Directory.Delete(path, true);
+            }
+            catch { }
+        }
+
+        private static void RemoveReadOnlyRecursive(string dir)
+        {
+            foreach (var file in Directory.GetFiles(dir))
+            {
+                try { File.SetAttributes(file, FileAttributes.Normal); } catch { }
+            }
+            foreach (var subDir in Directory.GetDirectories(dir))
+            {
+                RemoveReadOnlyRecursive(subDir);
+            }
         }
 
         /// <summary>

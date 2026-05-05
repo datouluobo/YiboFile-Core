@@ -149,46 +149,25 @@ namespace YiboFile.ViewModels.Modules
         private void OnNavigateBack(NavigateBackMessage message)
         {
             var pane = message.Pane ?? ActivePane;
-            var newPath = _navigationService.NavigateBack(pane);
-
-            if (!string.IsNullOrEmpty(newPath))
-            {
-                _navigationCoordinator.HandlePathNavigation(
-                    newPath,
-                    NavigationSource.History,
-                    ClickType.LeftClick,
-                    pane: pane);
-            }
+            // NavigationService.NavigateBack internally updates state and publishes
+            // NavigationCompleteMessage, which PaneViewModel subscribes to.
+            // Do NOT call NavigationCoordinator here — it would cause double-refresh
+            // and unwanted tab creation when crossing content-type boundaries.
+            _navigationService.NavigateBack(pane);
         }
 
         private void OnNavigateForward(NavigateForwardMessage message)
         {
             var pane = message.Pane ?? ActivePane;
-            var newPath = _navigationService.NavigateForward(pane);
-
-            if (!string.IsNullOrEmpty(newPath))
-            {
-                _navigationCoordinator.HandlePathNavigation(
-                   newPath,
-                   NavigationSource.History,
-                   ClickType.LeftClick,
-                   pane: pane);
-            }
+            _navigationService.NavigateForward(pane);
         }
 
         private void OnNavigateUp(NavigateUpMessage message)
         {
             var pane = message.Pane ?? ActivePane;
-            var parentPath = _navigationService.NavigateUp(pane);
-
-            if (!string.IsNullOrEmpty(parentPath))
-            {
-                _navigationCoordinator.HandlePathNavigation(
-                    parentPath,
-                    NavigationSource.Breadcrumb,
-                    ClickType.LeftClick,
-                    pane: pane);
-            }
+            // NavigationService.NavigateUp internally calls NavigateTo which publishes
+            // NavigationCompleteMessage. No coordinator call needed.
+            _navigationService.NavigateUp(pane);
         }
 
         private void OnTagClicked(TagClickedMessage message)

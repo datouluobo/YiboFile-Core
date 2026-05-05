@@ -125,7 +125,7 @@ namespace YiboFile.Services.Startup
                 new YiboFile.Services.FileOperations.Undo.UndoService(provider.GetService<ViewModels.Messaging.IMessageBus>()));
             services.AddSingleton<YiboFile.Services.Archive.ArchiveService>(); // Archive Service
             services.AddSingleton<Services.FileSystem.FileOperations.IFileTemplateService, Services.FileSystem.FileOperations.FileTemplateService>();
-            services.AddSingleton<Services.Backup.IBackupService, Services.Backup.BackupService>(); // Backup Service
+            services.AddSingleton<Services.FileOperations.RecycleBin.IRecycleBinService, Services.FileOperations.RecycleBin.RecycleBinService>(); // Recycle Bin Service
 
             // Plugins
             services.AddSingleton<IPluginManager, PluginManager>();
@@ -148,7 +148,12 @@ namespace YiboFile.Services.Startup
 
             services.AddSingleton<IHardwareMonitorService, HardwareMonitorService>();
 
-            services.AddSingleton<FolderSizeCalculationService>();
+            services.AddSingleton<FolderSizeService>(provider =>
+                new FolderSizeService(
+                    provider.GetRequiredService<ViewModels.Messaging.IMessageBus>(),
+                    _application.Dispatcher));
+            services.AddSingleton<FolderSizeCalculationService>(provider =>
+                new FolderSizeCalculationService(provider.GetRequiredService<FolderSizeService>()));
             services.AddSingleton<YiboFile.Services.Shell.IShellContextMenuService, YiboFile.Services.Shell.ShellContextMenuService>();
             services.AddSingleton<YiboFile.Services.Shell.IShellVerbExecutor, YiboFile.Services.Shell.ShellVerbExecutor>();
 

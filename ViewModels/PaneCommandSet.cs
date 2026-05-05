@@ -12,6 +12,7 @@ using YiboFile.Services.Navigation;
 using YiboFile.Services.Core;
 using YiboFile.Services.Features;
 using YiboFile.Services.Tabs;
+using YiboFile.Services.FileOperations;
 
 namespace YiboFile.ViewModels
 {
@@ -115,7 +116,8 @@ namespace YiboFile.ViewModels
 
             PasteCommand = new RelayCommand(() =>
                 _messageBus.Publish(new PasteItemsRequestMessage(_pane.CurrentPath, _pane.MyPaneId)),
-                () => !string.IsNullOrEmpty(_pane.CurrentPath) && Clipboard.ContainsFileDropList());
+                () => !string.IsNullOrEmpty(_pane.CurrentPath) && 
+                    (Clipboard.ContainsFileDropList() || ClipboardService.Instance.IsCutOperation));
 
             RenameCommand = new RelayCommand(() =>
                 _messageBus.Publish(new RenameItemRequestMessage(_pane.Selection?.SelectedItem, null, _pane.MyPaneId)),

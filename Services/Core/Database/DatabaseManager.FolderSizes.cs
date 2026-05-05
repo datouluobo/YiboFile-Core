@@ -8,7 +8,9 @@ namespace YiboFile
 {
     public static partial class DatabaseManager
     {
-        #region 文件夹大小缓存
+        #region Folder Size Cache
+
+        private const int BatchQuerySize = 500;
 
         public static long? GetFolderSize(string folderPath)
         {
@@ -32,11 +34,13 @@ namespace YiboFile
                     var sizeBytes = reader.GetInt64(0);
                     var lastModified = reader.GetDateTime(1);
 
-                    var currentLastModified = Directory.GetLastWriteTime(folderPath);
-                    if (currentLastModified <= lastModified)
+                    try
                     {
-                        return sizeBytes;
+                        var currentLastModified = Directory.GetLastWriteTime(folderPath);
+                        if (currentLastModified <= lastModified)
+                            return sizeBytes;
                     }
+                    catch { }
                 }
             }
             catch { }
@@ -46,8 +50,7 @@ namespace YiboFile
 
         public static void SetFolderSize(string folderPath, long sizeBytes)
         {
-            if (string.IsNullOrEmpty(folderPath))
-                return;
+            if (string.IsNullOrEmpty(folderPath)) return;
 
             try
             {
@@ -59,9 +62,7 @@ namespace YiboFile
                 try
                 {
                     if (Directory.Exists(folderPath))
-                    {
                         lastModified = Directory.GetLastWriteTime(folderPath);
-                    }
                 }
                 catch { }
 
@@ -78,7 +79,7 @@ namespace YiboFile
 
         public static Dictionary<string, long> GetFolderSizesBatch(List<string> folderPaths)
         {
-            var result = new Dictionary<string, long>();
+            var result = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             if (folderPaths == null || folderPaths.Count == 0)
                 return result;
 
@@ -87,38 +88,40 @@ namespace YiboFile
                 using var connection = new SqliteConnection(_connectionString);
                 connection.Open();
 
-                var existingPaths = folderPaths.Where(p => !string.IsNullOrEmpty(p) && Directory.Exists(p)).ToList();
-                if (existingPaths.Count == 0)
-                    return result;
-
-                var placeholders = string.Join(",", existingPaths.Select((_, i) => $"@path{i}"));
-                using var command = connection.CreateCommand();
-                command.CommandText = $@"
-                    SELECT FolderPath, SizeBytes, LastModified 
-                    FROM FolderSizes 
-                    WHERE FolderPath IN ({placeholders})";
-
-                for (int i = 0; i < existingPaths.Count; i++)
+                for (int offset = 0; offset < folderPaths.Count; offset += BatchQuerySize)
                 {
-                    command.Parameters.AddWithValue($"@path{i}", existingPaths[i]);
-                }
+                    var batch = folderPaths.Skip(offset).Take(BatchQuerySize).ToList();
+                    if (batch.Count == 0) break;
 
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    var folderPath = reader.GetString(0);
-                    var sizeBytes = reader.GetInt64(1);
-                    var lastModified = reader.GetDateTime(2);
+                    var placeholders = string.Join(",", batch.Select((_, i) => $"@p{i}"));
+                    using var command = connection.CreateCommand();
+                    command.CommandText = $@"
+                        SELECT FolderPath, SizeBytes, LastModified 
+                        FROM FolderSizes 
+                        WHERE FolderPath IN ({placeholders})";
 
-                    try
+                    for (int i = 0; i < batch.Count; i++)
+                        command.Parameters.AddWithValue($"@p{i}", batch[i]);
+
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
                     {
-                        var currentLastModified = Directory.GetLastWriteTime(folderPath);
-                        if (currentLastModified <= lastModified)
+                        try
                         {
-                            result[folderPath] = sizeBytes;
+                            var folderPath = reader.GetString(0);
+                            var sizeBytes = reader.GetInt64(1);
+                            var lastModified = reader.GetDateTime(2);
+
+                            try
+                            {
+                                var currentLastModified = Directory.GetLastWriteTime(folderPath);
+                                if (currentLastModified <= lastModified)
+                                    result[folderPath] = sizeBytes;
+                            }
+                            catch { }
                         }
+                        catch { }
                     }
-                    catch { }
                 }
             }
             catch { }
@@ -129,8 +132,7 @@ namespace YiboFile
         public static Dictionary<string, (long SizeBytes, DateTime LastModified)> GetAllSubFolderSizes(string rootPath)
         {
             var result = new Dictionary<string, (long SizeBytes, DateTime LastModified)>(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrEmpty(rootPath))
-                return result;
+            if (string.IsNullOrEmpty(rootPath)) return result;
 
             try
             {
@@ -166,8 +168,7 @@ namespace YiboFile
 
         public static void RemoveFolderSize(string folderPath)
         {
-            if (string.IsNullOrEmpty(folderPath))
-                return;
+            if (string.IsNullOrEmpty(folderPath)) return;
 
             try
             {
@@ -207,28 +208,16 @@ namespace YiboFile
                     using (var reader = selectCommand.ExecuteReader())
                     {
                         while (reader.Read())
-                        {
                             pathsToCheck.Add(reader.GetString(0));
-                        }
                     }
 
-                    if (pathsToCheck.Count == 0)
-                        break;
+                    if (pathsToCheck.Count == 0) break;
 
                     var pathsToDelete = new List<string>();
                     foreach (var path in pathsToCheck)
                     {
-                        try
-                        {
-                            if (!Directory.Exists(path))
-                            {
-                                pathsToDelete.Add(path);
-                            }
-                        }
-                        catch
-                        {
-                            pathsToDelete.Add(path);
-                        }
+                        try { if (!Directory.Exists(path)) pathsToDelete.Add(path); }
+                        catch { pathsToDelete.Add(path); }
                     }
 
                     if (pathsToDelete.Count > 0)
@@ -236,22 +225,14 @@ namespace YiboFile
                         using var deleteCommand = connection.CreateCommand();
                         var placeholders = string.Join(",", pathsToDelete.Select((_, i) => $"@path{i}"));
                         deleteCommand.CommandText = $"DELETE FROM FolderSizes WHERE FolderPath IN ({placeholders})";
-
                         for (int i = 0; i < pathsToDelete.Count; i++)
-                        {
                             deleteCommand.Parameters.AddWithValue($"@path{i}", pathsToDelete[i]);
-                        }
 
-                        int deleted = deleteCommand.ExecuteNonQuery();
-                        cleanedCount += deleted;
+                        cleanedCount += deleteCommand.ExecuteNonQuery();
                     }
 
                     processed += pathsToCheck.Count;
-
-                    if (pathsToDelete.Count == 0 && processed >= maxProcessed / 2)
-                    {
-                        break;
-                    }
+                    if (pathsToDelete.Count == 0 && processed >= maxProcessed / 2) break;
                 }
             }
             catch { }
@@ -270,10 +251,7 @@ namespace YiboFile
                 var result = command.ExecuteScalar();
                 return result != null ? Convert.ToInt32(result) : 0;
             }
-            catch
-            {
-                return 0;
-            }
+            catch { return 0; }
         }
 
         #endregion

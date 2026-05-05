@@ -58,9 +58,6 @@ namespace YiboFile.Handlers
 
                 // 4. 停止剪切板监听并保存
                 YiboFile.Services.ClipboardHistory.ClipboardHistoryService.Instance.StopListening();
-
-                // 5. 执行备份清理
-                YiboFile.Services.FileOperations.Undo.BackupCleanupService.Cleanup();
             }
             catch (Exception ex)
             {

@@ -187,7 +187,7 @@ namespace YiboFile.Controls
                         _webView.NavigateToString(html);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }

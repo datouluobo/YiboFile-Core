@@ -244,9 +244,7 @@ namespace YiboFile.ViewModels.Modules
             {
                 if (m.ActiveTab == null || m.Pane != YiboFile.Services.Navigation.PaneId.Main) return;
 
-                bool isSpecialLayoutTab = !string.IsNullOrEmpty(m.ActiveTab.ContentTypeId) && 
-                                          !YiboFile.Services.Tabs.TabContentTypes.IsFileBrowserType(m.ActiveTab.ContentTypeId) &&
-                                          m.ActiveTab.ContentTypeId != YiboFile.Services.Tabs.TabContentTypes.Settings;
+                bool isSpecialLayoutTab = false;
 
                 if (isSpecialLayoutTab)
                 {

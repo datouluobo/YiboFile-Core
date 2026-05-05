@@ -17,7 +17,7 @@
         <KeyBinding Key="F2" Command="{Binding Commands.RenameCommand}"/>
         <KeyBinding Key="F5" Command="{Binding Commands.RefreshCommand}"/>
         <KeyBinding Key="Enter" Modifiers="Alt" Command="{Binding Commands.PropertiesCommand}"/>
-        <KeyBinding Key="Back" Command="{Binding Commands.NavigateUpCommand}"/>
+        <!-- Backspace handled globally by KeyboardEventHandler (active-pane aware) -->
         <KeyBinding Key="A" Modifiers="Ctrl" Command="{Binding Commands.SelectAllCommand}"/>
     </UserControl.InputBindings>
     <UserControl.Resources>

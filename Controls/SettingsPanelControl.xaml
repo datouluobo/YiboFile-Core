@@ -66,7 +66,7 @@
                         <ListBoxItem Tag="Path" Content="{i18n:Loc Key=Settings.Menu.Path}" />
                         <ListBoxItem Tag="Library" Content="{i18n:Loc Key=Settings.Menu.Library}" />
                         <ListBoxItem Tag="Tag" Content="{i18n:Loc Key=Settings.Menu.Tag}" />
-                        <ListBoxItem Tag="Backup" Content="{i18n:Loc Key=Settings.Menu.Backup}" />
+                        <ListBoxItem Tag="Recycle" Content="回收站" />
                         <!-- <ListBoxItem Tag="TagTrain" Content="TagTrain" /> -->
                         <ListBoxItem Tag="Hotkeys" Content="{i18n:Loc Key=Settings.Menu.Hotkeys}" />
                     </ListBox>

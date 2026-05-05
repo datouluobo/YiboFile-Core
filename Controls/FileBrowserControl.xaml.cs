@@ -244,7 +244,7 @@ namespace YiboFile.Controls
                 {
                     FileList.FilesList.ContextMenu = (ContextMenu)FindResource("FileListContextMenu");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }

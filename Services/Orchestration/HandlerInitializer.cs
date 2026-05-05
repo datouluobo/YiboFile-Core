@@ -193,7 +193,8 @@ namespace YiboFile.Services.Orchestration
                 path => navigationCoordinator.HandlePathNavigation(path, NavigationSource.External, ClickType.LeftClick, pane: window.GetActivePaneId()),
                 mode => navigationModeService?.SwitchNavigationMode(mode),
                 () => viewModel?.ActivePane?.NavigationMode == "Library",
-                () => { if (navigationService?.CanNavigateBack == true) navigationService.NavigateBack(); },
+                () => { var pane = window.GetActivePaneId(); if (navigationService?.CanNavigateBackFor(pane) == true) navigationService.NavigateBack(pane); },
+                () => { viewModel?.ActivePane?.Commands?.NavigateUpCommand?.Execute(null); },
                 messageBus: _messageBus
             );
             KeyboardEventHandler = keyboardHandler;

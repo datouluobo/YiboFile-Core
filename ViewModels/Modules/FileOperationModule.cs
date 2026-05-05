@@ -198,11 +198,50 @@ namespace YiboFile.ViewModels.Modules
                 }
             }
 
+            // 获取源路径（用于剪切后刷新源文件夹）
+            bool isCut = ClipboardService.Instance.IsCutOperation && ClipboardService.Instance.CutPaths.Count > 0;
+            var sourcePaths = isCut ? ClipboardService.Instance.CutPaths.ToList() : new List<string>();
+
             var result = await _fileOperationService.PasteAsync(targetPath);
             Publish(new FileOperationCompleteMessage(Guid.NewGuid().ToString(), result.Success, result.Message ?? (result.FailedItems?.Count > 0 ? "部分项目粘贴失败" : null), result.FailedItems));
 
             await Task.Delay(100);
-            Publish(new YiboFile.ViewModels.Messaging.Messages.RefreshFileListMessage(targetPath, message.Pane));
+
+            // 增量更新：移除源文件（剪切）
+            if (isCut && sourcePaths.Count > 0)
+            {
+                Publish(new FileItemsChangedMessage(
+                    RemovedPaths: sourcePaths,
+                    InsertedPaths: new List<string>(),
+                    Pane: message.Pane));
+                // 源文件夹整体刷新兜底
+                foreach (var sp in sourcePaths.Distinct())
+                {
+                    var parent = System.IO.Path.GetDirectoryName(sp);
+                    if (!string.IsNullOrEmpty(parent))
+                        Publish(new RefreshFileListMessage(parent, message.Pane));
+                }
+            }
+
+            // 增量更新：插入目标文件
+            if (result.Success && result.ProcessedCount > 0 && !string.IsNullOrEmpty(targetPath))
+            {
+                var inserted = sourcePaths
+                    .Take(result.ProcessedCount)
+                    .Select(p => System.IO.Path.Combine(targetPath, System.IO.Path.GetFileName(p)))
+                    .Where(p => System.IO.File.Exists(p) || System.IO.Directory.Exists(p))
+                    .ToList();
+                if (inserted.Count > 0)
+                {
+                    Publish(new FileItemsChangedMessage(
+                        RemovedPaths: new List<string>(),
+                        InsertedPaths: inserted,
+                        Pane: message.Pane));
+                }
+            }
+
+            // 目标文件夹整体刷新兜底
+            Publish(new RefreshFileListMessage(targetPath, message.Pane));
         }
 
         private void OnShowProperties(ShowPropertiesRequestMessage message)

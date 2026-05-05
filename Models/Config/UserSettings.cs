@@ -12,7 +12,6 @@ namespace YiboFile.Models.Config
         public SearchSettings Search { get; set; } = new SearchSettings();
         public HotkeySettings Hotkeys { get; set; } = new HotkeySettings();
         public NavigationSettings Navigation { get; set; } = new NavigationSettings();
-        public BackupSettings Backup { get; set; } = new BackupSettings();
         public TabSettings Tabs { get; set; } = new TabSettings();
     }
 
@@ -116,12 +115,6 @@ namespace YiboFile.Models.Config
         
         public List<string> RailTopItems { get; set; } = new List<string> { "Path", "Library", "Tag", "Tasks", "Backup", "Clipboard" };
         public List<string> RailBottomItems { get; set; } = new List<string> { "Focus", "Work", "Full", "DualPane", "Settings", "About" };
-    }
-
-    public class BackupSettings
-    {
-        public string BackupDirectory { get; set; } = string.Empty;
-        public int RetentionDays { get; set; } = 30;
     }
 
     public class TabSettings

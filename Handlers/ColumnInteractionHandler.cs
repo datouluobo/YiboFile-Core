@@ -253,14 +253,13 @@ namespace YiboFile.Handlers
             // 更新配置
             UpdateVisibleColumnsConfig(tag, isVisible);
 
-            // Auto-fill Name column space after visibility change
-            // Run on dispatcher/idle to allow layout updates to propagate first if needed
+            // 立即触发列宽重算，填补空白
             _fileBrowser?.Dispatcher?.BeginInvoke(new Action(() =>
             {
                 _fileBrowser?.RequestColumnRecalculation();
-                // Force layout update to clear any ghost header artifacts
+                _fileBrowser?.FilesList?.InvalidateMeasure();
                 _fileBrowser?.FilesList?.UpdateLayout();
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         // AutoFitNameColumn method removed to use unified engine

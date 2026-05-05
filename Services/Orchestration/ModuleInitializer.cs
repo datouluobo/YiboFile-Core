@@ -62,7 +62,7 @@ namespace YiboFile.Services.Orchestration
             SearchCacheService searchCacheService,
             FileListService fileListService,
             FileOperationService fileOperationService,
-            FolderSizeCalculationService folderSizeCalculationService,
+            FolderSizeService folderSizeService,
             Preview.PreviewService previewService)
         {
             // ========== 核心 ViewModel 创建 ==========
@@ -83,7 +83,7 @@ namespace YiboFile.Services.Orchestration
                 _messageBus,
                 previewService,
                 fileListService,
-                folderSizeCalculationService);
+                folderSizeService);
 
             // ========== 模块创建与注册 ==========
 

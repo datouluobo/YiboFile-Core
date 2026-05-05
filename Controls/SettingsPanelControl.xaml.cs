@@ -80,9 +80,9 @@ namespace YiboFile.Controls
                 "FileList" => new Settings.FileListSettingsPanel(),
                 "Path" => new Settings.PathSettingsPanel(),
                 "Library" => new Settings.LibrarySettingsPanel(),
-                "Backup" => new Settings.BackupSettingsPanel(),
                 "Tag" => new Settings.TagSettingsPanel(),
-                "TagTrain" => new Settings.GeneralSettingsPanel(), // Placeholder
+                "TagTrain" => new Settings.GeneralSettingsPanel(),
+                "Recycle" => new Settings.RecycleSettingsPanel(),
                 "Hotkeys" => new Settings.HotkeySettingsPanel(),
                 _ => new Settings.GeneralSettingsPanel()
             };

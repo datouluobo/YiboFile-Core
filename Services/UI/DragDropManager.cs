@@ -13,6 +13,7 @@ using System.Windows.Documents;
 using YiboFile.Models.UI;
 using YiboFile.Controls;
 using YiboFile.Services.FileOperations.Undo;
+using YiboFile.Services.FileOperations.RecycleBin;
 using YiboFile.Services.UI;
 
 namespace YiboFile.Services
@@ -411,7 +412,16 @@ namespace YiboFile.Services
                             {
                                 File.Copy(source, destPath, overwrite: false);
                             }
-                            UndoService?.RecordAction(new NewFileUndoAction(destPath, Directory.Exists(destPath)));
+                            var recycleService = App.ServiceProvider?.GetService(typeof(YiboFile.Services.FileOperations.RecycleBin.IRecycleBinService))
+                                as YiboFile.Services.FileOperations.RecycleBin.IRecycleBinService;
+                            if (recycleService != null)
+                            {
+                                UndoService?.RecordAction(new RecycleBinDeleteUndoAction(recycleService, destPath, false));
+                            }
+                            else
+                            {
+                                UndoService?.RecordAction(new NewFileUndoAction(destPath, Directory.Exists(destPath)));
+                            }
                         }
                         else // Move
                         {

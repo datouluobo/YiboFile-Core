@@ -66,7 +66,7 @@ namespace YiboFile.Services.Shell
 
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
@@ -108,7 +108,7 @@ namespace YiboFile.Services.Shell
                 };
                 Process.Start(psi);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

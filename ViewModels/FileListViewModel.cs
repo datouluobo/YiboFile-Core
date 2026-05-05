@@ -31,7 +31,6 @@ namespace YiboFile.ViewModels
         private readonly FileListService _fileListService;
         private readonly ColumnService _columnService;
         private readonly FileMetadataEnricher _metadataEnricher;
-        private readonly FolderSizeCalculator _folderSizeCalculator;
         private readonly FileSystemWatcherService _fileWatcherService;
         private readonly Services.Features.ITagService _tagService;
         private readonly Services.UI.IDialogService _dialogService;
@@ -110,7 +109,6 @@ namespace YiboFile.ViewModels
             YiboFile.Services.Navigation.PaneId paneId = YiboFile.Services.Navigation.PaneId.Main,
             ColumnService columnService = null,
             FileMetadataEnricher metadataEnricher = null,
-            FolderSizeCalculator folderSizeCalculator = null,
             FileSystemWatcherService fileWatcherService = null,
             Services.UI.IDialogService dialogService = null)
         {
@@ -128,7 +126,6 @@ namespace YiboFile.ViewModels
 
             _columnService = columnService;
             _metadataEnricher = metadataEnricher ?? new FileMetadataEnricher();
-            _folderSizeCalculator = folderSizeCalculator ?? new FolderSizeCalculator();
 
             // Inject or resolve FileSystemWatcherService
             _fileWatcherService = fileWatcherService ?? App.ServiceProvider?.GetService<FileSystemWatcherService>();
@@ -138,8 +135,87 @@ namespace YiboFile.ViewModels
             {
                 if (m.Pane == _paneId)
                 {
+                    // 如果指定了路径，仅当与当前路径匹配时才刷新
+                    if (!string.IsNullOrEmpty(m.Path))
+                    {
+                        var normalized = Path.GetFullPath(m.Path).TrimEnd('\\');
+                        if (!string.Equals(normalized, _currentPath?.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                            return;
+                    }
                     _dispatcher.BeginInvoke(new Action(RefreshFiles), DispatcherPriority.Normal);
                 }
+            });
+
+            // 订阅增量变更消息 — 不触发整体刷新，仅添加/移除项目
+            _messageBus.Subscribe<FileItemsChangedMessage>(m =>
+            {
+                if (m.Pane != _paneId) return;
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    bool changed = false;
+
+                    if (m.RemovedPaths?.Count > 0)
+                    {
+                        var toRemove = _files.Where(f =>
+                            m.RemovedPaths.Any(r => string.Equals(f.Path, r, StringComparison.OrdinalIgnoreCase))
+                        ).ToList();
+                        foreach (var item in toRemove)
+                        {
+                            _files.Remove(item);
+                            changed = true;
+                        }
+                    }
+
+                    if (m.InsertedPaths?.Count > 0)
+                    {
+                        foreach (var path in m.InsertedPaths)
+                        {
+                            if (_files.Any(f => string.Equals(f.Path, path, StringComparison.OrdinalIgnoreCase)))
+                                continue;
+                            var item = new FileSystemItem
+                            {
+                                Path = path,
+                                Name = Path.GetFileName(path),
+                                IsDirectory = Directory.Exists(path)
+                            };
+                            // 填入基本信息
+                            try
+                            {
+                                var fi = new System.IO.FileInfo(path);
+                                if (fi.Exists)
+                                {
+                                    item.ModifiedDateTime = fi.LastWriteTime;
+                                    item.SizeBytes = fi.Length;
+                                    item.Size = fi.Length >= 1073741824
+                                        ? $"{fi.Length / 1073741824.0:F1} GB"
+                                        : fi.Length >= 1048576
+                                            ? $"{fi.Length / 1048576.0:F1} MB"
+                                            : fi.Length >= 1024
+                                                ? $"{fi.Length / 1024.0:F1} KB"
+                                                : $"{fi.Length} B";
+                                }
+                            }
+                            catch { }
+                            _files.Add(item);
+                            changed = true;
+                        }
+                    }
+
+                    if (changed) RefreshFilter();
+                }), DispatcherPriority.Background);
+            });
+
+            // 订阅剪贴板剪切状态变更 — 更新文件项目的剪切视觉效果
+            _messageBus.Subscribe<ClipboardCutStateChangedMessage>(m =>
+            {
+                _dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var cutPaths = new HashSet<string>(m.CutPaths ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+                    foreach (var item in _files)
+                    {
+                        item.IsCutCandidate = item.Path != null && cutPaths.Contains(item.Path);
+                    }
+                }), DispatcherPriority.Background);
             });
 
             // 初始化防抖定时器
@@ -267,9 +343,25 @@ namespace YiboFile.ViewModels
                 {
                     if (!cancellationToken.IsCancellationRequested)
                     {
+                        // 保留旧文件的 Thumbnail，避免集合替换后图标闪烁
+                        // （ThumbnailService 会异步加载，但已有缓存的图标可以直接复用）
+                        var oldThumbnails = new Dictionary<string, System.Windows.Media.Imaging.BitmapSource>(
+                            StringComparer.OrdinalIgnoreCase);
+                        foreach (var old in _files)
+                        {
+                            if (old.Thumbnail != null && !string.IsNullOrEmpty(old.Path))
+                                oldThumbnails[old.Path] = old.Thumbnail;
+                        }
+
+                        foreach (var item in sortedFiles)
+                        {
+                            if (oldThumbnails.TryGetValue(item.Path, out var thumb))
+                                item.Thumbnail = thumb;
+                        }
+
                         Files = new ObservableCollection<FileSystemItem>(sortedFiles);
                     }
-                }, DispatcherPriority.Normal);
+                }, DispatcherPriority.Background);
 
                 // 后台设置文件监视
                 if (!cancellationToken.IsCancellationRequested)
@@ -329,7 +421,7 @@ namespace YiboFile.ViewModels
             // 对于手动设置的文件列表（如搜索结果），我们在此启动增强和计算
             var cts = new CancellationTokenSource();
             _ = _metadataEnricher.EnrichAsync(items, cts.Token, _dispatcher, null, null);
-            _ = _folderSizeCalculator.CalculateAsync(items, cts.Token, _dispatcher, _fileListService.FormatFileSize, null);
+            _fileListService.EnqueueFolderSizeCalculations(items, cts.Token);
         }
 
         /// <summary>

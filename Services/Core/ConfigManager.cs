@@ -193,12 +193,6 @@ namespace YiboFile
         public int HistoryMaxCount { get; set; } = 20;
         public bool AutoExpandHistory { get; set; } = false;
 
-        // 备份设置
-        public string BackupDirectory { get; set; } = string.Empty; // 为空则使用默认路径
-        public int BackupRetentionDays { get; set; } = 30; // 默认保留30天，0表示永久
-        public double BackupBrowserWidth { get; set; } = 1000;
-        public double BackupBrowserHeight { get; set; } = 650;
-
         // 导航栏项目顺序
         public System.Collections.Generic.List<string> NavigationSectionsOrder { get; set; } = new System.Collections.Generic.List<string>
         {

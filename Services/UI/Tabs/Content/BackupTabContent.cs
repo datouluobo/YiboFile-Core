@@ -5,9 +5,7 @@ using YiboFile.Interfaces.Plugins;
 namespace YiboFile.Services.Tabs.Content
 {
     /// <summary>
-    /// 备份管理标签页内容。
-    /// 将现有的 BackupBrowserControl 包装为标签页内容。
-    /// 取代原有的 ActiveSpecialPanel="Backup" 机制。
+    /// 回收站管理标签页内容
     /// </summary>
     public class BackupTabContent : ITabContent
     {
@@ -20,8 +18,8 @@ namespace YiboFile.Services.Tabs.Content
         }
 
         public string Id => TabContentTypes.Backup;
-        public string Title => _loc?["TabContent.Backup"] ?? "备份管理";
-        public string IconKey => "Icon_Folder";
+        public string Title => "回收站";
+        public string IconKey => "Icon_Recycle";
         public bool AllowMultiple => false;
         public bool SupportsSecondaryPane => true;
 
@@ -36,13 +34,10 @@ namespace YiboFile.Services.Tabs.Content
 
         public void OnActivated()
         {
-            // 激活时可刷新备份列表
-            // BackupBrowserControl 内部在 Loaded 事件中自动加载
         }
 
         public void OnDeactivated()
         {
-            // 无需特殊处理
         }
 
         public void OnClosed()

@@ -43,6 +43,7 @@ namespace YiboFile.Handlers
         private readonly Func<bool> _isLibraryMode;
 
         private readonly Action _navigateBack;
+        private readonly Action _navigateUp;
 
         // private readonly Action _undoClick; // Migrated
         // private readonly Action _redoClick; // Migrated
@@ -62,6 +63,7 @@ namespace YiboFile.Handlers
             Func<bool> isLibraryMode,
 
             Action navigateBack,
+            Action navigateUp,
             IMessageBus messageBus = null)
         {
             _fileBrowser = fileBrowser ?? throw new ArgumentNullException(nameof(fileBrowser));
@@ -76,6 +78,7 @@ namespace YiboFile.Handlers
             _switchNavigationMode = switchNavigationMode ?? throw new ArgumentNullException(nameof(switchNavigationMode));
             _isLibraryMode = isLibraryMode ?? (() => false);
             _navigateBack = navigateBack ?? throw new ArgumentNullException(nameof(navigateBack));
+            _navigateUp = navigateUp ?? throw new ArgumentNullException(nameof(navigateUp));
 
             _messageBus = messageBus;
 
@@ -289,7 +292,31 @@ namespace YiboFile.Handlers
             // Backspace: 返回上级目录
             if (IsActionTriggered(e, "返回上级目录", "Backspace"))
             {
+                _navigateUp();
+                e.Handled = true;
+                return;
+            }
+
+            // Alt+Left: 历史后退
+            if (e.Key == Key.Left && Keyboard.Modifiers == ModifierKeys.Alt)
+            {
                 _navigateBack();
+                e.Handled = true;
+                return;
+            }
+
+            // Alt+Right: 历史前进 (通过 MessageBus 发布)
+            if (e.Key == Key.Right && Keyboard.Modifiers == ModifierKeys.Alt)
+            {
+                _messageBus?.Publish(new NavigateForwardMessage());
+                e.Handled = true;
+                return;
+            }
+
+            // Alt+Up: 向上导航到父目录
+            if (e.Key == Key.Up && Keyboard.Modifiers == ModifierKeys.Alt)
+            {
+                _navigateUp();
                 e.Handled = true;
                 return;
             }

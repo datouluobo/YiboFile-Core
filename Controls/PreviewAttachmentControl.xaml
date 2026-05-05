@@ -19,13 +19,11 @@
     </UserControl.Resources>
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
         <Grid.RowDefinitions>
-            <!-- 行0：标题栏区域（与列2工具栏对齐） -->
-            <RowDefinition Height="Auto"/>
-            <!-- 行1：预览区 -->
+            <!-- 行0：预览区（含顶部工具栏，标题+按钮合并在一行） -->
             <RowDefinition Height="*"/>
-            <!-- 行2：分割器 -->
+            <!-- 行1：分割器 -->
             <RowDefinition Height="12"/>
-            <!-- 行3：备注区 -->
+            <!-- 行2：备注区 -->
             <RowDefinition>
                 <RowDefinition.Style>
                     <Style TargetType="RowDefinition">
@@ -46,41 +44,8 @@
             </RowDefinition>
         </Grid.RowDefinitions>
         
-        <!-- 行0：标题栏（与列2工具栏对齐） -->
-        <Border Grid.Row="0" Height="50" Background="Transparent" IsHitTestVisible="False">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                <TextBlock Text="预览" 
-                           FontSize="13" 
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                           VerticalAlignment="Center"/>
-                <TextBlock Text="·" 
-                           FontSize="13" 
-                           Foreground="{DynamicResource ForegroundTertiaryBrush}" 
-                           Margin="6,0"
-                           VerticalAlignment="Center">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Visible"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                <TextBlock FontSize="13" 
-                           Foreground="{DynamicResource ForegroundTertiaryBrush}"
-                           VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis"
-                           MaxWidth="250"
-                           Text="{Binding SelectedItem.Name, FallbackValue=''}"/>
-            </StackPanel>
-        </Border>
-        
-        <!-- 行1：预览区 -->
-        <Border Grid.Row="1" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1,1,1,0" Margin="4,0,4,0">
+        <!-- 行0：预览区（含顶部工具栏，标题已合并到模板工具栏左侧） -->
+        <Border Grid.Row="0" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1,1,1,0" Margin="4,0,4,0">
             <Grid Name="PreviewGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True">
                 <Grid.Resources>
                     <ResourceDictionary>
@@ -118,8 +83,8 @@
             </Grid>
         </Border>
 
-        <!-- 行2：分割器 -->
-        <controls:CollapsibleGridSplitter Grid.Row="2" x:Name="NotesSplitter" 
+        <!-- 行1：分割器 -->
+        <controls:CollapsibleGridSplitter Grid.Row="1" x:Name="NotesSplitter" 
                                           HorizontalAlignment="Stretch"
                                           CollapseMode="Both"
                                           AutoFillNeighbor="True"
@@ -147,8 +112,8 @@
             </controls:CollapsibleGridSplitter.Style>
         </controls:CollapsibleGridSplitter>
 
-        <!-- 行3：备注区 -->
-        <Border Grid.Row="3" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Margin="4,0,4,4">
+        <!-- 行2：备注区 -->
+        <Border Grid.Row="2" Background="{DynamicResource BackgroundPrimaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="1" Margin="4,0,4,4">
             <Border.Style>
                 <Style TargetType="Border">
                     <Setter Property="Visibility" Value="Visible"/>

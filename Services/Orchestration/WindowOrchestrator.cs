@@ -57,7 +57,7 @@ namespace YiboFile.Services.Orchestration
         private FileListService _fileListService;
         private FileOperationService _fileOperationService;
         private Preview.PreviewService _previewService;
-        private FolderSizeCalculationService _folderSizeCalculationService;
+        private FolderSizeService _folderSizeService;
         private ITagService _tagService;
         private QuickAccessService _quickAccessService;
         private FileListService _secondFileListService;
@@ -184,7 +184,7 @@ namespace YiboFile.Services.Orchestration
             _favoriteService = _serviceProvider.GetRequiredService<Favorite.FavoriteService>();
             _fileListService = _serviceProvider.GetRequiredService<FileListService>();
             _tagService = _serviceProvider.GetService<ITagService>();
-            _folderSizeCalculationService = _serviceProvider.GetRequiredService<FolderSizeCalculationService>();
+            _folderSizeService = _serviceProvider.GetRequiredService<FolderSizeService>();
             _searchCacheService = _serviceProvider.GetRequiredService<SearchCacheService>();
             _searchService = _serviceProvider.GetRequiredService<SearchService>();
             _fileOperationService = _serviceProvider.GetRequiredService<FileOperationService>();
@@ -262,7 +262,7 @@ namespace YiboFile.Services.Orchestration
                 _searchCacheService,
                 _fileListService,
                 _fileOperationService,
-                _folderSizeCalculationService,
+                _folderSizeService,
                 _previewService);
 
             // 从初始化器中获取结果

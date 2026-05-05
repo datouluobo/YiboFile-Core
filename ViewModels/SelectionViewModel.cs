@@ -15,7 +15,7 @@ namespace YiboFile.ViewModels
     {
         private readonly IMessageBus _messageBus;
         public bool IsSecondary { get; set; }
-        private readonly FolderSizeCalculationService _folderSizeService;
+        private readonly FolderSizeService _folderSizeService;
 
         private ObservableCollection<FileSystemItem> _selectedItems = new ObservableCollection<FileSystemItem>();
         private FileSystemItem _selectedItem;
@@ -33,7 +33,7 @@ namespace YiboFile.ViewModels
         {
             _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
             IsSecondary = isSecondary;
-            _folderSizeService = App.ServiceProvider.GetService<FolderSizeCalculationService>();
+            _folderSizeService = App.ServiceProvider.GetService<FolderSizeService>();
         }
 
         public ObservableCollection<FileSystemItem> SelectedItems

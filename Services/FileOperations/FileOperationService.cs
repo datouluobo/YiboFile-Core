@@ -10,7 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 using YiboFile.Dialogs;
 using YiboFile.Services.Core.Error;
 using YiboFile.Services.FileOperations.Undo;
+using YiboFile.Services.FileOperations.RecycleBin;
 using YiboFile.Services.FileSystem;
+using YiboFile.Interop;
 
 // 使用 Services.UI 命名空间的 ConflictResolution
 using ConflictResolution = YiboFile.Services.UI.ConflictResolution;
@@ -32,7 +34,7 @@ namespace YiboFile.Services.FileOperations
         private readonly ErrorService _errorService;
         private readonly UndoService _undoService;
         private readonly TaskQueueService _taskQueueService;
-        private readonly YiboFile.Services.Backup.IBackupService _backupService;
+        private readonly YiboFile.Services.FileOperations.RecycleBin.IRecycleBinService _recycleBinService;
         private readonly IMessageBus _messageBus;
         private readonly IDialogService _dialogService;
         private Func<FileOperationContext> _getContext;
@@ -52,7 +54,7 @@ namespace YiboFile.Services.FileOperations
             ErrorService errorService = null,
             UndoService undoService = null,
             TaskQueueService taskQueueService = null,
-            YiboFile.Services.Backup.IBackupService backupService = null,
+            IRecycleBinService recycleBinService = null,
             IMessageBus messageBus = null)
         {
             _getContext = contextProvider;
@@ -60,7 +62,7 @@ namespace YiboFile.Services.FileOperations
             _errorService = errorService;
             _undoService = undoService;
             _taskQueueService = taskQueueService;
-            _backupService = backupService;
+            _recycleBinService = recycleBinService;
             _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
             _dialogService = App.ServiceProvider?.GetService<IDialogService>();
         }
@@ -140,7 +142,24 @@ namespace YiboFile.Services.FileOperations
             };
             _taskQueueService?.EnqueueTask(task);
 
-            foreach (var sourcePath in sourcePaths)
+            // 预扫总字节数，用于精确进度
+            long totalBytes = 0;
+            var itemsWithSize = new List<(string Path, long Size, bool Dir)>();
+            foreach (var sp in sourcePaths)
+            {
+                if (File.Exists(sp) || Directory.Exists(sp))
+                {
+                    bool d = Directory.Exists(sp);
+                    long s = d ? NativeFileOperations.CalculateTotalSize(sp) : new System.IO.FileInfo(sp).Length;
+                    itemsWithSize.Add((sp, s, d));
+                    totalBytes += s;
+                }
+            }
+            if (totalBytes > 0) task.TotalBytes = totalBytes;
+
+            long accumulatedBytes = 0;
+
+            foreach (var (sourcePath, fileBytes, _) in itemsWithSize)
             {
                 if (task != null && totalCount > 0)
                 {
@@ -250,52 +269,51 @@ namespace YiboFile.Services.FileOperations
                     }
 
                     // 执行复制/移动
+                    var capturedAccumulated = accumulatedBytes;
+                    var capturedFileBytes = fileBytes;
                     await Task.Run(async () =>
                     {
+                        FileProgressCallback onProgress = (current, total, name) =>
+                        {
+                            if (task == null || totalBytes <= 0) return;
+                            var p = (double)(capturedAccumulated + current) / totalBytes * 100;
+                            task.Progress = Math.Min(p, 99.9);
+                            if (!string.IsNullOrEmpty(name)) task.CurrentFile = name;
+                        };
+
                         if (isCut)
                         {
                             bool sameVolume = FileSystemCoreUtils.IsSameVolume(sourcePath, destPath);
                             if (sameVolume)
                             {
-                                // 同卷移动
+                                // 同卷移动（高效重命名）
                                 if (isDir) Directory.Move(sourcePath, destPath);
                                 else File.Move(sourcePath, destPath, true);
+                                onProgress(capturedFileBytes, capturedFileBytes, fileName);
                             }
                             else
                             {
-                                // 跨卷移动：使用备份服务中转，安全第一
-                                if (_backupService != null)
-                                {
-                                    var record = await _backupService.CreateBackupAsync(sourcePath);
-                                    if (record != null)
-                                    {
-                                        destPath = await _backupService.RestoreAsync(record, destPath);
-                                    }
-                                    else throw new Exception("安全移动：备份失败");
-                                }
+                                // 跨卷移动：使用 Win32 API，带进度
+                                if (isDir)
+                                    await NativeFileOperations.MoveDirectoryAsync(sourcePath, destPath, onProgress);
                                 else
-                                {
-                                    // 无备份服务回退
-                                    if (isDir)
-                                    {
-                                        CopyDirectory(sourcePath, destPath, task, failedItems);
-                                        if (failedItems.Count == 0) await FileSystemCoreUtils.SafeDeleteDirectoryAsync(sourcePath);
-                                    }
-                                    else
-                                    {
-                                        File.Copy(sourcePath, destPath, true);
-                                        await FileSystemCoreUtils.SafeDeleteFileAsync(sourcePath);
-                                    }
-                                }
+                                    NativeFileOperations.MoveFile(sourcePath, destPath, onProgress);
                             }
                         }
                         else
                         {
                             // 复制
-                            if (isDir) CopyDirectory(sourcePath, destPath, task, failedItems);
-                            else File.Copy(sourcePath, destPath, true);
+                            if (isDir)
+                                await NativeFileOperations.CopyDirectoryAsync(sourcePath, destPath, onProgress);
+                            else
+                                NativeFileOperations.CopyFile(sourcePath, destPath, onProgress);
                         }
                     }, task?.CancellationTokenSource.Token ?? ct);
+
+                    // 更新累积字节
+                    accumulatedBytes += fileBytes;
+                    if (task != null && totalBytes > 0 && accumulatedBytes >= totalBytes)
+                        task.Progress = 100;
 
                     // 记录撤销操作 (统一使用通用备份撤销)
                     if (_undoService != null)
@@ -308,10 +326,10 @@ namespace YiboFile.Services.FileOperations
                         }
                         else
                         {
-                            // 新建/复制撤销：统一接入备份服务，撤销粘贴即“删除入库”
-                            if (_backupService != null)
+                            // 新建/复制撤销：回收站删除
+                            if (_recycleBinService != null)
                             {
-                                undoActionList.Add(new BackupRestoreUndoAction(_backupService, destPath));
+                                undoActionList.Add(new RecycleBinDeleteUndoAction(_recycleBinService, destPath, false));
                             }
                             else
                             {
@@ -428,17 +446,24 @@ namespace YiboFile.Services.FileOperations
                         }
                         else
                         {
-                            if (_backupService != null)
+                            if (_recycleBinService != null)
                             {
-                                var record = await _backupService.CreateBackupAsync(item.Path);
-                                if (record != null && _undoService != null)
+                                // 回收站删除
+                                if (_recycleBinService.Send(item.Path))
                                 {
-                                    undoActions.Add(new BackupRestoreUndoAction(_backupService, record));
+                                    undoActions.Add(new RecycleBinDeleteUndoAction(_recycleBinService, item.Path));
+                                }
+                                else
+                                {
+                                    // 回收站失败时降级：直接移到 UndoBackup 目录
+                                    var action = new DeleteUndoAction(item.Path, item.IsDirectory);
+                                    if (action.Execute()) undoActions.Add(action);
+                                    else throw new Exception("无法移动文件到备份目录");
                                 }
                             }
                             else
                             {
-                                // Fallback
+                                // 无回收站服务时的降级
                                 var action = new DeleteUndoAction(item.Path, item.IsDirectory);
                                 if (action.Execute()) undoActions.Add(action);
                                 else throw new Exception("无法移动文件到备份目录");
@@ -514,88 +539,6 @@ namespace YiboFile.Services.FileOperations
 
         #region Helpers
 
-        private void SafeMoveFile(string src, string dest)
-        {
-            try { File.Move(src, dest); }
-            catch (IOException) { File.Copy(src, dest); File.Delete(src); }
-        }
-
-        private void SafeMoveDirectory(string src, string dest, FileOperationTask task = null)
-        {
-            try
-            {
-                if (task != null) task.WaitIfPaused();
-                Directory.Move(src, dest);
-            }
-            catch (IOException) { CopyDirectory(src, dest, task); Directory.Delete(src, true); }
-        }
-
-        private void CopyDirectory(string src, string dest, FileOperationTask task = null, List<string> failedItems = null)
-        {
-            try
-            {
-                Directory.CreateDirectory(dest);
-            }
-            catch (Exception ex)
-            {
-                failedItems?.Add($"{dest}: {ex.Message}");
-                return;
-            }
-
-            if (task != null) task.WaitIfPaused();
-            var ct = task?.CancellationTokenSource.Token ?? CancellationToken.None;
-
-            string[] files = Array.Empty<string>();
-            try
-            {
-                files = Directory.GetFiles(src);
-            }
-            catch (Exception ex)
-            {
-                failedItems?.Add($"{src}: 无法读取目录 - {ex.Message}");
-            }
-
-            foreach (var file in files)
-            {
-                ct.ThrowIfCancellationRequested();
-                if (task != null)
-                {
-                    task.WaitIfPaused();
-                    task.CurrentFile = Path.GetFileName(file);
-
-                    // 动态暴露长时间运行的任务 (防止单文件夹复制一直处于静默状态)
-                    if (task.IsSilent && (DateTime.Now - task.StartTime).TotalMilliseconds > 300)
-                    {
-                        task.IsSilent = false;
-                    }
-                }
-                try
-                {
-                    File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), true);
-                }
-                catch (Exception ex)
-                {
-                    failedItems?.Add($"{Path.GetFileName(file)}: {ex.Message}");
-                }
-            }
-
-            string[] dirs = Array.Empty<string>();
-            try
-            {
-                dirs = Directory.GetDirectories(src);
-            }
-            catch (Exception ex)
-            {
-                failedItems?.Add($"{src}: 无法读取子目录 - {ex.Message}");
-            }
-
-            foreach (var dir in dirs)
-            {
-                ct.ThrowIfCancellationRequested();
-                CopyDirectory(dir, Path.Combine(dest, Path.GetFileName(dir)), task, failedItems);
-            }
-        }
-
         private async Task<(ConflictResolution, bool)> ShowConflictDialogAsync(string fileName, bool isMultiple, CancellationToken ct)
         {
             if (_dialogService == null) return (ConflictResolution.CancelAll, false);
@@ -619,9 +562,16 @@ namespace YiboFile.Services.FileOperations
                 string folderName = string.IsNullOrEmpty(name) ? (locService?["FileOp.NewFolder"] ?? "新建文件夹") : name;
                 string finalPath = FileSystemCoreUtils.GetUniquePath(Path.Combine(parentPath, folderName));
                 await Task.Run(() => Directory.CreateDirectory(finalPath));
-                if (_undoService != null && _backupService != null)
+                if (_undoService != null)
                 {
-                    _undoService.RecordAction(new BackupRestoreUndoAction(_backupService, finalPath));
+                    if (_recycleBinService != null)
+                    {
+                        _undoService.RecordAction(new RecycleBinDeleteUndoAction(_recycleBinService, finalPath, false));
+                    }
+                    else
+                    {
+                        _undoService.RecordAction(new NewFileUndoAction(finalPath, true));
+                    }
                 }
                 return finalPath;
             }
@@ -660,9 +610,16 @@ namespace YiboFile.Services.FileOperations
                     }
                 });
 
-                if (_undoService != null && _backupService != null)
+                if (_undoService != null)
                 {
-                    _undoService.RecordAction(new BackupRestoreUndoAction(_backupService, finalPath));
+                    if (_recycleBinService != null)
+                    {
+                        _undoService.RecordAction(new RecycleBinDeleteUndoAction(_recycleBinService, finalPath, false));
+                    }
+                    else
+                    {
+                        _undoService.RecordAction(new NewFileUndoAction(finalPath, false));
+                    }
                 }
                 return finalPath;
             }
@@ -675,9 +632,16 @@ namespace YiboFile.Services.FileOperations
 
         public void NotifyFileCreated(string filePath, bool isDirectory = false)
         {
-            if (_undoService != null && _backupService != null)
+            if (_undoService != null)
             {
-                _undoService.RecordAction(new BackupRestoreUndoAction(_backupService, filePath));
+                if (_recycleBinService != null)
+                {
+                    _undoService.RecordAction(new RecycleBinDeleteUndoAction(_recycleBinService, filePath, false));
+                }
+                else
+                {
+                    _undoService.RecordAction(new NewFileUndoAction(filePath, isDirectory));
+                }
             }
         }
 

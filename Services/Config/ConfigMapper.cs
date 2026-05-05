@@ -67,10 +67,6 @@ namespace YiboFile.Services.Config
             settings.Navigation.RailTopItems = new List<string>(source.RailTopItems ?? new List<string>());
             settings.Navigation.RailBottomItems = new List<string>(source.RailBottomItems ?? new List<string>());
 
-            // Backup
-            settings.Backup.BackupDirectory = source.BackupDirectory;
-            settings.Backup.RetentionDays = source.BackupRetentionDays;
-
             // Tabs
             settings.Tabs.PinnedTabs = new List<string>(source.PinnedTabs ?? new List<string>());
             settings.Tabs.TitleOverrides = new Dictionary<string, string>(source.TabTitleOverrides ?? new Dictionary<string, string>());
@@ -138,10 +134,6 @@ namespace YiboFile.Services.Config
 
             // Sidebar
             state.Sidebar.ExpanderStates = new Dictionary<string, bool>(source.SidebarExpanderStates ?? new Dictionary<string, bool>());
-
-            // Misc
-            state.Misc.BackupBrowserWidth = source.BackupBrowserWidth;
-            state.Misc.BackupBrowserHeight = source.BackupBrowserHeight;
         }
 
         public static AppConfig MapToAppConfig(UserSettings settings, AppState state)
@@ -191,9 +183,6 @@ namespace YiboFile.Services.Config
             config.NavigationSectionsOrder = new List<string>(settings.Navigation.SectionsOrder);
             config.RailTopItems = new List<string>(settings.Navigation.RailTopItems);
             config.RailBottomItems = new List<string>(settings.Navigation.RailBottomItems);
-
-            config.BackupDirectory = settings.Backup.BackupDirectory;
-            config.BackupRetentionDays = settings.Backup.RetentionDays;
 
             config.PinnedTabs = new List<string>(settings.Tabs.PinnedTabs);
             config.TabTitleOverrides = new Dictionary<string, string>(settings.Tabs.TitleOverrides);
@@ -265,10 +254,6 @@ namespace YiboFile.Services.Config
 
             // Sidebar
             config.SidebarExpanderStates = new Dictionary<string, bool>(state.Sidebar.ExpanderStates);
-
-            // Misc
-            config.BackupBrowserWidth = state.Misc.BackupBrowserWidth;
-            config.BackupBrowserHeight = state.Misc.BackupBrowserHeight;
 
             return config;
         }

@@ -113,6 +113,23 @@ namespace YiboFile.Models
             }
         }
 
+        /// <summary>
+        /// 是否为剪切操作目标（用于视觉标示半透明效果）
+        /// </summary>
+        private bool _isCutCandidate;
+        public bool IsCutCandidate
+        {
+            get => _isCutCandidate;
+            set
+            {
+                if (_isCutCandidate != value)
+                {
+                    _isCutCandidate = value;
+                    OnPropertyChanged(nameof(IsCutCandidate));
+                }
+            }
+        }
+
         private string _renameText;
         public string RenameText
         {

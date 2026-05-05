@@ -61,11 +61,18 @@ namespace YiboFile.Services.FileOperations
 
         /// <summary>
         /// 从剪贴板获取路径和操作类型
+        /// 优先使用内部缓存的剪切状态（不受系统剪贴板被清空影响）
         /// </summary>
         public async Task<(List<string> paths, bool isCut)> GetPathsFromClipboardAsync()
         {
             try
             {
+                // 优先使用内部缓存（剪切操作时设置，不受系统剪贴板被清空影响）
+                if (IsCutOperation && CutPaths.Count > 0)
+                {
+                    return (CutPaths.ToList(), true);
+                }
+
                 // Retry checking for file drop list
                 var containsFileDropList = await EnsureUIThreadAsync(async () =>
                 {
@@ -175,14 +182,13 @@ namespace YiboFile.Services.FileOperations
                         var ms = new MemoryStream(BitConverter.GetBytes(effect));
                         data.SetData("Preferred DropEffect", ms);
 
-                        Clipboard.SetDataObject(data, true);
-
-                        // 更新内部状态
+                        // 先更新内部状态（即使 SetDataObject 失败，内部缓存也保留）
                         IsCutOperation = isCut;
                         CutPaths = isCut ? pathList : Array.Empty<string>();
-
-                        // 触发消息通知 UI 更新
                         _messageBus?.Publish(new ClipboardCutStateChangedMessage(CutPaths));
+
+                        // 再尝试设置系统剪贴板（失败不影响内部状态）
+                        try { Clipboard.SetDataObject(data, true); } catch { }
 
                         return true;
                     }, "SetDataObject");

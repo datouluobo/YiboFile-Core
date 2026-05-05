@@ -315,11 +315,11 @@ start_minimized=1
 single_instance=1
 ");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
 
-                // 启动 Everything - 使用正确的静默启动参数
+                // 启动 Everything
                 // -startup: 后台运行，不显示主窗口（这是最重要的参数）
                 // -config: 指定配置文件路径
                 // -db: 指定数据库路径

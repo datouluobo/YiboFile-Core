@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using YiboFile.Interop;
 using YiboFile.Models;
 using YiboFile.Services.FileNotes;
 using YiboFile.Services.FileSystem;
@@ -29,9 +30,8 @@ namespace YiboFile.Services.FileList
         private readonly Dispatcher _dispatcher;
         private readonly YiboFile.Services.Core.Error.ErrorService _errorService;
         private readonly ITagService _tagService;
-        private readonly FolderSizeCalculator _folderSizeCalculator;
+        private readonly FolderSizeService _folderSizeService;
         private readonly FileMetadataEnricher _metadataEnricher;
-        private readonly FolderSizeCalculationService _folderSizeCalculationService;
         private readonly IMessageBus _messageBus;
         private readonly PaneId _paneId;
 
@@ -82,7 +82,8 @@ namespace YiboFile.Services.FileList
             YiboFile.Services.Core.Error.ErrorService errorService,
             ITagService tagService = null,
             IMessageBus messageBus = null,
-            PaneId paneId = PaneId.Main)
+            PaneId paneId = PaneId.Main,
+            FolderSizeService folderSizeService = null)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
             _errorService = errorService ?? throw new ArgumentNullException(nameof(errorService));
@@ -90,8 +91,9 @@ namespace YiboFile.Services.FileList
             _messageBus = messageBus ?? App.ServiceProvider?.GetService(typeof(IMessageBus)) as IMessageBus;
             _paneId = paneId;
 
-            _folderSizeCalculationService = new FolderSizeCalculationService(4);
-            _folderSizeCalculator = new FolderSizeCalculator(_folderSizeCalculationService);
+            _folderSizeService = folderSizeService
+                ?? (App.ServiceProvider?.GetService(typeof(FolderSizeService)) as FolderSizeService)
+                ?? new FolderSizeService(_messageBus, _dispatcher);
             _metadataEnricher = new FileMetadataEnricher(_tagService);
         }
 
@@ -208,7 +210,7 @@ namespace YiboFile.Services.FileList
                 try
                 {
                     // Use Task.Run for Directory.Exists to avoid UI blocking if path is network drive
-                    if (!await Task.Run(() => Directory.Exists(path), cancellationToken).ConfigureAwait(false))
+                    if (!await Task.Run(() => Directory.Exists(path)).ConfigureAwait(false))
                     {
                         continue;
                     }
@@ -336,7 +338,7 @@ namespace YiboFile.Services.FileList
                 if (string.IsNullOrEmpty(fullTarget))
                 {
                     var repo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
-                    var libs = await Task.Run(() => repo.GetAllLibraries(), cancellationToken).ConfigureAwait(false);
+                    var libs = await Task.Run(() => repo.GetAllLibraries()).ConfigureAwait(false);
 
                     var libraryItems = libs.Select(lib => new FileSystemItem
                     {
@@ -360,7 +362,7 @@ namespace YiboFile.Services.FileList
                 var subPath = parts.Length > 1 ? parts[1] : "";
 
                 var libRepo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<YiboFile.Services.Data.Repositories.ILibraryRepository>(App.ServiceProvider);
-                var allLibs = await Task.Run(() => libRepo.GetAllLibraries(), cancellationToken).ConfigureAwait(false);
+                var allLibs = await Task.Run(() => libRepo.GetAllLibraries()).ConfigureAwait(false);
 
                 var lib = allLibs.FirstOrDefault(l => l.Name.Equals(libraryName, StringComparison.OrdinalIgnoreCase));
                 if (lib != null && lib.Paths != null)
@@ -493,7 +495,7 @@ namespace YiboFile.Services.FileList
                     }, combinedMetadataToken);
 
                     return files;
-                }, cancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
             }
 
             // Case 3: Path is a physical file that is an archive (User tried to "open" it like a folder)
@@ -516,8 +518,8 @@ namespace YiboFile.Services.FileList
                 // 这允许库的多路径并行加载，避免死锁
                 if (!skipBackgroundTasks)
                 {
-                    // 等待获取信号量，支持取消
-                    await _loadingSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    // 等待获取信号量（不传cancellationToken，避免取消时抛出OperationCanceledException）
+                    await _loadingSemaphore.WaitAsync().ConfigureAwait(false);
                     semaphoreAcquired = true;
                 }
 
@@ -526,21 +528,11 @@ namespace YiboFile.Services.FileList
                     return new List<FileSystemItem>();
                 }
 
-                // 异步加载文件和文件夹
-                var directories = await LoadDirectoriesAsync(
-                    path,
-                    p => DatabaseManager.GetFolderSize(p),
-                    FormatFileSize,
-                    cancellationToken).ConfigureAwait(false);
-
-                var files = await LoadFilesAsync(
+                // 单次 Win32 枚举，同时获取文件和文件夹元数据
+                var items = await LoadEntriesAsync(
                     path,
                     FormatFileSize,
                     cancellationToken).ConfigureAwait(false);
-
-                var items = new List<FileSystemItem>();
-                items.AddRange(directories);
-                items.AddRange(files);
 
                 return ProcessLoadedItems(items, path, cancellationToken, resetOngoingOperations, skipBackgroundTasks, orderTagNames);
             }
@@ -600,11 +592,13 @@ namespace YiboFile.Services.FileList
                 return items;
             }
 
-            // 异步计算文件夹大小
+            // 异步计算文件夹大小（通过后台队列服务）
             if (resetOngoingOperations)
             {
                 _folderSizeCalculationCancellation?.Cancel();
                 _folderSizeCalculationCancellation = new CancellationTokenSource();
+                // Clear stale tasks from previous navigation
+                _folderSizeService.ClearPending();
             }
             else
             {
@@ -614,23 +608,7 @@ namespace YiboFile.Services.FileList
                 cancellationToken,
                 _folderSizeCalculationCancellation.Token).Token;
 
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _folderSizeCalculator.CalculateAsync(
-                        items,
-                        combinedToken,
-                        _dispatcher,
-                        FormatFileSize,
-                        () => { }).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    YiboFile.Services.Core.FileLogger.LogException($"[FileListService] 文件夹大小计算失败", ex);
-                }
-            }, combinedToken);
+            _folderSizeService.EnqueueChildren(path, items, combinedToken);
 
             // 异步加载标签和备注
             if (resetOngoingOperations)
@@ -673,18 +651,14 @@ namespace YiboFile.Services.FileList
         #region 文件夹大小计算方法
 
         /// <summary>
-        /// 异步计算并更新文件夹大小
+        /// 异步计算并更新文件夹大小（通过后台队列）
         /// </summary>
         /// <param name="item">文件夹项</param>
         /// <param name="cancellationToken">取消令牌（可选）</param>
-        public async Task CalculateFolderSizeAsync(
-            FileSystemItem item,
-            CancellationToken cancellationToken = default)
+        public void CalculateFolderSize(FileSystemItem item, CancellationToken cancellationToken = default)
         {
             if (item == null || !item.IsDirectory || string.IsNullOrEmpty(item.Path))
-            {
                 return;
-            }
 
             if (!Directory.Exists(item.Path))
             {
@@ -692,51 +666,18 @@ namespace YiboFile.Services.FileList
                 return;
             }
 
-            var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                _folderSizeCalculationCancellation?.Token ?? CancellationToken.None).Token;
+            _folderSizeService.EnqueueSingle(item.Path, cancellationToken);
+        }
 
-            await _folderSizeCalculationSemaphore.WaitAsync(combinedToken).ConfigureAwait(false);
-            try
-            {
-                if (combinedToken.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                var size = await Task.Run(() =>
-                {
-                    return _folderSizeCalculationService.CalculateDirectorySizeOptimized(item.Path, combinedToken);
-                }, combinedToken).ConfigureAwait(false);
-
-                if (combinedToken.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                // 检查缓存大小，如果不同则更新
-                var cachedSize = DatabaseManager.GetFolderSize(item.Path);
-                if (!cachedSize.HasValue || cachedSize.Value != size)
-                {
-                    DatabaseManager.SetFolderSize(item.Path, size);
-                }
-
-                var displaySize = FormatFileSize(size);
-                await _dispatcher.InvokeAsync(() =>
-                {
-                    item.Size = displaySize;
-                    item.SizeBytes = size;
-                    _messageBus?.Publish(new FolderSizeCalculatedMessage(item.Path, size, displaySize));
-                }, DispatcherPriority.Background);
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception)
-            {
-            }
-            finally
-            {
-                _folderSizeCalculationSemaphore.Release();
-            }
+        /// <summary>
+        /// 批量提交文件夹尺寸计算（用于搜索结果、标签页等手动设置文件列表的场景）
+        /// </summary>
+        /// <param name="items">文件系统项列表</param>
+        /// <param name="cancellationToken">取消令牌（可选）</param>
+        public void EnqueueFolderSizeCalculations(IEnumerable<FileSystemItem> items, CancellationToken cancellationToken = default)
+        {
+            if (items == null) return;
+            _folderSizeService.EnqueueChildren(null, items, cancellationToken);
         }
 
         #endregion
@@ -809,15 +750,10 @@ namespace YiboFile.Services.FileList
         /// </summary>
         public void Dispose()
         {
-            // 取消所有操作
             CancelOngoingOperations();
-
-            // 释放信号量
+            _folderSizeService?.Dispose();
             _folderSizeCalculationSemaphore?.Dispose();
             _loadingSemaphore?.Dispose();
-
-            // 释放信号量
-            _folderSizeCalculationSemaphore?.Dispose();
         }
 
         #endregion
@@ -825,213 +761,132 @@ namespace YiboFile.Services.FileList
         #region 私有方法
 
         /// <summary>
-        /// 异步加载文件夹列表
+        /// 单次 Win32 枚举加载目录中所有条目（文件+文件夹），
+        /// 每项 1 次系统调用（FindNextFile），无需额外 FileInfo/DirectoryInfo。
+        /// 替代原来两趟分离的 LoadDirectoriesAsync + LoadFilesAsync。
         /// </summary>
-        private async Task<List<FileSystemItem>> LoadDirectoriesAsync(
+        private async Task<List<FileSystemItem>> LoadEntriesAsync(
             string path,
-            Func<string, long?> getFolderSizeCache,
             Func<long, string> formatFileSize,
             CancellationToken cancellationToken = default)
         {
             return await Task.Run(() =>
             {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                var directories = new List<FileSystemItem>();
+                var items = new List<FileSystemItem>();
                 try
                 {
-                    if (!Directory.Exists(path)) return directories;
+                    if (!Directory.Exists(path)) return items;
 
-                    string[] dirPaths = Directory.GetDirectories(path);
+                    // 单次 Win32 枚举 → 同时拿到文件和文件夹的完整元数据
+                    var entries = NativeFileOperations.EnumerateDirectoryEntries(
+                        path, skipReparsePoints: false, skipBlacklist: true);
 
-                    if (dirPaths.Length > 0)
+                    // 分离目录和文件
+                    var dirs = new List<NativeFileOperations.DirectoryEntry>();
+                    var files = new List<NativeFileOperations.DirectoryEntry>();
+
+                    foreach (var entry in entries)
                     {
-                        var validDirs = new System.Collections.Generic.List<(string DirPath, string ActualPath, string DisplayName)>();
+                        if (cancellationToken.IsCancellationRequested) return items;
+                        if (entry.IsDirectory)
+                            dirs.Add(entry);
+                        else
+                            files.Add(entry);
+                    }
 
-                        // 1. 预处理：解析路径和符号链接，过滤不存在的文件夹
-                        foreach (var dirPath in dirPaths)
+                    // Phase: 批量查询 DB 中的文件夹大小缓存（≤5000 时）
+                    Dictionary<string, long> cacheMap = null;
+                    if (dirs.Count > 0 && dirs.Count <= 5000)
+                    {
+                        try
                         {
-                            if (cancellationToken.IsCancellationRequested) break;
+                            var dirPaths = dirs.Select(d => d.FullPath).ToList();
+                            cacheMap = DatabaseManager.GetFolderSizesBatch(dirPaths);
+                        }
+                        catch { }
+                    }
 
+                    // 处理目录
+                    foreach (var dir in dirs)
+                    {
+                        if (cancellationToken.IsCancellationRequested) return items;
+
+                        // 解析重解析点（符号链接/Junction）
+                        string itemPath = dir.FullPath;
+                        if (dir.IsReparsePoint)
+                        {
                             try
                             {
-                                string dirName = Path.GetFileName(dirPath);
-
-                                // 黑名单：主动跳过无权访问的系统目录，避免后续读取 Metadata 抛出异常
-                                if (dirName.Equals("System Volume Information", StringComparison.OrdinalIgnoreCase) ||
-                                    dirName.Equals("$RECYCLE.BIN", StringComparison.OrdinalIgnoreCase) ||
-                                    dirName.Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase))
+                                var dirInfo = new DirectoryInfo(dir.FullPath);
+                                var linkTarget = dirInfo.LinkTarget;
+                                if (!string.IsNullOrEmpty(linkTarget) && linkTarget != dir.FullPath)
                                 {
-                                    continue;
+                                    if (!Path.IsPathRooted(linkTarget))
+                                        linkTarget = Path.GetFullPath(Path.Combine(path, linkTarget));
+                                    itemPath = linkTarget;
                                 }
-
-                                string actualPath = dirPath;
-                                string displayName = dirName;
-
-                                // 检测并解析符号链接/Junction Points
-                                if (SymbolicLinkHelper.IsSymbolicLink(dirPath))
-                                {
-                                    string targetPath = SymbolicLinkHelper.GetSymbolicLinkTarget(dirPath);
-                                    if (!string.IsNullOrEmpty(targetPath) && targetPath != dirPath)
-                                    {
-                                        actualPath = targetPath;
-                                    }
-                                }
-
-                                // 检查文件夹是否存在（如果不存在，清理数据库缓存）
-                                if (!Directory.Exists(actualPath))
-                                {
-                                    DatabaseManager.RemoveFolderSize(dirPath);
-                                    continue;
-                                }
-
-                                validDirs.Add((dirPath, actualPath, displayName));
                             }
                             catch { }
                         }
 
-                        // 2. 批量获取文件夹大小缓存
-                        var folderSizeCacheMap = new System.Collections.Generic.Dictionary<string, long>();
-                        if (getFolderSizeCache != null && validDirs.Count > 0)
+                        string size = "计算中...";
+                        long sizeBytes = -1;
+                        if (cacheMap != null && cacheMap.TryGetValue(dir.FullPath, out long cachedSize))
                         {
-                            try
-                            {
-                                var swDb = System.Diagnostics.Stopwatch.StartNew();
-                                var pathsToQuery = validDirs.Select(d => d.ActualPath).ToList();
-                                folderSizeCacheMap = DatabaseManager.GetFolderSizesBatch(pathsToQuery);
-                                swDb.Stop();
-                            }
-                            catch (Exception)
-                            {
-                            }
+                            size = formatFileSize(cachedSize);
+                            sizeBytes = cachedSize;
                         }
 
-                        // 3. 构建 FileSystemItem
-                        foreach (var (dirPath, actualPath, displayName) in validDirs)
+                        DateTime localWrite = dir.LastWriteTimeUtc.ToLocalTime();
+                        DateTime localCreate = dir.CreationTimeUtc.ToLocalTime();
+
+                        items.Add(new FileSystemItem
                         {
-                            if (cancellationToken.IsCancellationRequested) break;
-
-                            try
-                            {
-                                var dirInfo = new DirectoryInfo(actualPath);
-
-                                string sizeDisplay = "计算中...";
-                                long? cachedSize = null;
-
-                                if (folderSizeCacheMap.TryGetValue(actualPath, out long size))
-                                {
-                                    cachedSize = size;
-                                    sizeDisplay = formatFileSize(size);
-                                }
-
-                                directories.Add(new FileSystemItem
-                                {
-                                    Name = displayName,
-                                    Path = dirPath, // Use the original path to maintain contextual navigation, like Windows Explorer
-                                    Type = "文件夹",
-                                    Size = sizeDisplay,
-                                    ModifiedDate = dirInfo.LastWriteTime.ToString("yyyy-MM-dd"),
-                                    CreatedTime = FileSystemItem.FormatTimeAgo(dirInfo.CreationTime),
-                                    IsDirectory = true,
-                                    SourcePath = path, // 标记来源路径
-                                    SizeBytes = cachedSize ?? -1,
-                                    ModifiedDateTime = dirInfo.LastWriteTime,
-                                    CreatedDateTime = dirInfo.CreationTime
-                                });
-                            }
-                            catch (UnauthorizedAccessException) { /* 跳过无法访问元数据的文件夹 */ }
-                            catch (Exception) { }
-                        }
+                            Name = dir.Name,
+                            Path = dir.FullPath,
+                            Type = "文件夹",
+                            Size = size,
+                            ModifiedDate = localWrite.ToString("yyyy-MM-dd"),
+                            CreatedTime = FileSystemItem.FormatTimeAgo(localCreate),
+                            IsDirectory = true,
+                            SourcePath = path,
+                            SizeBytes = sizeBytes,
+                            ModifiedDateTime = localWrite,
+                            CreatedDateTime = localCreate
+                        });
                     }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    // 已在内部处理，此处仅记录
-                }
-                catch (Exception)
-                {
-                }
 
-                sw.Stop();
-                return directories;
-            }, cancellationToken).ConfigureAwait(false);
-        }
-
-
-
-        /// <summary>
-        /// 异步加载文件列表
-        /// </summary>
-        private async Task<List<FileSystemItem>> LoadFilesAsync(
-            string path,
-            Func<long, string> formatFileSize,
-            CancellationToken cancellationToken = default)
-        {
-            return await Task.Run(() =>
-            {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-
-                var files = new List<FileSystemItem>();
-                try
-                {
-                    if (!Directory.Exists(path)) return files;
-
-                    var filePaths = Directory.GetFiles(path);
-
-                    foreach (var filePath in filePaths)
+                    // 处理文件
+                    foreach (var file in files)
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
+                        if (cancellationToken.IsCancellationRequested) return items;
 
-                        try
+                        string fileName = file.Name;
+                        string ext = Path.GetExtension(fileName);
+                        DateTime localWrite = file.LastWriteTimeUtc.ToLocalTime();
+                        DateTime localCreate = file.CreationTimeUtc.ToLocalTime();
+
+                        items.Add(new FileSystemItem
                         {
-                            string fileName = Path.GetFileName(filePath);
-
-                            // 移除硬编码的黑名单检查，让后面统一的异常处理来负责
-                            var fileInfo = new System.IO.FileInfo(filePath);
-
-                            // 使用安全访问方法获取属性
-                            long sizeBytes = -1;
-                            try { sizeBytes = fileInfo.Length; } catch { }
-
-                            DateTime lastModified = DateTime.MinValue;
-                            try { lastModified = fileInfo.LastWriteTime; } catch { }
-
-                            DateTime created = DateTime.MinValue;
-                            try { created = fileInfo.CreationTime; } catch { }
-
-                            files.Add(new FileSystemItem
-                            {
-                                // 对于只有扩展名的文件（如.gitconfig），总是显示完整文件名
-                                Name = GetDisplayFileName(filePath, ShowFullFileName),
-                                Path = fileInfo.FullName,
-                                Type = !string.IsNullOrEmpty(fileInfo.Extension) ? fileInfo.Extension : "文件",
-                                Size = sizeBytes >= 0 ? formatFileSize(sizeBytes) : "未知",
-                                ModifiedDate = lastModified != DateTime.MinValue ? lastModified.ToString("yyyy-MM-dd") : "未知",
-                                CreatedTime = created != DateTime.MinValue ? FileSystemItem.FormatTimeAgo(created) : "未知",
-                                IsDirectory = false,
-                                SourcePath = path, // 标记来源路径
-                                SizeBytes = sizeBytes,
-                                ModifiedDateTime = lastModified,
-                                CreatedDateTime = created
-                            });
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            continue;
-                        }
-                        catch (Exception)
-                        {
-                            continue;
-                        }
+                            Name = GetDisplayFileName(file.FullPath, ShowFullFileName),
+                            Path = file.FullPath,
+                            Type = !string.IsNullOrEmpty(ext) ? ext : "文件",
+                            Size = file.Size >= 0 ? formatFileSize(file.Size) : "未知",
+                            ModifiedDate = localWrite != DateTime.MinValue ? localWrite.ToString("yyyy-MM-dd") : "未知",
+                            CreatedTime = localCreate != DateTime.MinValue ? FileSystemItem.FormatTimeAgo(localCreate) : "未知",
+                            IsDirectory = false,
+                            SourcePath = path,
+                            SizeBytes = file.Size,
+                            ModifiedDateTime = localWrite,
+                            CreatedDateTime = localCreate
+                        });
                     }
                 }
-                catch (Exception)
-                {
-                }
+                catch (UnauthorizedAccessException) { }
+                catch (Exception) { }
 
-                sw.Stop();
-                return files;
-            }, cancellationToken).ConfigureAwait(false);
+                return items;
+            }).ConfigureAwait(false);
         }
 
         /// <summary>

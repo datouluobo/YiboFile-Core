@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -25,6 +27,11 @@ namespace YiboFile.Services.Navigation
 
         // Pane-specific navigation ViewModel access
         private Func<PaneId, ViewModels.PaneViewModel> _paneViewModelResolver;
+
+        // Per-pane navigation sequence counter — ensures stale async completions
+        // (from fire-and-forget NavigateAsync) don't override newer navigations.
+        // Incremented on every HandlePathNavigation call.
+        private readonly ConcurrentDictionary<PaneId, long> _navigationSeq = new();
 
         public NavigationCoordinator(ViewModels.Messaging.IMessageBus messageBus)
         {
@@ -91,7 +98,7 @@ namespace YiboFile.Services.Navigation
 
             if (isDrillDown && !request.ForceNewTab)
             {
-                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService, request.PathToSelect);
+                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService, request.PathToSelect, request);
                 return;
             }
 
@@ -138,7 +145,7 @@ namespace YiboFile.Services.Navigation
                     return;
                 }
 
-                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService, request.PathToSelect);
+                await ExecuteNavigationInViewModel(vm, path, request.Pane, request.Source, tabService, request.PathToSelect, request);
                 return;
             }
 
@@ -166,18 +173,33 @@ namespace YiboFile.Services.Navigation
             var vmForNewTab = _paneViewModelResolver?.Invoke(request.Pane);
             if (vmForNewTab != null)
             {
-                vmForNewTab.CurrentPath = path;
-                _messageBus.Publish(new NavigationCompleteMessage(
-                    path, request.Pane, request.Source, vmForNewTab.NavigationMode,
-                    BackStack: vmForNewTab.BackStack, ForwardStack: vmForNewTab.ForwardStack,
-                    PathToSelect: request.PathToSelect));
+                // Guard against stale completions: only apply if this request is still the latest
+                if (IsLatestRequest(request.Pane, request.Sequence))
+                {
+                    vmForNewTab.CurrentPath = path;
+                    _messageBus.Publish(new NavigationCompleteMessage(
+                        path, request.Pane, request.Source, vmForNewTab.NavigationMode,
+                        BackStack: vmForNewTab.BackStack, ForwardStack: vmForNewTab.ForwardStack,
+                        PathToSelect: request.PathToSelect));
+                }
             }
         }
 
-        private async Task ExecuteNavigationInViewModel(ViewModels.PaneViewModel vm, string path, PaneId pane, YiboFile.Models.Navigation.NavigationSource source, TabService tabService, string pathToSelect = null)
+        private async Task ExecuteNavigationInViewModel(
+            ViewModels.PaneViewModel vm, string path, PaneId pane,
+            YiboFile.Models.Navigation.NavigationSource source, TabService tabService,
+            string pathToSelect = null, NavigationRequest request = null)
         {
             if (vm != null)
             {
+                // Only proceed if this request is still the latest for this pane.
+                // This prevents stale async completions from fire-and-forget
+                // NavigateAsync calls overriding newer navigations (e.g. NavigateUp).
+                if (request != null && !IsLatestRequest(pane, request.Sequence))
+                {
+                    return;
+                }
+
                 // 1. 执行导航 (ViewModel)
                 // Use CurrentPath setter directly to avoid infinite loop (NavigateTo publishes message)
                 vm.CurrentPath = path;
@@ -214,6 +236,17 @@ namespace YiboFile.Services.Navigation
             {
                 // Silent
             }
+        }
+
+        /// <summary>
+        /// 检查指定序列号是否仍然是该面板最新的导航请求。
+        /// 如果已被更新的请求取代，则忽略本次完成回调。
+        /// seq=0 表示未设置序列号（非路径导航），视为始终最新。
+        /// </summary>
+        private bool IsLatestRequest(PaneId pane, long seq)
+        {
+            if (seq == 0) return true; // Unsequenced requests always pass
+            return _navigationSeq.TryGetValue(pane, out var current) && seq == current;
         }
 
         private void HandleLibraryRequest(NavigationRequest request, TabService tabService)
@@ -339,13 +372,17 @@ namespace YiboFile.Services.Navigation
 
         public void HandlePathNavigation(string path, NavigationSource source, ClickType clickType, bool forceNewTab = false, PaneId pane = PaneId.Main, string pathToSelect = null)
         {
+            // Increment sequence — any stale async completion with an older seq is ignored.
+            long seq = _navigationSeq.AddOrUpdate(pane, 1, (key, old) => old + 1);
+
             var request = new NavigationRequest
             {
                 Target = NavigationTarget.FromPath(path),
                 ForceNewTab = forceNewTab || clickType == ClickType.MiddleClick || clickType == ClickType.CtrlLeftClick,
                 Source = source,
                 Pane = pane,
-                PathToSelect = pathToSelect
+                PathToSelect = pathToSelect,
+                Sequence = seq
             };
             _ = NavigateAsync(request);
         }
@@ -401,7 +438,7 @@ namespace YiboFile.Services.Navigation
                 if (string.Equals(tabService.ActiveTab.Path, tagPath, StringComparison.OrdinalIgnoreCase)) return;
 
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
-                await ExecuteNavigationInViewModel(vm, tagPath, request.Pane, request.Source, tabService);
+                await ExecuteNavigationInViewModel(vm, tagPath, request.Pane, request.Source, tabService, request: request);
                 return;
             }
 
@@ -412,10 +449,14 @@ namespace YiboFile.Services.Navigation
             var vmForNewTag = _paneViewModelResolver?.Invoke(request.Pane);
             if (vmForNewTag != null)
             {
-                vmForNewTag.CurrentPath = tagPath;
-                _messageBus.Publish(new NavigationCompleteMessage(
-                    tagPath, request.Pane, request.Source, vmForNewTag.NavigationMode,
-                    BackStack: vmForNewTag.BackStack, ForwardStack: vmForNewTag.ForwardStack));
+                // Guard against stale completions
+                if (IsLatestRequest(request.Pane, request.Sequence))
+                {
+                    vmForNewTag.CurrentPath = tagPath;
+                    _messageBus.Publish(new NavigationCompleteMessage(
+                        tagPath, request.Pane, request.Source, vmForNewTag.NavigationMode,
+                        BackStack: vmForNewTag.BackStack, ForwardStack: vmForNewTag.ForwardStack));
+                }
             }
         }
 
@@ -439,7 +480,7 @@ namespace YiboFile.Services.Navigation
                 if (string.Equals(tabService.ActiveTab.Path, searchPath, StringComparison.OrdinalIgnoreCase)) return;
 
                 var vm = _paneViewModelResolver?.Invoke(request.Pane);
-                await ExecuteNavigationInViewModel(vm, searchPath, request.Pane, request.Source, tabService);
+                await ExecuteNavigationInViewModel(vm, searchPath, request.Pane, request.Source, tabService, request: request);
                 return;
             }
 
@@ -450,13 +491,15 @@ namespace YiboFile.Services.Navigation
             var vmForNewSearch = _paneViewModelResolver?.Invoke(request.Pane);
             if (vmForNewSearch != null)
             {
-                vmForNewSearch.CurrentPath = searchPath;
-                _messageBus.Publish(new NavigationCompleteMessage(
-                    searchPath, request.Pane, request.Source, vmForNewSearch.NavigationMode,
-                    BackStack: vmForNewSearch.BackStack, ForwardStack: vmForNewSearch.ForwardStack));
+                // Guard against stale completions
+                if (IsLatestRequest(request.Pane, request.Sequence))
+                {
+                    vmForNewSearch.CurrentPath = searchPath;
+                    _messageBus.Publish(new NavigationCompleteMessage(
+                        searchPath, request.Pane, request.Source, vmForNewSearch.NavigationMode,
+                        BackStack: vmForNewSearch.BackStack, ForwardStack: vmForNewSearch.ForwardStack));
+                }
             }
         }
     }
 }
-
-

@@ -248,6 +248,12 @@ namespace YiboFile.ViewModels.Modules
             var tabService = msg.Pane == PaneId.Second ? _secondTabService : _tabService;
             if (tabService?.ActiveTab != null)
             {
+                // Sync tab path (important for Back/Forward/Up which bypass NavigationCoordinator)
+                if (!string.IsNullOrEmpty(msg.Path))
+                {
+                    tabService.UpdateActiveTabPath(msg.Path);
+                }
+
                 if (msg.BackStack != null)
                     tabService.ActiveTab.BackStack = new System.Collections.Generic.Stack<string>(msg.BackStack.Reverse());
                 else

@@ -337,6 +337,34 @@ namespace YiboFile.Services.Navigation
             }
         }
 
+        /// <summary>
+        /// 同步 NavigationService 内部状态到指定路径（不发布消息、不触发加载）。
+        /// 用于启动恢复场景：Tab 恢复时 PaneViewModel.CurrentPath 已设为正确值，
+        /// 但 NavigationService 的 state.CurrentPath 仍停留在初始值（如 Desktop），
+        /// 导致后续 NavigateUp/Back 读到错误的状态。
+        /// </summary>
+        public void SyncCurrentPath(PaneId pane, string path, IEnumerable<string> backStack = null, IEnumerable<string> forwardStack = null)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+
+            var state = GetState(pane);
+            state.CurrentPath = path;
+
+            // 重建历史记录（如果提供了栈信息）
+            if (backStack != null || forwardStack != null)
+            {
+                state.History.Clear();
+                if (backStack != null)
+                    foreach (var p in backStack.Reverse())
+                        state.History.Add(p);
+                state.History.Add(path);
+                if (forwardStack != null)
+                    foreach (var p in forwardStack)
+                        state.History.Add(p);
+                state.CurrentIndex = state.History.Count - 1 - (forwardStack?.Count() ?? 0);
+            }
+        }
+
         #endregion
 
         #region 高亮方法

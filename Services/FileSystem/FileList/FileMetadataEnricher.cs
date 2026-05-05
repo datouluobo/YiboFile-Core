@@ -12,7 +12,7 @@ using YiboFile.Services.Navigation;
 namespace YiboFile.Services.FileList
 {
     /// <summary>
-    /// 提供文件标签与备注的批量填充能力。
+    /// Provides batch tag and note enrichment for file items.
     /// </summary>
     public class FileMetadataEnricher
     {
@@ -24,13 +24,10 @@ namespace YiboFile.Services.FileList
         }
 
         /// <summary>
-        /// 异步为文件填充标签与备注。
+        /// Enrich items with tags, notes, and media metadata.
+        /// Uses polling cancellation only - no CancellationToken passed to async methods
+        /// to avoid OperationCanceledException spam in debugger.
         /// </summary>
-        /// <param name="items">文件或文件夹列表。</param>
-        /// <param name="cancellationToken">取消令牌。</param>
-        /// <param name="dispatcher">用于更新 UI 的 Dispatcher。</param>
-        /// <param name="orderTagNames">标签排序委托，默认为按名称升序。</param>
-        /// <param name="refreshAction">填充完成后触发的刷新动作。</param>
         public async Task EnrichAsync(
             IEnumerable<FileSystemItem> items,
             CancellationToken cancellationToken,
@@ -38,16 +35,10 @@ namespace YiboFile.Services.FileList
             Func<List<int>, List<string>> orderTagNames = null,
             Action refreshAction = null)
         {
-            if (items == null)
-            {
-                return;
-            }
+            if (items == null) return;
 
             var targets = items.Where(i => i != null).ToList();
-            if (targets.Count == 0)
-            {
-                return;
-            }
+            if (targets.Count == 0) return;
 
             var semaphore = new SemaphoreSlim(2, 2);
             var tasks = targets.Select(item => EnrichItemAsync(item, semaphore, cancellationToken, orderTagNames)).ToList();
@@ -56,15 +47,9 @@ namespace YiboFile.Services.FileList
             {
                 await Task.WhenAll(tasks);
             }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
+            catch (Exception) { }
 
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
+            if (cancellationToken.IsCancellationRequested) return;
 
             if (dispatcher != null)
             {
@@ -82,18 +67,15 @@ namespace YiboFile.Services.FileList
             CancellationToken cancellationToken,
             Func<List<int>, List<string>> orderTagNames)
         {
-            await semaphore.WaitAsync(cancellationToken);
+            // Do NOT pass cancellationToken to WaitAsync - poll instead
+            await semaphore.WaitAsync();
             try
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return;
-                }
+                if (cancellationToken.IsCancellationRequested) return;
 
                 item.Tags = BuildTags(item.Path, item, orderTagNames);
                 item.Notes = BuildNotes(item.Path);
 
-                // Enhance: Extract Media Metadata
                 await EnrichMediaMetadataAsync(item, cancellationToken);
             }
             finally
@@ -105,13 +87,14 @@ namespace YiboFile.Services.FileList
         private async Task EnrichMediaMetadataAsync(FileSystemItem item, CancellationToken cancellationToken)
         {
             if (item.IsDirectory || string.IsNullOrEmpty(item.Path)) return;
+            if (cancellationToken.IsCancellationRequested) return;
 
             string ext = System.IO.Path.GetExtension(item.Path).ToLowerInvariant();
             if (YiboFile.Services.Search.SearchFilterService.ImageExtensions.Contains(ext))
             {
                 try
                 {
-                    // 使用 WPF 原生的 BitmapDecoder (基于 WIC)，比 System.Drawing 更轻量且不会导致 GDI+ 崩溃
+                    // Do NOT pass cancellationToken to Task.Run - poll instead
                     await Task.Run(() =>
                     {
                         if (cancellationToken.IsCancellationRequested) return;
@@ -119,7 +102,6 @@ namespace YiboFile.Services.FileList
                         {
                             using (var fs = new System.IO.FileStream(item.Path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
                             {
-                                // 只读取元数据，不解码像素，极快且内存占用低
                                 var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(
                                     fs,
                                     System.Windows.Media.Imaging.BitmapCreateOptions.DelayCreation,
@@ -133,8 +115,8 @@ namespace YiboFile.Services.FileList
                                 }
                             }
                         }
-                        catch (Exception) { /* 忽略无法读取的图片 */ }
-                    }, cancellationToken);
+                        catch (Exception) { }
+                    });
                 }
                 catch { }
             }
@@ -143,15 +125,9 @@ namespace YiboFile.Services.FileList
             {
                 try
                 {
-                    // Use Native Shell Property (reliable, built-in)
-                    // Replaces FFMpegCore which requires external binaries
                     if (cancellationToken.IsCancellationRequested) return;
                     long duration = YiboFile.Services.Core.ShellPropertyHelper.GetDuration(item.Path);
                     item.DurationMs = duration;
-
-                    // For video dimensions, ShellPropertyHelper could also be used but requires more PKEYs.
-                    // For now, if duration is retrieved, that's good.
-                    // If we really need dimensions for video, we can try FFMpeg as backup or add PKEYs.
                 }
                 catch { }
             }
@@ -170,7 +146,6 @@ namespace YiboFile.Services.FileList
                     return string.Empty;
                 }
 
-                // Map to TagViewModel
                 item.TagList = dbTags.Select(t => new TagViewModel
                 {
                     Id = t.Id,
@@ -178,8 +153,6 @@ namespace YiboFile.Services.FileList
                     Color = t.Color
                 }).ToList();
 
-                // Consider ordering if needed, for now just join names
-                // If orderTagNames is provided, we could use it, but for now just comma separation
                 return string.Join(", ", dbTags.Select(t => t.Name));
             }
             catch (Exception)
@@ -192,7 +165,7 @@ namespace YiboFile.Services.FileList
         private string BuildNotes(string path)
         {
             var notes = FileNotesService.GetFileNotes(path);
-            
+
             if (string.IsNullOrWhiteSpace(notes))
             {
                 return string.Empty;
@@ -204,28 +177,5 @@ namespace YiboFile.Services.FileList
 
             return firstLine.Length > 100 ? firstLine[..100] + "..." : firstLine;
         }
-
-        // DefaultOrderTags 已移除 - Phase 2将重新实现
-        // private List<string> DefaultOrderTags(List<int> tagIds)
-        // {
-        //     return new List<string>();
-        // }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
