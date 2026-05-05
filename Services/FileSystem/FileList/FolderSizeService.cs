@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using YiboFile.Interop;
 using YiboFile.Models;
 using YiboFile.ViewModels.Messaging;
 using YiboFile.ViewModels.Messaging.Messages;
@@ -24,22 +25,6 @@ namespace YiboFile.Services.FileList
         private long _generation;
 
         private const int MaxEnqueuePerCall = 500;
-
-        private static readonly EnumerationOptions _fileOptions = new()
-        {
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = false,
-            ReturnSpecialDirectories = false,
-            AttributesToSkip = FileAttributes.ReparsePoint
-        };
-
-        private static readonly EnumerationOptions _dirOptions = new()
-        {
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = false,
-            ReturnSpecialDirectories = false,
-            AttributesToSkip = FileAttributes.ReparsePoint
-        };
 
         public FolderSizeService(
             IMessageBus messageBus,
@@ -190,23 +175,21 @@ namespace YiboFile.Services.FileList
             {
                 if (!Directory.Exists(folderPath)) return 0;
 
-                // Scan files in current directory only (non-recursive, closes handle after enumeration)
-                foreach (var file in Directory.EnumerateFiles(folderPath, "*", _fileOptions))
-                {
-                    try
-                    {
-                        var fi = new System.IO.FileInfo(file);
-                        if (fi.Exists)
-                            totalSize += fi.Length;
-                    }
-                    catch { }
-                }
+                // 使用 Win32 FindFirstFile/FindNextFile 单次枚举获取所有元数据
+                var entries = NativeFileOperations.EnumerateDirectoryEntries(
+                    folderPath, skipReparsePoints: true, skipBlacklist: true);
 
-                // Manually recurse into subdirectories — each subdirectory's handle is opened
-                // and closed independently, avoiding long-held handles on the root folder.
-                foreach (var subDir in Directory.EnumerateDirectories(folderPath, "*", _dirOptions))
+                foreach (var entry in entries)
                 {
-                    totalSize += ScanDirectorySize(subDir);
+                    if (!entry.IsDirectory)
+                    {
+                        totalSize += entry.Size;
+                    }
+                    else
+                    {
+                        // 手动递归子目录
+                        totalSize += ScanDirectorySize(entry.FullPath);
+                    }
                 }
             }
             catch (UnauthorizedAccessException) { }
