@@ -508,7 +508,8 @@
                       FocusVisualStyle="{x:Null}"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.IsVirtualizingWhenGrouping="False"
-                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                      VerticalContentAlignment="Stretch">
                 <ListView.InputBindings>
                     <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding Commands.CopyCommand}"/>
                     <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding Commands.CutCommand}"/>
