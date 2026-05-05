@@ -50,6 +50,11 @@ namespace YiboFile.Services.UI
                                         fileItem.Thumbnail = placeholder;
                                 }, DispatcherPriority.Background);
                             }
+                            else
+                            {
+                                // 已有缩略图（保留自旧集合），跳过重载
+                                continue;
+                            }
 
                             _ = LoadThumbnailForItemAsync(fileItem, thumbnailSize, token);
                         }
