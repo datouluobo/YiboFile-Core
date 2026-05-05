@@ -24,9 +24,9 @@ namespace YiboFile.Services.FileList
         private readonly IMessageBus _messageBus;
         private readonly PaneId _paneId;
         private readonly object _lock = new object();
+        private static int _bufferSizeToUse = 65536;
 
         #endregion
-
 
 
         #region 构造函数
@@ -63,6 +63,7 @@ namespace YiboFile.Services.FileList
                     _fileWatcher.Deleted -= OnFileSystemChanged;
                     _fileWatcher.Renamed -= OnFileSystemChanged;
                     _fileWatcher.Changed -= OnFileSystemChanged;
+                    _fileWatcher.Error -= OnWatcherError;
                     _fileWatcher.Dispose();
                     _fileWatcher = null;
                 }
@@ -91,20 +92,21 @@ namespace YiboFile.Services.FileList
 
                 try
                 {
-                    // 创建新的文件系统监视器
+                    // 创建新的文件系统监视器，使用最大缓冲区避免大文件夹下溢出
                     _fileWatcher = new FileSystemWatcher
                     {
                         Path = path,
                         NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName,
                         Filter = "*.*",
                         IncludeSubdirectories = false,
-                        InternalBufferSize = 8192
+                        InternalBufferSize = _bufferSizeToUse
                     };
 
                     _fileWatcher.Created += OnFileSystemChanged;
                     _fileWatcher.Deleted += OnFileSystemChanged;
                     _fileWatcher.Renamed += OnFileSystemChanged;
                     _fileWatcher.Changed += OnFileSystemChanged;
+                    _fileWatcher.Error += OnWatcherError;
 
                     _fileWatcher.EnableRaisingEvents = true;
                 }
@@ -159,6 +161,29 @@ namespace YiboFile.Services.FileList
         }
 
         /// <summary>
+        /// 文件系统监视器缓冲区溢出处理
+        /// 增加缓冲区大小并触发刷新，防止丢失文件变更事件
+        /// </summary>
+        private void OnWatcherError(object sender, ErrorEventArgs e)
+        {
+            // 缓冲区溢出：增加大小并刷新列表以捕获漏掉的变化
+            var oldSize = _bufferSizeToUse;
+            _bufferSizeToUse = Math.Min(_bufferSizeToUse * 2, 65536);
+
+            _dispatcher?.BeginInvoke(new Action(() =>
+            {
+                lock (_lock)
+                {
+                    if (!string.IsNullOrEmpty(_watchedPath))
+                    {
+                        // 重新创建监视器以应用新缓冲区大小
+                        _messageBus?.Publish(new RefreshFileListMessage(Pane: _paneId));
+                    }
+                }
+            }), DispatcherPriority.SystemIdle);
+        }
+
+        /// <summary>
         /// 防抖定时器触发事件
         /// </summary>
         private void OnRefreshDebounceTimerTick(object sender, EventArgs e)
@@ -199,5 +224,3 @@ namespace YiboFile.Services.FileList
         #endregion
     }
 }
-
-
