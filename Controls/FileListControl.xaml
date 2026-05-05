@@ -509,6 +509,7 @@
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.IsVirtualizingWhenGrouping="False"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                      HorizontalContentAlignment="Stretch"
                       VerticalContentAlignment="Stretch">
                 <ListView.InputBindings>
                     <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding Commands.CopyCommand}"/>

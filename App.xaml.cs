@@ -42,6 +42,13 @@ namespace YiboFile
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // 抑制 WPF ListViewItem 在虚拟化时对 ItemsControl.HorizontalContentAlignment
+            // /VerticalContentAlignment 的 RelativeSource FindAncestor 绑定警告。
+            // WPF .NET 8 的 ContentPresenter 即使模板用了 TemplateBinding 仍会
+            // 尝试 FindAncestor，在 item 脱链/回收时触发刷屏 Error 4 警告。
+            System.Diagnostics.PresentationTraceSources.DataBindingSource.Switch.Level =
+                System.Diagnostics.SourceLevels.Critical;
+
             _bootstrapper = new Bootstrapper(this, ConfigureServices);
             bool success = _bootstrapper.Initialize();
 
