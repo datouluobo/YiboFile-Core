@@ -7,6 +7,15 @@
     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     xmlns:converters="clr-namespace:YiboFile.Controls.Converters">
 
+    <!-- ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+         全局 ListViewItem 默认样式
+         防止 WPF 默认模板中 VerticalContentAlignment 的
+         RelativeSource FindAncestor 绑定找不到来源时刷屏警告。
+         ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ -->
+    <Style TargetType="ListViewItem">
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+
     <!-- ================================================================
          Navigation ListBox Item Style
          ================================================================ -->
