@@ -444,7 +444,6 @@ namespace YiboFile.ViewModels
             {
                 Files = new ObservableCollection<FileSystemItem>(sorted);
                 SetupFileWatcher(null);
-                RefreshCollectionView();
             });
 
             // 对于手动设置的文件列表（如搜索结果），我们在此启动增强和计算
@@ -504,7 +503,6 @@ namespace YiboFile.ViewModels
             _dispatcher.Invoke(() =>
             {
                 Files = new ObservableCollection<FileSystemItem>(sorted);
-                RefreshCollectionView();
             });
         }
 
@@ -686,12 +684,6 @@ namespace YiboFile.ViewModels
                     _loadCancellationTokenSource = null;
                 }
             }
-        }
-
-        private void RefreshCollectionView()
-        {
-            var view = CollectionViewSource.GetDefaultView(Files);
-            view?.Refresh();
         }
     }
 }
