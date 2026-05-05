@@ -629,8 +629,10 @@ namespace YiboFile.Services.FileList
             {
                 try
                 {
+                    // 仅对前 500 个项进行元数据加载，防止 50K 文件时创建 50K 个 Task
+                    var enrichItems = items.Count <= 500 ? items : items.GetRange(0, 500);
                     await _metadataEnricher.EnrichAsync(
-                        items,
+                        enrichItems,
                         combinedMetadataToken,
                         _dispatcher,
                         orderTagNames,

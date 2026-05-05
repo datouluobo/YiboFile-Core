@@ -420,7 +420,7 @@ namespace YiboFile.ViewModels
 
             // 对于手动设置的文件列表（如搜索结果），我们在此启动增强和计算
             var cts = new CancellationTokenSource();
-            _ = _metadataEnricher.EnrichAsync(items, cts.Token, _dispatcher, null, null);
+            _ = _metadataEnricher.EnrichAsync(items.Count <= 500 ? items : items.GetRange(0, 500), cts.Token, _dispatcher, null, null);
             _fileListService.EnqueueFolderSizeCalculations(items, cts.Token);
         }
 
