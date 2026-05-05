@@ -559,16 +559,16 @@ namespace YiboFile.ViewModels
                 case "Size":
                     files.Sort((a, b) =>
                     {
-                        long sizeA = ParseFileSize(a.Size);
-                        long sizeB = ParseFileSize(b.Size);
+                        long sizeA = a.SizeBytes;
+                        long sizeB = b.SizeBytes;
                         return sortAscending ? sizeA.CompareTo(sizeB) : sizeB.CompareTo(sizeA);
                     });
                     break;
                 case "ModifiedDate":
                     files.Sort((a, b) =>
                     {
-                        DateTime dateA = ParseDate(a.ModifiedDate);
-                        DateTime dateB = ParseDate(b.ModifiedDate);
+                        var dateA = a.ModifiedDateTime;
+                        var dateB = b.ModifiedDateTime;
                         return sortAscending ? dateA.CompareTo(dateB) : dateB.CompareTo(dateA);
                     });
                     break;
@@ -579,47 +579,15 @@ namespace YiboFile.ViewModels
             return files;
         }
 
-        private long ParseFileSize(string sizeStr)
+        public void Dispose()
         {
-            if (string.IsNullOrEmpty(sizeStr))
-                return 0;
+            _messageBus?.Unsubscribe<FileTagsChangedMessage>(OnFileTagsChanged);
+            _messageBus?.Unsubscribe<NotesUpdatedMessage>(OnNotesUpdated);
+            _fileWatcherService?.Dispose();
 
-            sizeStr = sizeStr.Trim().ToUpper();
-            if (sizeStr.EndsWith("B"))
-            {
-                sizeStr = sizeStr.Substring(0, sizeStr.Length - 1).Trim();
-            }
-
-            if (sizeStr.EndsWith("KB"))
-            {
-                if (double.TryParse(sizeStr.Substring(0, sizeStr.Length - 2).Trim(), out double kb))
-                    return (long)(kb * 1024);
-            }
-            else if (sizeStr.EndsWith("MB"))
-            {
-                if (double.TryParse(sizeStr.Substring(0, sizeStr.Length - 2).Trim(), out double mb))
-                    return (long)(mb * 1024 * 1024);
-            }
-            else if (sizeStr.EndsWith("GB"))
-            {
-                if (double.TryParse(sizeStr.Substring(0, sizeStr.Length - 2).Trim(), out double gb))
-                    return (long)(gb * 1024 * 1024 * 1024);
-            }
-            else if (long.TryParse(sizeStr, out long bytes))
-            {
-                return bytes;
-            }
-
-            return 0;
+            _refreshDebounceTimer?.Stop();
+            CancelOngoingOperations();
         }
-
-        private DateTime ParseDate(string dateStr)
-        {
-            if (DateTime.TryParse(dateStr, out DateTime result))
-                return result;
-            return DateTime.MinValue;
-        }
-
 
         private void OnFileTagsChanged(FileTagsChangedMessage msg)
         {
@@ -670,16 +638,6 @@ namespace YiboFile.ViewModels
                     item.Notes = msg.Notes;
                 }
             }), DispatcherPriority.Background);
-        }
-
-        public void Dispose()
-        {
-            _messageBus?.Unsubscribe<FileTagsChangedMessage>(OnFileTagsChanged);
-            _messageBus?.Unsubscribe<NotesUpdatedMessage>(OnNotesUpdated);
-            _fileWatcherService?.Dispose();
-
-            _refreshDebounceTimer?.Stop();
-            CancelOngoingOperations();
         }
 
         private void CancelOngoingOperations()
