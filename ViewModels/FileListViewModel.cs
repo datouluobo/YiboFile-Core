@@ -107,8 +107,24 @@ namespace YiboFile.ViewModels
         {
             _dispatcher.BeginInvoke(new Action(() =>
             {
-                Files = new ObservableCollection<FileSystemItem>(items);
-            }), DispatcherPriority.Normal);
+                // 保留旧文件的 Thumbnail，避免集合替换后图标闪烁
+                var oldThumbnails = new Dictionary<string, System.Windows.Media.Imaging.BitmapSource>(
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var old in _files)
+                {
+                    if (old.Thumbnail != null && !string.IsNullOrEmpty(old.Path))
+                        oldThumbnails[old.Path] = old.Thumbnail;
+                }
+
+                var itemList = items.ToList();
+                foreach (var item in itemList)
+                {
+                    if (oldThumbnails.TryGetValue(item.Path, out var thumb))
+                        item.Thumbnail = thumb;
+                }
+
+                Files = new ObservableCollection<FileSystemItem>(itemList);
+            }), DispatcherPriority.Background);
         }
 
         private readonly IMessageBus _messageBus;
