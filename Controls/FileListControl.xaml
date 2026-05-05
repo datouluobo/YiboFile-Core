@@ -156,7 +156,7 @@
                             </TextBlock.Style>
                         </TextBlock>
                         <!-- 缩略图模式重命名浮层 -->
-                        <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}, FallbackValue=''}"
+                        <local:RenameOverlay 
                             IsOpen="{Binding IsRenaming}"
                             Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             PlacementTarget="{Binding ElementName=ThumbnailFileName}"
@@ -233,7 +233,7 @@
                     </Button>
 
                     <!-- 平铺重命名 Overlay -->
-                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}, FallbackValue=''}"
+                    <local:RenameOverlay 
                         Grid.ColumnSpan="3"
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -316,7 +316,7 @@
                     </Button>
 
                     <!-- 内容重命名 Overlay -->
-                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}, FallbackValue=''}"
+                    <local:RenameOverlay 
                         Grid.ColumnSpan="3"
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -386,7 +386,7 @@
                         <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Button>
                     <!-- 小图标重命名 Overlay -->
-                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}, FallbackValue=''}"
+                    <local:RenameOverlay 
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         PlacementTarget="{Binding ElementName=SmallIconFileName}"
@@ -461,7 +461,7 @@
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"/>
 
                     <!-- 紧凑重命名 Overlay -->
-                    <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}, FallbackValue=''}"
+                    <local:RenameOverlay 
                         Grid.ColumnSpan="5"
                         IsOpen="{Binding IsRenaming}"
                         Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -579,7 +579,7 @@
                                                 </TextBlock.Style>
                                             </TextBlock>
                                             <!-- 列表视图重命名 Overlay -->
-                                            <local:RenameOverlay LostFocusBehavior="{Binding DataContext.RenameLostFocusBehavior, RelativeSource={RelativeSource AncestorType=local:FileListControl}, FallbackValue=''}"
+                                            <local:RenameOverlay 
                                                 IsOpen="{Binding IsRenaming}"
                                                 Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                 PlacementTarget="{Binding ElementName=FileNameText}"
