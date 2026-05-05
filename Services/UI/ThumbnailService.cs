@@ -80,13 +80,10 @@ namespace YiboFile.Services.UI
 
             if (_thumbnailCache.TryGetValue(cacheKey, out var cachedImage))
             {
-                if (!token.IsCancellationRequested)
-                {
-                    await Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        if (!token.IsCancellationRequested) item.Thumbnail = cachedImage;
-                    }, DispatcherPriority.Normal);
-                }
+                // 缓存命中：直接赋值（BitmapSource 不可变，跨线程赋值安全）
+                // 跳过 Dispatcher.InvokeAsync，避免 Normal 优先级调度堆积
+                if (!token.IsCancellationRequested && item.Thumbnail == null)
+                    item.Thumbnail = cachedImage;
                 return;
             }
 
