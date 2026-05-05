@@ -118,34 +118,16 @@ namespace YiboFile.Services.ColumnManagement
             if (files == null || files.Count == 0)
                 return files ?? new List<FileSystemItem>();
 
-            // 分离文件夹和文件
-            // 此处仍需遍历一次，但后续排序效率更高
-            var directories = new List<FileSystemItem>(files.Count / 3);
-            var fileItems = new List<FileSystemItem>(files.Count);
-
-            foreach (var item in files)
-            {
-                if (item.IsDirectory)
-                {
-                    directories.Add(item);
-                }
-                else
-                {
-                    fileItems.Add(item);
-                }
-            }
-
-            // 使用自定义比较器进行原地排序
+            // 原地排序：文件夹始终在文件前面，内置 IsDirectory 比较
+            // 避免创建 3 份中间列表（directories + fileItems + result）
             var comparer = new FileSystemItemComparer(_lastSortColumn, _sortAscending);
-
-            directories.Sort(comparer);
-            fileItems.Sort(comparer);
-
-            // 合并：文件夹在前，文件在后
-            var result = new List<FileSystemItem>(files.Count);
-            result.AddRange(directories);
-            result.AddRange(fileItems);
-            return result;
+            files.Sort((a, b) =>
+            {
+                if (a.IsDirectory != b.IsDirectory)
+                    return a.IsDirectory ? -1 : 1;
+                return comparer.Compare(a, b);
+            });
+            return files;
         }
 
         /// <summary>
