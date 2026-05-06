@@ -104,7 +104,7 @@
                                     ItemsSource="{Binding PrimaryTabs}"
                                     NewTabCommand="{Binding PrimaryNewTabCommand}"
                                     Margin="0"
-                                    VerticalAlignment="Center"
+                                    VerticalAlignment="Bottom"
                                     Panel.ZIndex="1001"
                                     WindowChrome.IsHitTestVisibleInChrome="True"/>
 
@@ -196,7 +196,7 @@
                                                 DataContext="{Binding Tabs}"
                                                 ItemsSource="{Binding SecondaryTabs}"
                                                 NewTabCommand="{Binding SecondaryNewTabCommand}"
-                                                VerticalAlignment="Center"
+                                                VerticalAlignment="Bottom"
                                                 IsHitTestVisible="True"
                                                 WindowChrome.IsHitTestVisibleInChrome="True"/>
                     </DockPanel>
