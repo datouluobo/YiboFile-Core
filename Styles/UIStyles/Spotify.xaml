@@ -1,0 +1,117 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         Spotify UI 风格 — 沉浸暗色 + 药丸几何
+         药丸按钮 (500px/9999px)、圆角卡片 (6px)、紧凑排版
+         ================================================================ -->
+
+    <!-- ======== 元数据 ======== -->
+    <sys:String x:Key="UIStyleId">Spotify</sys:String>
+    <sys:String x:Key="UIStyleDisplayName">Spotify</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Spotify</sys:String>
+    <sys:String x:Key="UIStyleDescription">Spotify 沉浸风格：药丸按钮、底部指示条、圆角卡片、紧凑内容密度</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Spotify immersive: pill buttons, bottom indicator, rounded cards, compact density</sys:String>
+
+    <!-- ================================================================
+         A. Tab 标签页 (14键) — 底部指示条、圆角
+         ================================================================ -->
+    <CornerRadius x:Key="UI.TabItem.CornerRadius">6,6,0,0</CornerRadius>
+    <Thickness x:Key="UI.TabItem.Margin">2,0</Thickness>
+    <Thickness x:Key="UI.TabItem.Padding">14,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.Height">34</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource AccentLightBrush.Color}"/>
+    <Thickness x:Key="UI.TabItem.ActiveBorderThickness">0</Thickness>
+    <Visibility x:Key="UI.TabItem.SeparatorVisibility">Collapsed</Visibility>
+    <sys:Double x:Key="UI.TabItem.SeparatorHeight">14</sys:Double>
+    <Visibility x:Key="UI.TabItem.ActiveIndicatorVisibility">Visible</Visibility>
+    <VerticalAlignment x:Key="UI.TabItem.ActiveIndicatorPosition">Bottom</VerticalAlignment>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorHeight">3</sys:Double>
+    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">8,0,8,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">1.5</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <!-- Spotify Tab 阴影 -->
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="4" ShadowDepth="2" Opacity="0.3" Color="#000000"/>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">Bold</FontWeight>
+
+    <!-- ================================================================
+         B. 工具栏按钮 (5键) — 药丸形
+         ================================================================ -->
+    <CornerRadius x:Key="UI.ToolbarButton.CornerRadius">9999</CornerRadius>
+    <Thickness x:Key="UI.ToolbarButton.BorderThickness">0</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Padding">10,0</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Margin">2,0</Thickness>
+    <sys:Double x:Key="UI.ToolbarButton.Height">32</sys:Double>
+
+    <!-- ================================================================
+         C. 侧边栏/导航列表 (6键) — 药丸形选中
+         ================================================================ -->
+    <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">9999</CornerRadius>
+    <Thickness x:Key="UI.Sidebar.ItemMargin">4,2</Thickness>
+    <Visibility x:Key="UI.Sidebar.ActiveIndicatorVisibility">Collapsed</Visibility>
+    <Thickness x:Key="UI.Sidebar.ItemPadding">12,6</Thickness>
+    <sys:Double x:Key="UI.Sidebar.ItemHeight">32</sys:Double>
+    <SolidColorBrush x:Key="UI.Sidebar.ActiveBackground" Color="{DynamicResource AccentColor}"/>
+
+    <!-- ================================================================
+         D. 地址栏 (2键) — 药丸形搜索框
+         ================================================================ -->
+    <CornerRadius x:Key="UI.AddressBar.CornerRadius">500</CornerRadius>
+    <Thickness x:Key="UI.AddressBar.BorderThickness">0</Thickness>
+
+    <!-- ================================================================
+         E. 文件列表行 (6键) — 紧凑、圆角行
+         ================================================================ -->
+    <CornerRadius x:Key="UI.FileList.RowCornerRadius">6</CornerRadius>
+    <Thickness x:Key="UI.FileList.RowMargin">2,1</Thickness>
+    <Thickness x:Key="UI.FileList.RowBorderThickness">0</Thickness>
+    <sys:Double x:Key="UI.FileList.RowMinHeight">32</sys:Double>
+    <Thickness x:Key="UI.FileList.RowPadding">8,0</Thickness>
+    <Thickness x:Key="UI.FileList.SelectedBorderThickness">0</Thickness>
+
+    <!-- ================================================================
+         F. 文件列表列头 (4键) — 简洁、紧凑
+         ================================================================ -->
+    <Thickness x:Key="UI.ColumnHeader.Padding">8,6</Thickness>
+    <Thickness x:Key="UI.ColumnHeader.BorderThickness">0,0,0,0</Thickness>
+    <FontWeight x:Key="UI.ColumnHeader.FontWeight">700</FontWeight>
+    <sys:Double x:Key="UI.ColumnHeader.Height">30</sys:Double>
+
+    <!-- ================================================================
+         G. 分割器 (5键) — 细线
+         ================================================================ -->
+    <Visibility x:Key="UI.Splitter.VisibleLine">Visible</Visibility>
+    <sys:Double x:Key="UI.Splitter.Width">8</sys:Double>
+    <sys:Double x:Key="UI.Splitter.LineThickness">1</sys:Double>
+    <Visibility x:Key="UI.Splitter.HoverShowGripDot">Visible</Visibility>
+    <sys:Double x:Key="UI.Splitter.CollapseButtonOpacity">0.5</sys:Double>
+
+    <!-- ================================================================
+         H. 滚动条 (6键) — 圆角药丸滑块
+         ================================================================ -->
+    <CornerRadius x:Key="UI.ScrollBar.ThumbCornerRadius">9999</CornerRadius>
+    <sys:Double x:Key="UI.ScrollBar.ThumbWidth">6</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverWidth">10</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbOpacity">0.4</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverOpacity">0.7</sys:Double>
+    <sys:String x:Key="UI.ScrollBar.Mode">Overlay</sys:String>
+
+    <!-- ================================================================
+         I. 通用控件圆角 (6键) — 药丸为主
+         ================================================================ -->
+    <CornerRadius x:Key="UI.Button.CornerRadius">9999</CornerRadius>
+    <CornerRadius x:Key="UI.TextBox.CornerRadius">500</CornerRadius>
+    <CornerRadius x:Key="UI.ComboBox.CornerRadius">500</CornerRadius>
+    <CornerRadius x:Key="UI.GroupBox.CornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="UI.ContextMenu.CornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="UI.MenuItem.CornerRadius">6</CornerRadius>
+
+    <!-- ================================================================
+         J. 对话框 (2键)
+         ================================================================ -->
+    <CornerRadius x:Key="UI.Dialog.CornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="UI.Dialog.ButtonCornerRadius">9999</CornerRadius>
+
+</ResourceDictionary>

@@ -1,0 +1,153 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- ========================================
+         Spotify 暗色主题 — 沉浸式碳黑 + 翠绿点缀
+         灵感来自 Spotify 音乐客户端
+         近黑沉浸 + 功能翠绿 + 药丸按钮 + 厚重阴影
+         ======================================== -->
+    
+    <!-- 主题元数据 -->
+    <sys:String x:Key="ThemeId">Spotify</sys:String>
+    <sys:String x:Key="ThemeDisplayName">Spotify 沉浸</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Spotify Dark</sys:String>
+    <sys:String x:Key="ThemeDescription">灵感来自 Spotify：近黑沉浸式背景、翠绿功能点缀、药丸几何、内容优先黑暗感</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Inspired by Spotify: near-black immersive canvas, functional green accent, pill geometry, content-first darkness</sys:String>
+    <sys:String x:Key="ThemeAuthor">Spotify Design System</sys:String>
+    <sys:String x:Key="ThemeVersion">1.0.0</sys:String>
+    
+    <!-- 预览色彩 -->
+    <sys:String x:Key="PreviewPrimaryColor">#1ed760</sys:String>
+    <sys:String x:Key="PreviewBackgroundColor">#121212</sys:String>
+    <sys:String x:Key="PreviewSurfaceColor">#181818</sys:String>
+    <sys:String x:Key="PreviewTextColor">#ffffff</sys:String>
+    
+    <!-- ========================================
+         核心资源 (37个 Semantic Tokens)
+         ======================================== -->
+    
+    <!-- 1. 背景类 (9个) — 近黑沉浸层级 -->
+    <Color x:Key="BackgroundPrimaryBrush.Color">#121212</Color>
+    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#121212"/>
+    
+    <Color x:Key="BackgroundSecondaryBrush.Color">#181818</Color>
+    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#181818"/>
+    
+    <Color x:Key="BackgroundTertiaryBrush.Color">#1f1f1f</Color>
+    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#1f1f1f"/>
+    
+    <Color x:Key="BackgroundElevatedBrush.Color">#181818</Color>
+    <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#181818"/>
+    
+    <Color x:Key="TitleBarBackgroundBrush.Color">#121212</Color>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#121212"/>
+    
+    <Color x:Key="NavigationRegionBrush.Color">#121212</Color>
+    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#121212"/>
+    
+    <Color x:Key="SidebarBackgroundBrush.Color">#121212</Color>
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#121212"/>
+    
+    <Color x:Key="PaneFocusedBackgroundBrush.Color">#121212</Color>
+    <SolidColorBrush x:Key="PaneFocusedBackgroundBrush" Color="#121212"/>
+    
+    <Color x:Key="PaneUnfocusedBackgroundBrush.Color">#181818</Color>
+    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="#181818"/>
+
+    <!-- 2. 文本类 (6个) — 白→银→灰 -->
+    <Color x:Key="ForegroundPrimaryBrush.Color">#ffffff</Color>
+    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#ffffff"/>
+    
+    <Color x:Key="ForegroundSecondaryBrush.Color">#b3b3b3</Color>
+    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#b3b3b3"/>
+    
+    <Color x:Key="ForegroundTertiaryBrush.Color">#7c7c7c</Color>
+    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="#7c7c7c"/>
+    
+    <Color x:Key="ForegroundDisabledBrush.Color">#4d4d4d</Color>
+    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#4d4d4d"/>
+    
+    <Color x:Key="ForegroundOnAccentBrush.Color">#000000</Color>
+    <SolidColorBrush x:Key="ForegroundOnAccentBrush" Color="#000000"/>
+    
+    <!-- Legacy Key -->
+    <Color x:Key="ForegroundPrimaryColor">#ffffff</Color>
+    
+    <!-- 3. 边框类 (3个) — 暗色上的细线 -->
+    <Color x:Key="BorderDefaultBrush.Color">#333333</Color>
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#333333"/>
+    
+    <Color x:Key="BorderSubtleBrush.Color">#282828</Color>
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#282828"/>
+    
+    <Color x:Key="BorderFocusBrush.Color">#1ed760</Color>
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="#1ed760"/>
+    
+    <!-- 4. 强调色/交互 (7个) — 唯一的品牌色彩 -->
+    <Color x:Key="AccentDefaultBrush.Color">#1ed760</Color>
+    <SolidColorBrush x:Key="AccentDefaultBrush" Color="#1ed760"/>
+    
+    <Color x:Key="AccentHoverBrush.Color">#1db954</Color>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#1db954"/>
+    
+    <Color x:Key="AccentPressedBrush.Color">#169c46</Color>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#169c46"/>
+    
+    <Color x:Key="AccentSelectedBrush.Color">#1ed760</Color>
+    <SolidColorBrush x:Key="AccentSelectedBrush" Color="#1ed760"/>
+    
+    <Color x:Key="AccentLightBrush.Color">#1a2e1a</Color>
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#1a2e1a"/>
+    
+    <!-- Legacy Keys -->
+    <Color x:Key="AccentColor">#1ed760</Color>
+    <Color x:Key="AccentHoverColor">#1db954</Color>
+    
+    <!-- 5. 控件状态 (4个) — 暗色上的交互反馈 -->
+    <Color x:Key="ControlDefaultBrush.Color">#1f1f1f</Color>
+    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#1f1f1f"/>
+    
+    <Color x:Key="ControlHoverBrush.Color">#282828</Color>
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#282828"/>
+    
+    <Color x:Key="ControlPressedBrush.Color">#333333</Color>
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#333333"/>
+    
+    <Color x:Key="ControlDisabledBrush.Color">#181818</Color>
+    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#181818"/>
+    
+    <!-- 6. 状态色 (4个) — Spotify 语义色 -->
+    <Color x:Key="StatusSuccessBrush.Color">#1ed760</Color>
+    <SolidColorBrush x:Key="StatusSuccessBrush" Color="#1ed760"/>
+    
+    <Color x:Key="StatusWarningBrush.Color">#ffa42b</Color>
+    <SolidColorBrush x:Key="StatusWarningBrush" Color="#ffa42b"/>
+    
+    <Color x:Key="StatusErrorBrush.Color">#f3727f</Color>
+    <SolidColorBrush x:Key="StatusErrorBrush" Color="#f3727f"/>
+    
+    <Color x:Key="StatusInfoBrush.Color">#539df5</Color>
+    <SolidColorBrush x:Key="StatusInfoBrush" Color="#539df5"/>
+    
+    <!-- 7. 特殊用途 (5个) — 暗色上需要厚重阴影才可见 -->
+    <Color x:Key="TransparentBrush.Color">Transparent</Color>
+    <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>
+    
+    <Color x:Key="OverlayBrush.Color">#B3000000</Color>
+    <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000"/>
+    
+    <Color x:Key="OverlayLightBrush.Color">#66000000</Color>
+    <SolidColorBrush x:Key="OverlayLightBrush" Color="#66000000"/>
+    
+    <Color x:Key="OverlayDarkBrush.Color">#CC000000</Color>
+    <SolidColorBrush x:Key="OverlayDarkBrush" Color="#CC000000"/>
+    
+    <Color x:Key="DividerBrush.Color">#333333</Color>
+    <SolidColorBrush x:Key="DividerBrush" Color="#333333"/>
+    
+    <!-- Spotify 厚重阴影 — 暗色背景上需要高不透明度 -->
+    <Color x:Key="ShadowBrush.Color">#80000000</Color>
+    <SolidColorBrush x:Key="ShadowBrush" Color="#80000000"/>
+
+</ResourceDictionary>
