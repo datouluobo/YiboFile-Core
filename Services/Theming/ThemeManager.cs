@@ -46,7 +46,7 @@ namespace YiboFile.Services.Theming
 
         private void DiscoverResources()
         {
-            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic", "FluentMica", "Win11Pro" };
+            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic", "FluentMica", "Win11Pro", "Tesla", "TeslaDark" };
             foreach (var t in themes)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Themes/{t}.xaml", UriKind.Absolute);
@@ -54,7 +54,7 @@ namespace YiboFile.Services.Theming
                 if (meta != null) _themes[t] = meta;
             }
 
-            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek", "OneCommander", "Antigravity" };
+            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek", "OneCommander", "Antigravity", "Tesla" };
             foreach (var u in uiStyles)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/{u}.xaml", UriKind.Absolute);
@@ -62,7 +62,7 @@ namespace YiboFile.Services.Theming
                 if (meta != null) _uiStyles[u] = meta;
             }
 
-        var icons = new[] { "Emoji", "Fluent", "Material", "Remix", "Lucide", "Pixel", "Prism", "Tabler", "Phosphor" };
+            var icons = new[] { "Emoji", "Fluent", "Material", "Remix", "Lucide", "Pixel", "Prism", "Tabler", "Phosphor", "Tesla" };
         foreach (var i in icons)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Icons/{i}.xaml", UriKind.Absolute);
