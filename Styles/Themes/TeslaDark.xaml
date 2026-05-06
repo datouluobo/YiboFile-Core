@@ -9,11 +9,11 @@
     
     <!-- 主题元数据 -->
     <sys:String x:Key="ThemeId">TeslaDark</sys:String>
-    <sys:String x:Key="ThemeDisplayName">Tesla 碳黑</sys:String>
-    <sys:String x:Key="ThemeDisplayNameEn">Tesla Carbon</sys:String>
-    <sys:String x:Key="ThemeDescription">Tesla 暗色变体：碳黑画布配电光蓝，纯净低眩光</sys:String>
-    <sys:String x:Key="ThemeDescriptionEn">Tesla dark variant: Carbon Dark canvas with Electric Blue accent, pure low-glare</sys:String>
-    <sys:String x:Key="ThemeAuthor">Tesla Design System</sys:String>
+    <sys:String x:Key="ThemeDisplayName">碳墨</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Carbon Dark</sys:String>
+    <sys:String x:Key="ThemeDescription">碳黑画布配电光蓝，纯净低眩光</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Carbon Dark canvas with Electric Blue accent, pure low-glare</sys:String>
+    <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">1.0.0</sys:String>
     
     <!-- 预览色彩 -->

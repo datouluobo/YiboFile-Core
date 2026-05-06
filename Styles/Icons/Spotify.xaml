@@ -10,14 +10,14 @@
 
     <!-- 图标集元数据 -->
     <sys:String x:Key="IconStyleId">Spotify</sys:String>
-    <sys:String x:Key="IconStyleDisplayName">Spotify 图标</sys:String>
-    <sys:String x:Key="IconStyleDisplayNameEn">Spotify Icons</sys:String>
+    <sys:String x:Key="IconStyleDisplayName">药丸图标</sys:String>
+    <sys:String x:Key="IconStyleDisplayNameEn">Pill Icons</sys:String>
     <sys:String x:Key="IconStyleDescription">圆润药丸风格描边图标，2px 播放器质感</sys:String>
     <sys:String x:Key="IconStyleDescriptionEn">Rounded pill-style stroke icons, 2px player-quality lines</sys:String>
     <sys:String x:Key="IconRenderMode">Path</sys:String>
     <sys:String x:Key="UI.IconStyleId">Spotify</sys:String>
-    <sys:String x:Key="UI.IconStyleDisplayName">Spotify 图标</sys:String>
-    <sys:String x:Key="UI.IconStyleDescription">圆润药丸描边图标 (Stroke-based, 2px)</sys:String>
+    <sys:String x:Key="UI.IconStyleDisplayName">药丸图标</sys:String>
+    <sys:String x:Key="UI.IconStyleDescription">圆润药丸描边图标 (Stroke, 2px)</sys:String>
 
     <!-- ================================================================
          所有图标：24x24 ViewBox, 2px Stroke, Round caps/joins

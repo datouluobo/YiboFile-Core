@@ -15,10 +15,10 @@
 
     <!-- ======== 元数据 ======== -->
     <sys:String x:Key="UIStyleId">Tesla</sys:String>
-    <sys:String x:Key="UIStyleDisplayName">Tesla</sys:String>
-    <sys:String x:Key="UIStyleDisplayNameEn">Tesla</sys:String>
-    <sys:String x:Key="UIStyleDescription">Tesla v2: 文字下划线 Tabs、Relaxed 间距、左竖条侧边栏、近方滚动条</sys:String>
-    <sys:String x:Key="UIStyleDescriptionEn">Tesla v2: underline tabs, relaxed spacing, left-rail sidebar, squared scrollbar</sys:String>
+    <sys:String x:Key="UIStyleDisplayName">工程</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Blueprint</sys:String>
+    <sys:String x:Key="UIStyleDescription">文字下划线 Tabs、Relaxed 间距、左竖条侧边栏、近方滚动条</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Underline tabs, relaxed spacing, left-rail sidebar, squared scrollbar</sys:String>
 
     <!-- ================================================================
          A. Tab 标签页 (14键)

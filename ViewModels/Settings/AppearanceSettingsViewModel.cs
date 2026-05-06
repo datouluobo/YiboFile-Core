@@ -192,6 +192,11 @@ namespace YiboFile.ViewModels.Settings
                     "Sunset" => "🌅",
                     "Purple" => "💜",
                     "Nordic" => "🏔️",
+                    "Spotify" => "💚",
+                    "Tesla" => "⚡",
+                    "TeslaDark" => "🖤",
+                    "FluentMica" => "🪟",
+                    "Win11Pro" => "🔵",
                     _ => "🎨"
                 };
                 string displayName = _locService?[$"Theme.{theme.Id}"] ?? theme.DisplayName;
@@ -223,6 +228,8 @@ namespace YiboFile.ViewModels.Settings
                     "Prism" => "💎 ",
                     "Tabler" => "📋 ",
                     "Phosphor" => "💡 ",
+                    "Spotify" => "💊 ",
+                    "Tesla" => "📐 ",
                     _ => "📦 "
                 };
                 string displayName = _locService?[$"IconStyle.{icon.Id}"] ?? icon.DisplayName;
@@ -291,7 +298,7 @@ namespace YiboFile.ViewModels.Settings
                     var source = _themeService.AvailableIconStyles.FirstOrDefault(x => x.Id == i.Id);
                     if (source != null)
                     {
-                        string prefix = i.Id switch { "Emoji" => "🌈 ", "Remix" => "✒️ ", "Fluent" => "💠 ", "Material" => "✨ ", "Lucide" => "🚀 ", "Pixel" => "👾 ", "Prism" => "💎 ", "Tabler" => "📋 ", "Phosphor" => "💡 ", _ => "📦 " };
+                        string prefix = i.Id switch { "Emoji" => "🌈 ", "Remix" => "✒️ ", "Fluent" => "💠 ", "Material" => "✨ ", "Lucide" => "🚀 ", "Pixel" => "👾 ", "Prism" => "💎 ", "Tabler" => "📋 ", "Phosphor" => "💡 ", "Spotify" => "💊 ", "Tesla" => "📐 ", _ => "📦 " };
                         string displayName = _locService?[$"IconStyle.{i.Id}"] ?? source.DisplayName;
                         i.Name = prefix + displayName;
                     }

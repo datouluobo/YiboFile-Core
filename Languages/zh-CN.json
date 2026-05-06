@@ -367,7 +367,10 @@
     "Purple": "紫罗兰",
     "Nordic": "北欧极简",
     "FluentMica": "沉浸玻璃",
-    "Win11Pro": "沉浸蓝调"
+    "Win11Pro": "沉浸蓝调",
+    "Spotify": "翠墨",
+    "Tesla": "极光",
+    "TeslaDark": "碳墨"
   },
   "IconStyle": {
     "Emoji": "Emoji 默认",
@@ -378,7 +381,9 @@
     "Pixel": "像素风",
     "Prism": "水晶拟物",
     "Tabler": "Tabler 图标",
-    "Phosphor": "Phosphor 圆润"
+    "Phosphor": "Phosphor 圆润",
+    "Spotify": "药丸",
+    "Tesla": "工程"
   },
   "UIStyle": {
     "Original": {
@@ -404,6 +409,14 @@
     "Antigravity": {
       "Name": "重力拟物",
       "Desc": "具有立体感的操作体验"
+    },
+    "Spotify": {
+      "Name": "药丸",
+      "Desc": "沉浸暗色+圆角卡片+紧凑排版"
+    },
+    "Tesla": {
+      "Name": "工程",
+      "Desc": "文字下划线标签+宽松间距+蓝图美学"
     }
   },
   "Bootstrapper": {

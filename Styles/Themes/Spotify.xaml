@@ -10,11 +10,11 @@
     
     <!-- 主题元数据 -->
     <sys:String x:Key="ThemeId">Spotify</sys:String>
-    <sys:String x:Key="ThemeDisplayName">Spotify 沉浸</sys:String>
-    <sys:String x:Key="ThemeDisplayNameEn">Spotify Dark</sys:String>
-    <sys:String x:Key="ThemeDescription">灵感来自 Spotify：近黑沉浸式背景、翠绿功能点缀、药丸几何、内容优先黑暗感</sys:String>
-    <sys:String x:Key="ThemeDescriptionEn">Inspired by Spotify: near-black immersive canvas, functional green accent, pill geometry, content-first darkness</sys:String>
-    <sys:String x:Key="ThemeAuthor">Spotify Design System</sys:String>
+    <sys:String x:Key="ThemeDisplayName">翠墨</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Emerald Night</sys:String>
+    <sys:String x:Key="ThemeDescription">近黑沉浸式背景、翠绿功能点缀、药丸几何、内容优先黑暗感</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Near-black immersive canvas, functional green accent, pill geometry, content-first darkness</sys:String>
+    <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">1.0.0</sys:String>
     
     <!-- 预览色彩 -->

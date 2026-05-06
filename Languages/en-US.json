@@ -370,7 +370,10 @@
         "Purple": "Violet",
         "Nordic": "Nordic Minimalist",
         "FluentMica": "Mica Glass",
-        "Win11Pro": "Immersive Blue"
+        "Win11Pro": "Immersive Blue",
+        "Spotify": "Emerald Night",
+        "Tesla": "Aurora",
+        "TeslaDark": "Carbon Dark"
     },
     "IconStyle": {
         "Emoji": "Emoji Default",
@@ -381,7 +384,9 @@
         "Pixel": "Pixel Art",
         "Prism": "Crystal UI",
         "Tabler": "Tabler Icons",
-        "Phosphor": "Phosphor Rounded"
+        "Phosphor": "Phosphor Rounded",
+        "Spotify": "Pill",
+        "Tesla": "Blueprint"
     },
     "UIStyle": {
         "Original": {
@@ -407,6 +412,14 @@
     "Antigravity": {
       "Name": "Neumorphic",
       "Desc": "Sleek 3D interaction experience"
+    },
+    "Spotify": {
+      "Name": "Pill",
+      "Desc": "Immersive dark + rounded cards + compact layout"
+    },
+    "Tesla": {
+      "Name": "Blueprint",
+      "Desc": "Underline tabs + relaxed spacing + blueprint aesthetic"
     }
     },
     "Bootstrapper": {

@@ -9,10 +9,10 @@
 
     <!-- ======== 元数据 ======== -->
     <sys:String x:Key="UIStyleId">Spotify</sys:String>
-    <sys:String x:Key="UIStyleDisplayName">Spotify</sys:String>
-    <sys:String x:Key="UIStyleDisplayNameEn">Spotify</sys:String>
-    <sys:String x:Key="UIStyleDescription">Spotify 沉浸风格：药丸按钮、底部指示条、圆角卡片、紧凑内容密度</sys:String>
-    <sys:String x:Key="UIStyleDescriptionEn">Spotify immersive: pill buttons, bottom indicator, rounded cards, compact density</sys:String>
+    <sys:String x:Key="UIStyleDisplayName">药丸</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">Pill</sys:String>
+    <sys:String x:Key="UIStyleDescription">药丸按钮、底部指示条、圆角卡片、紧凑内容密度</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Pill buttons, bottom indicator, rounded cards, compact density</sys:String>
 
     <!-- ================================================================
          A. Tab 标签页 (14键) — 底部指示条、圆角

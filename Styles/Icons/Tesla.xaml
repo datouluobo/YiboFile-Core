@@ -10,13 +10,13 @@
 
     <!-- 图标集元数据 -->
     <sys:String x:Key="IconStyleId">Tesla</sys:String>
-    <sys:String x:Key="IconStyleDisplayName">Tesla 图标</sys:String>
-    <sys:String x:Key="IconStyleDisplayNameEn">Tesla Icons</sys:String>
+    <sys:String x:Key="IconStyleDisplayName">工程图标</sys:String>
+    <sys:String x:Key="IconStyleDisplayNameEn">Blueprint Icons</sys:String>
     <sys:String x:Key="IconStyleDescription">极简工程描边图标，1px CAD 图纸线条</sys:String>
     <sys:String x:Key="IconStyleDescriptionEn">Minimal engineering stroke icons, 1px CAD blueprint lines</sys:String>
     <sys:String x:Key="IconRenderMode">Path</sys:String>
     <sys:String x:Key="UI.IconStyleId">Tesla</sys:String>
-    <sys:String x:Key="UI.IconStyleDisplayName">Tesla 图标</sys:String>
+    <sys:String x:Key="UI.IconStyleDisplayName">工程图标</sys:String>
     <sys:String x:Key="UI.IconStyleDescription">极简工程描边图标 (Stroke-based, 1px CAD)</sys:String>
 
     <!-- ================================================================

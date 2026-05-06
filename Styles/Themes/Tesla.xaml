@@ -10,11 +10,11 @@
     
     <!-- 主题元数据 -->
     <sys:String x:Key="ThemeId">Tesla</sys:String>
-    <sys:String x:Key="ThemeDisplayName">Tesla 极简</sys:String>
-    <sys:String x:Key="ThemeDisplayNameEn">Tesla Minimal</sys:String>
-    <sys:String x:Key="ThemeDescription">灵感来自 Tesla 设计语言：纯白画布、极致减法、电光蓝点缀。无阴影、无渐变、摄影级纯净。</sys:String>
-    <sys:String x:Key="ThemeDescriptionEn">Inspired by Tesla — pure white canvas, radical subtraction, Electric Blue accent. No shadows, no gradients, photography-grade purity.</sys:String>
-    <sys:String x:Key="ThemeAuthor">Tesla Design System</sys:String>
+    <sys:String x:Key="ThemeDisplayName">极光</sys:String>
+    <sys:String x:Key="ThemeDisplayNameEn">Aurora</sys:String>
+    <sys:String x:Key="ThemeDescription">纯白画布、极致减法、电光蓝点缀。无阴影、无渐变、摄影级纯净</sys:String>
+    <sys:String x:Key="ThemeDescriptionEn">Pure white canvas, radical subtraction, Electric Blue accent. No shadows, no gradients, photography-grade purity.</sys:String>
+    <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">1.0.0</sys:String>
     
     <!-- 预览色彩 -->
