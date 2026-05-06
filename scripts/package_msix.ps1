@@ -2,7 +2,7 @@
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
-$Version = "1.0.1930.0"
+$Version = "1.0.1940.0"
 $SourceDir = (Resolve-Path "..\Publish\Store_Core").Path
 $OutputDir = (Resolve-Path "..\Publish").Path
 $PackageName = "YiboFile_Core_$Version.msix"

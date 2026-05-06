@@ -1,5 +1,5 @@
 # YiboFile Core - Build and Package MSIX
-$Version = "1.0.1930.0"
+$Version = "1.0.1940.0"
 $ProjectDir = "F:\Download\GitHub\YiboFile\YiboFile-Core"
 $PublishDir = Join-Path $ProjectDir "Publish"
 $StoreDir = Join-Path $PublishDir "Store_Core"
