@@ -11,21 +11,31 @@
              Foreground="{DynamicResource ForegroundPrimaryBrush}">
 
     <UserControl.Resources>
-        <!-- Modern TabItem Style (移植自 NavigationSettingsWindow) -->
+        <!-- Modern TabItem Style — 使用浮动指示条，不占用布局空间 -->
         <Style TargetType="TabItem">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border Name="Border" BorderThickness="0,0,0,3" BorderBrush="Transparent" Margin="0,0,10,0" Padding="15,10">
-                            <ContentPresenter x:Name="ContentSite"
-                                            VerticalAlignment="Center"
-                                            HorizontalAlignment="Center"
-                                            ContentSource="Header"
-                                            RecognizesAccessKey="True"/>
-                        </Border>
+                        <Grid>
+                            <!-- 主体内容 — 底部无占位指示线 -->
+                            <Border Name="Border" BorderThickness="0" Margin="0,0,10,0" Padding="15,10,15,10">
+                                <ContentPresenter x:Name="ContentSite"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                ContentSource="Header"
+                                                RecognizesAccessKey="True"/>
+                            </Border>
+                            <!-- 浮动指示条 — 覆盖层，不占用布局空间 -->
+                            <Rectangle Name="Indicator"
+                                       Fill="Transparent"
+                                       Height="3"
+                                       VerticalAlignment="Bottom"
+                                       Margin="8,0,8,0"
+                                       RadiusX="1.5" RadiusY="1.5"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentDefaultBrush}"/>
+                                <Setter TargetName="Indicator" Property="Fill" Value="{DynamicResource AccentDefaultBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
@@ -48,7 +58,7 @@
         </Grid.RowDefinitions>
 
         <!-- Tab Header Area -->
-        <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource BorderDefaultBrush}"
+        <Border BorderThickness="0" BorderBrush="{DynamicResource BorderDefaultBrush}"
                 Background="{DynamicResource BackgroundSecondaryBrush}" Padding="15,5,15,0">
             <TabControl x:Name="MainTabControl" BorderThickness="0" Background="Transparent"
                         SelectionChanged="MainTabControl_SelectionChanged">
