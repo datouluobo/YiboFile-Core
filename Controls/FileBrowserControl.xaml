@@ -283,7 +283,7 @@
     </ResourceDictionary>
 </UserControl.Resources>
     
-    <Grid x:Name="RootGrid" Margin="1">
+    <Grid x:Name="RootGrid" Margin="1,0,1,1">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
             <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
