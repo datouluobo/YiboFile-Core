@@ -12,18 +12,19 @@
     <sys:String x:Key="IconStyleId">Tesla</sys:String>
     <sys:String x:Key="IconStyleDisplayName">Tesla 图标</sys:String>
     <sys:String x:Key="IconStyleDisplayNameEn">Tesla Icons</sys:String>
-    <sys:String x:Key="IconStyleDescription">极简几何描边图标，1.5px 精密切割线条</sys:String>
-    <sys:String x:Key="IconStyleDescriptionEn">Minimal geometric stroke icons, 1.5px precision-cut lines</sys:String>
+    <sys:String x:Key="IconStyleDescription">极简工程描边图标，1px CAD 图纸线条</sys:String>
+    <sys:String x:Key="IconStyleDescriptionEn">Minimal engineering stroke icons, 1px CAD blueprint lines</sys:String>
     <sys:String x:Key="IconRenderMode">Path</sys:String>
     <sys:String x:Key="UI.IconStyleId">Tesla</sys:String>
     <sys:String x:Key="UI.IconStyleDisplayName">Tesla 图标</sys:String>
-    <sys:String x:Key="UI.IconStyleDescription">极简几何描边图标 (Stroke-based, 1.5px)</sys:String>
+    <sys:String x:Key="UI.IconStyleDescription">极简工程描边图标 (Stroke-based, 1px CAD)</sys:String>
 
     <!-- ================================================================
          所有图标使用统一模板：
          - ViewBox: 24x24
-         - Stroke: 1.5px
-         - Caps: Round, Joins: Round
+         - Stroke: 1px (极细工程线)
+         - Caps: Flat/Square, Joins: Miter
+         机械图纸风格 — 精确、锐利、无装饰
          ================================================================ -->
 
     <!-- Icon_Add — 加号 -->
@@ -33,7 +34,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 5v14M5 12h14">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -47,7 +48,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M15 18l-6-6 6-6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -61,7 +62,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M17 16a4 4 0 10-8-5 4 4 0 00-3 6.5M12 12v7M9 16l3-3 3 3">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -75,7 +76,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M5 13l4 4L19 7">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -89,7 +90,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M6 9l6 6 6-6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -103,7 +104,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M18 15l-6-6-6 6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -117,7 +118,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M9 4H6a2 2 0 00-2 2v13a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-3M9 4a2 2 0 012-2h2a2 2 0 012 2M9 4a1 1 0 000 2h6a1 1 0 000-2">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -131,7 +132,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M6 6l12 12M18 6L6 18">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -145,7 +146,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M16 3h4a1 1 0 011 1v14a1 1 0 01-1 1H9a1 1 0 01-1-1V4a1 1 0 011-1h7M16 3V2M8 7H5a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1v-4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -159,7 +160,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 002 2h8a2 2 0 002-2l1-13M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -173,7 +174,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 5a1 1 0 011-1h14a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM8 20h8M12 16v4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -187,7 +188,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M6 3h7l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1zM13 3v5h5">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -201,7 +202,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 3v12M8 11l4 4 4-4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -215,7 +216,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 8a1 1 0 011-1h14a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1V8zM7 16h.01M11 16h.01M4 8l3.5-5M20 8l-3.5-5">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -229,7 +230,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 4h16v16H4zM12 4v16">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -243,7 +244,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M15 4l4 4L7 20l-5 1 1-5L15 4z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -257,7 +258,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2a10 10 0 110 20 10 10 0 010-20zM8 8l8 8M16 8l-8 8">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -271,7 +272,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M6 4a1 1 0 011-1h7l5 5v12a1 1 0 01-1 1H7a1 1 0 01-1-1V4z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -285,7 +286,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 4h16l-6 8v6l-4-2v-4L4 4z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -299,7 +300,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v11a1 1 0 01-1 1H5a1 1 0 01-1-1V5z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -313,7 +314,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M7 4h13v3H7M18 7v10a2 2 0 01-2 2H8a2 2 0 01-2-2v-2M12 4v16">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -327,7 +328,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M9 6l6 6-6 6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -341,7 +342,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 8v4l3 3M3 12a9 9 0 1118 0 9 9 0 01-18 0zM3 3v4h4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -355,7 +356,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM8 9a1 1 0 100-2 1 1 0 000 2zM4 16l4-4 3 3 4-5 5 6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -369,7 +370,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2a10 10 0 110 20 10 10 0 010-20zM12 11v5M12 8v.01">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -383,7 +384,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 4h16v16H4zM12 8a4 4 0 110 8 4 4 0 010-8z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -397,7 +398,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 4h16v16H4z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -411,7 +412,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M10 4h10v8H10zM4 4h4v16H4zM4 14h6v6H4zM12 14h8v6h-8z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -425,7 +426,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 20V5a1 1 0 011-1h3M20 20V5a1 1 0 00-1-1h-3M8 4v16M16 4v16">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -439,7 +440,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M5 12h.01M12 12h.01M19 12h.01">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -453,7 +454,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 5h.01M12 12h.01M12 19h.01">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -467,7 +468,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M9 18V5l12-2v13M6 21a3 3 0 110-6 3 3 0 010 6zM15 19a3 3 0 110-6 3 3 0 010 6z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -481,7 +482,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M3 8l9-5 9 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V8zM12 3v13">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -495,7 +496,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 12h10l4 4M4 12l4-4M4 12l4 4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -509,7 +510,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M3 11l8-8 10 10-8 8L3 11zM12 4l8 8M5 11l8 8">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -523,7 +524,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M8 4h7l4 4v11a1 1 0 01-1 1H8a1 1 0 01-1-1V5a1 1 0 011-1zM15 4v4h4M12 9v6M9 12h6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -537,7 +538,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v11a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM12 10v6M9 13h6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -551,7 +552,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M18 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h5M15 4h5v5M10 14l9-9">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -565,7 +566,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M8 5v14M16 5v14">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -579,7 +580,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2l4 4-2 6 4 4H6l4-4-2-6 4-4zM12 16v6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -593,7 +594,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M6 4l14 8-14 8V4z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -607,7 +608,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0114.5-3M20.5 15a9 9 0 01-14.5 3">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -621,7 +622,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2a2 2 0 012 2v1a7 7 0 010 14v1a2 2 0 01-4 0v-1a7 7 0 010-14V4a2 2 0 012-2zM5.5 8.5l2.5 1M16 8.5l2.5-1M5.5 15.5l2.5-1M16 15.5l2.5 1M12 10v4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -635,7 +636,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M10.5 3a7.5 7.5 0 110 15 7.5 7.5 0 010-15zM21 21l-4.35-4.35">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -649,7 +650,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2l1.5 4.5a6 6 0 013 3L21 9l-3 3a6 6 0 010 3l3 3-4.5 1.5a6 6 0 01-3 3L12 22l-1.5-4.5a6 6 0 01-3-3L3 15l3-3a6 6 0 010-3L3 6l4.5-1.5a6 6 0 013-3L12 2zM12 9a3 3 0 110 6 3 3 0 010-6z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -663,7 +664,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M8 4v16M16 4v16M4 8l4-4 4 4M12 16l4 4 4-4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -677,7 +678,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2a10 10 0 110 20 10 10 0 010-20zM8 12l3 3 5-5">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -691,7 +692,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M3 12l9-9 9 9-9 9-9-9zM9 9h.01">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -705,7 +706,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 19V5M5 12l7-7 7 7">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -719,7 +720,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 12a5 5 0 100-10 5 5 0 000 10zM4 21a8 8 0 0116 0">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -733,7 +734,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 7a1 1 0 011-1h10a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V7zM15 12l5-3v6l-5-3">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -747,7 +748,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M3 6h18M3 12h18M3 18h18">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -761,7 +762,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -775,7 +776,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M2 9h4l5-5v16l-5-5H2V9zM16.5 7.5a6 6 0 010 9M19.5 4.5a10 10 0 010 15">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -789,7 +790,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M2 9h4l5-5v16l-5-5H2V9zM16.5 7.5a6 6 0 010 9">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -803,7 +804,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M2 9h4l5-5v16l-5-5H2V9zM16.5 7.5a4 4 0 010 9">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -817,7 +818,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M2 9h4l5-5v16l-5-5H2V9zM16 10l6 6M22 10l-6 6">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -831,7 +832,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 3l10 18H2L12 3zM12 10v4M12 17v.01">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -845,7 +846,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M12 2a10 10 0 110 20 10 10 0 010-20zM12 11v5M12 8v.01">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -859,7 +860,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M6 6l12 12M18 6L6 18">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -873,7 +874,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M5 5h14v14H5z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -887,7 +888,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 12h16">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -901,7 +902,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M8 8h11v13H8V8zM8 8V5a1 1 0 011-1h10a1 1 0 011 1v11a1 1 0 01-1 1h-3M5 8h11v12a1 1 0 01-1 1H6a1 1 0 01-1-1V9a1 1 0 011-1z">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -915,7 +916,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 8h16M4 16h16M8 4v2M12 4v2M16 4v2M8 18v2M12 18v2M16 18v2">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -929,7 +930,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM8 9l2 2 4-4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>
@@ -943,7 +944,7 @@
                 <GeometryDrawing Brush="Transparent" Geometry="M0,0 H24 V24 H0 Z"/>
                 <GeometryDrawing Geometry="M4 7h16M4 12h12a3 3 0 010 6H8M8 15l-3 3 3 3">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/>
+                        <Pen Brush="{DynamicResource ForegroundPrimaryBrush}" Thickness="1" StartLineCap="Flat" EndLineCap="Flat" LineJoin="Miter"/>
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>

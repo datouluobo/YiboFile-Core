@@ -3,103 +3,128 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         Tesla UI 风格 — 极简精确
-         4px 圆角、无阴影、无装饰、精确工程感
+         Tesla UI 风格 v2 — 建筑设计蓝图美学
+         差异化改造:
+         - Tab: 纯文字+底部下划线 (无背景填充) ✦ 区别于其他风格
+         - 间距: Relaxed 40px 行高, 充足呼吸空间
+         - 侧边栏: 左竖条指示器 (区别于填充/高亮)
+         - 分割线: 可见极细线 (工程图纸感)
+         - 滚动条: 近方形超薄条
+         - 交互: 1px 有色边框 hover (精确工程反馈)
          ================================================================ -->
 
     <!-- ======== 元数据 ======== -->
     <sys:String x:Key="UIStyleId">Tesla</sys:String>
     <sys:String x:Key="UIStyleDisplayName">Tesla</sys:String>
     <sys:String x:Key="UIStyleDisplayNameEn">Tesla</sys:String>
-    <sys:String x:Key="UIStyleDescription">Tesla 极简风格：4px 精确圆角、无阴影、极细线、产品优先纯净布局</sys:String>
-    <sys:String x:Key="UIStyleDescriptionEn">Tesla minimal: 4px precise radius, no shadows, ultra-thin lines, product-first clean layout</sys:String>
+    <sys:String x:Key="UIStyleDescription">Tesla v2: 文字下划线 Tabs、Relaxed 间距、左竖条侧边栏、近方滚动条</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Tesla v2: underline tabs, relaxed spacing, left-rail sidebar, squared scrollbar</sys:String>
 
     <!-- ================================================================
-         A. Tab 标签页 (14键) — 顶部指示条、无阴影、无分隔线
+         A. Tab 标签页 (14键)
+         纯文字+底部下划线：无背景填充、只有选中 Tab 的文字下方有一道精确线
+         类似建筑图纸上的标注线 — 最精确、最安静的信号
          ================================================================ -->
-    <CornerRadius x:Key="UI.TabItem.CornerRadius">4,4,0,0</CornerRadius>
+    <CornerRadius x:Key="UI.TabItem.CornerRadius">0</CornerRadius>
     <Thickness x:Key="UI.TabItem.Margin">0,0</Thickness>
-    <Thickness x:Key="UI.TabItem.Padding">12,0</Thickness>
-    <sys:Double x:Key="UI.TabItem.Height">34</sys:Double>
-    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource AccentLightBrush.Color}"/>
+    <Thickness x:Key="UI.TabItem.Padding">16,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.Height">36</sys:Double>
+    <!-- 无背景填充 — 文字本身即为选中态 -->
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="Transparent"/>
     <Thickness x:Key="UI.TabItem.ActiveBorderThickness">0</Thickness>
+    <!-- 无分隔线，文字间距就是分隔 -->
     <Visibility x:Key="UI.TabItem.SeparatorVisibility">Collapsed</Visibility>
     <sys:Double x:Key="UI.TabItem.SeparatorHeight">14</sys:Double>
+    <!-- 底部下划线 = 唯一的选中信号 -->
     <Visibility x:Key="UI.TabItem.ActiveIndicatorVisibility">Visible</Visibility>
-    <VerticalAlignment x:Key="UI.TabItem.ActiveIndicatorPosition">Top</VerticalAlignment>
+    <VerticalAlignment x:Key="UI.TabItem.ActiveIndicatorPosition">Bottom</VerticalAlignment>
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorHeight">2</sys:Double>
-    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">4,0,4,0</Thickness>
-    <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">1</sys:Double>
+    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">6,0,6,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">0</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
-    <!-- Tesla 无阴影 -->
+    <!-- 无阴影 -->
     <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Transparent"/>
     <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
-    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
+    <!-- 选中 Tab 文字 Bold — 视觉加重视为选中态 -->
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">Bold</FontWeight>
 
     <!-- ================================================================
-         B. 工具栏按钮 (5键) — 无边框、纯平、精确 4px
+         B. 工具栏按钮 (5键)
+         1px 可见边框 + hover 色变 = 精确工程按钮
          ================================================================ -->
     <CornerRadius x:Key="UI.ToolbarButton.CornerRadius">4</CornerRadius>
-    <Thickness x:Key="UI.ToolbarButton.BorderThickness">0</Thickness>
-    <Thickness x:Key="UI.ToolbarButton.Padding">8,0</Thickness>
-    <Thickness x:Key="UI.ToolbarButton.Margin">0,0</Thickness>
-    <sys:Double x:Key="UI.ToolbarButton.Height">32</sys:Double>
+    <Thickness x:Key="UI.ToolbarButton.BorderThickness">1</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Padding">10,0</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Margin">2,0</Thickness>
+    <sys:Double x:Key="UI.ToolbarButton.Height">34</sys:Double>
 
     <!-- ================================================================
-         C. 侧边栏/导航列表 (6键) — 全宽选中、无指示器
+         C. 侧边栏/导航列表 (6键)
+         左竖条指示器：选中项左侧有 3px 竖线
+         区别于 Original(无)、Tesla v1(全宽填充)、Spotify(药丸填充)
          ================================================================ -->
     <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">0</CornerRadius>
-    <Thickness x:Key="UI.Sidebar.ItemMargin">0,1</Thickness>
-    <Visibility x:Key="UI.Sidebar.ActiveIndicatorVisibility">Collapsed</Visibility>
-    <Thickness x:Key="UI.Sidebar.ItemPadding">12,6</Thickness>
-    <sys:Double x:Key="UI.Sidebar.ItemHeight">30</sys:Double>
-    <SolidColorBrush x:Key="UI.Sidebar.ActiveBackground" Color="{DynamicResource AccentColor}"/>
+    <Thickness x:Key="UI.Sidebar.ItemMargin">0,2</Thickness>
+    <!-- 左竖条指示器 Visible — 独特风格 -->
+    <Visibility x:Key="UI.Sidebar.ActiveIndicatorVisibility">Visible</Visibility>
+    <Thickness x:Key="UI.Sidebar.ItemPadding">14,8</Thickness>
+    <sys:Double x:Key="UI.Sidebar.ItemHeight">34</sys:Double>
+    <!-- 选中背景用浅色，左指示条用强调色，双重信号但不突兀 -->
+    <SolidColorBrush x:Key="UI.Sidebar.ActiveBackground" Color="{DynamicResource AccentLightBrush.Color}"/>
 
     <!-- ================================================================
-         D. 地址栏 (2键) — 4px 圆角、1px 细线
+         D. 地址栏 (2键)
+         4px 圆角 + 1px 可见边框
          ================================================================ -->
     <CornerRadius x:Key="UI.AddressBar.CornerRadius">4</CornerRadius>
     <Thickness x:Key="UI.AddressBar.BorderThickness">1</Thickness>
 
     <!-- ================================================================
-         E. 文件列表行 (6键) — 无分割线、利用留白区分
+         E. 文件列表行 (6键)
+         Relaxed 间距 — 40px 行高、充足留白
          ================================================================ -->
     <CornerRadius x:Key="UI.FileList.RowCornerRadius">0</CornerRadius>
-    <Thickness x:Key="UI.FileList.RowMargin">0</Thickness>
+    <Thickness x:Key="UI.FileList.RowMargin">0,2</Thickness>
     <Thickness x:Key="UI.FileList.RowBorderThickness">0</Thickness>
-    <sys:Double x:Key="UI.FileList.RowMinHeight">36</sys:Double>
-    <Thickness x:Key="UI.FileList.RowPadding">8,0</Thickness>
+    <!-- 40px — Relaxed 呼吸感 (vs Original 34, Spotify 32) -->
+    <sys:Double x:Key="UI.FileList.RowMinHeight">40</sys:Double>
+    <Thickness x:Key="UI.FileList.RowPadding">12,0</Thickness>
     <Thickness x:Key="UI.FileList.SelectedBorderThickness">0</Thickness>
 
     <!-- ================================================================
-         F. 文件列表列头 (4键) — 无分割线、轻微间距
+         F. 文件列表列头 (4键)
+         高比例、无分割、SemiBold
          ================================================================ -->
-    <Thickness x:Key="UI.ColumnHeader.Padding">8,8</Thickness>
-    <Thickness x:Key="UI.ColumnHeader.BorderThickness">0</Thickness>
-    <FontWeight x:Key="UI.ColumnHeader.FontWeight">500</FontWeight>
-    <sys:Double x:Key="UI.ColumnHeader.Height">34</sys:Double>
+    <Thickness x:Key="UI.ColumnHeader.Padding">12,10</Thickness>
+    <Thickness x:Key="UI.ColumnHeader.BorderThickness">0,0,0,1</Thickness>
+    <FontWeight x:Key="UI.ColumnHeader.FontWeight">600</FontWeight>
+    <sys:Double x:Key="UI.ColumnHeader.Height">36</sys:Double>
 
     <!-- ================================================================
-         G. 分割器 (5键) — 极细、不突兀
+         G. 分割器 (5键)
+         可见极细线 — 图纸上的标注线
          ================================================================ -->
-    <Visibility x:Key="UI.Splitter.VisibleLine">Collapsed</Visibility>
-    <sys:Double x:Key="UI.Splitter.Width">4</sys:Double>
+    <Visibility x:Key="UI.Splitter.VisibleLine">Visible</Visibility>
+    <sys:Double x:Key="UI.Splitter.Width">3</sys:Double>
     <sys:Double x:Key="UI.Splitter.LineThickness">1</sys:Double>
     <Visibility x:Key="UI.Splitter.HoverShowGripDot">Collapsed</Visibility>
     <sys:Double x:Key="UI.Splitter.CollapseButtonOpacity">0.3</sys:Double>
 
     <!-- ================================================================
-         H. 滚动条 (6键) — 超薄浮层、仅 hover 显示
+         H. 滚动条 (6键)
+         近方形超薄条 — 不像传统滚动条，更像图纸边缘的标尺
          ================================================================ -->
-    <CornerRadius x:Key="UI.ScrollBar.ThumbCornerRadius">2</CornerRadius>
+    <CornerRadius x:Key="UI.ScrollBar.ThumbCornerRadius">1</CornerRadius>
+    <!-- 3px 始终超薄，hover 只缩放到 5px (vs 其他风格的 6-10) -->
     <sys:Double x:Key="UI.ScrollBar.ThumbWidth">3</sys:Double>
-    <sys:Double x:Key="UI.ScrollBar.ThumbHoverWidth">6</sys:Double>
-    <sys:Double x:Key="UI.ScrollBar.ThumbOpacity">0.15</sys:Double>
-    <sys:Double x:Key="UI.ScrollBar.ThumbHoverOpacity">0.4</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverWidth">5</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbOpacity">0.25</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverOpacity">0.5</sys:Double>
     <sys:String x:Key="UI.ScrollBar.Mode">Overlay</sys:String>
 
     <!-- ================================================================
-         I. 通用控件圆角 (6键) — 全部 4px，精确一致
+         I. 通用控件圆角 (6键)
+         4px — 精确一致
          ================================================================ -->
     <CornerRadius x:Key="UI.Button.CornerRadius">4</CornerRadius>
     <CornerRadius x:Key="UI.TextBox.CornerRadius">4</CornerRadius>
