@@ -50,6 +50,34 @@
             
             <converters:WidthToVisibilityConverter x:Key="WidthToVisibilityConverter" />
 
+            <!-- Tab 行专用滚动模板：不要复用普通内容区 OverlayScrollViewerStyle。
+                 普通模板会给 ScrollContentPresenter 留 4px 底部空间，44px 标题栏里会压缩/裁切 tab。 -->
+            <Style x:Key="TabStripScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+                <Setter Property="OverridesDefaultStyle" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                            <Grid ClipToBounds="True" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                                        CanContentScroll="{TemplateBinding CanContentScroll}"
+                                                        Margin="0"
+                                                        SnapsToDevicePixels="True"
+                                                        UseLayoutRounding="True" />
+                                <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                           VerticalAlignment="Bottom"
+                                           Height="0"
+                                           Maximum="{TemplateBinding ScrollableWidth}"
+                                           Orientation="Horizontal"
+                                           ViewportSize="{TemplateBinding ViewportWidth}"
+                                           Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                           Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                           Opacity="0" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <DataTemplate x:Key="PathTabDataTemplate" DataType="{x:Type tabs:PathTab}">
                 <Button x:Name="TabButton" Style="{StaticResource TabButtonStyle}" Width="{Binding TargetWidth}" 
                         Command="{Binding SelectCommand}" ToolTip="{Binding Title}" 
@@ -96,7 +124,7 @@
                                 Cursor="Hand">
                             <Button.Style>
                                 <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Setter Property="Visibility" Value="Hidden" />
                                     <Setter Property="Opacity" Value="0.6" />
                                     <Setter Property="Template">
                                         <Setter.Value>
@@ -152,7 +180,7 @@
                         <Setter TargetName="IconText" Property="Text" Value="📚" />
                     </DataTrigger>
                     <DataTrigger Binding="{Binding IsPinned}" Value="True">
-                        <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Hidden" />
                         <Setter TargetName="IconText" Property="Text" Value="📌" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
@@ -160,9 +188,10 @@
         </ResourceDictionary>
     </UserControl.Resources>
     
-    <Border x:Name="TabsBorder" Background="Transparent" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0" Visibility="Visible"
+    <Border x:Name="TabsBorder" Background="{DynamicResource TitleBarBackgroundBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Visibility="Visible"
+            ClipToBounds="False"
             shell:WindowChrome.IsHitTestVisibleInChrome="True">
-        <Grid>
+        <Grid ClipToBounds="False" SnapsToDevicePixels="True">
             <Grid.ColumnDefinitions>
                 <!-- 左箭头 -->
                 <ColumnDefinition Width="Auto"/>
@@ -182,7 +211,8 @@
                     ToolTip="向左滚动"/>
 
             <ScrollViewer x:Name="TabScrollViewer" Grid.Column="1"
-                          Style="{StaticResource OverlayScrollViewerStyle}"
+                          Style="{StaticResource TabStripScrollViewerStyle}"
+                          ClipToBounds="False"
                           PanningMode="HorizontalOnly"
                           HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Disabled"
@@ -191,13 +221,14 @@
                           shell:WindowChrome.IsHitTestVisibleInChrome="True">
                 <ItemsControl x:Name="TabsItemsControl" 
                               xmlns:handlers="clr-namespace:YiboFile.Handlers"
+                              ClipToBounds="False"
                               handlers:TabDragDropBehavior.IsEnabled="True"
                               ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               ItemTemplate="{StaticResource PathTabDataTemplate}"
                               shell:WindowChrome.IsHitTestVisibleInChrome="True">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel x:Name="TabsPanel" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                            <StackPanel x:Name="TabsPanel" Orientation="Horizontal" ClipToBounds="False" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
@@ -209,7 +240,7 @@
                     Visibility="Collapsed" IsHitTestVisible="False">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="{DynamicResource BackgroundPrimaryBrush.Color}" Offset="0"/>
+                        <GradientStop Color="{DynamicResource TitleBarBackgroundBrush.Color}" Offset="0"/>
                         <GradientStop Color="Transparent" Offset="1"/>
                     </LinearGradientBrush>
                 </Border.Background>
@@ -222,7 +253,7 @@
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                         <GradientStop Color="Transparent" Offset="0"/>
-                        <GradientStop Color="{DynamicResource BackgroundPrimaryBrush.Color}" Offset="1"/>
+                        <GradientStop Color="{DynamicResource TitleBarBackgroundBrush.Color}" Offset="1"/>
                     </LinearGradientBrush>
                 </Border.Background>
             </Border>
@@ -237,9 +268,9 @@
             <!-- 新建标签页按钮 -->
             <Button x:Name="NewTabButton" Grid.Column="3"
                     Style="{StaticResource NewTabButtonStyle}"
-                    Width="32" Height="32"
-                    Margin="2,0,2,0"
-                    VerticalAlignment="Center"
+                    Width="{DynamicResource UI.TabItem.Height}" Height="{DynamicResource UI.TabItem.Height}"
+                    Margin="{DynamicResource UI.TabItem.Margin}"
+                    VerticalAlignment="Bottom"
                     Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=NewTabCommand}"
                     shell:WindowChrome.IsHitTestVisibleInChrome="True"
                     ToolTip="新建标签页">

@@ -24,6 +24,7 @@ namespace YiboFile.Services.Config
             settings.Appearance.AnimationsEnabled = source.AnimationsEnabled;
             settings.Appearance.IconStyle = source.IconStyle;
             settings.Appearance.UIStyle = source.UIStyle;
+            settings.Appearance.TabStyle = source.TabStyle;
 
             // Behavior
             settings.Behavior.ReuseTabTimeWindow = source.ReuseTabTimeWindow;
@@ -147,6 +148,7 @@ namespace YiboFile.Services.Config
             config.AnimationsEnabled = settings.Appearance.AnimationsEnabled;
             config.IconStyle = settings.Appearance.IconStyle;
             config.UIStyle = settings.Appearance.UIStyle;
+            config.TabStyle = settings.Appearance.TabStyle;
 
             config.ReuseTabTimeWindow = settings.Behavior.ReuseTabTimeWindow;
             config.AlwaysReuseTab = settings.Behavior.AlwaysReuseTab;

@@ -21,13 +21,13 @@
         
         <Grid Name="NavContentGrid" Grid.Row="0">
             <!-- 路径面板 -->
-            <Grid Name="NavPathContent" Margin="8" WindowChrome.IsHitTestVisibleInChrome="True">
+            <Grid Name="NavPathContent" Margin="10,8,8,8" WindowChrome.IsHitTestVisibleInChrome="True">
                 <!-- 基础层：路径可滚动内容 -->
                 <Grid Margin="0,8,0,0">
                     <Grid.Resources>
                         <!-- 递归数据模板 -->
                         <HierarchicalDataTemplate x:Key="FolderTemplate" ItemsSource="{Binding Children}">
-                            <StackPanel Orientation="Horizontal" Margin="2,4">
+                            <StackPanel Orientation="Horizontal" Margin="0,3">
                                 <Image helpers:IconHelper.IconKey="{Binding IconKey}" 
                                        Width="14" Height="14"
                                        Margin="0,0,6,0" 
@@ -61,9 +61,9 @@
                                     <DockPanel x:Name="DriveInfoPanel" Grid.Column="1" VerticalAlignment="Center" LastChildFill="True">
                                         <!-- 容量信息 (必须完整显示，优先固定在右侧) -->
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
-                                            <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding UsedSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="SemiBold"/>
                                             <TextBlock Text=" / " FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                                            <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding TotalSizeText}" FontSize="11" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="SemiBold"/>
                                         </StackPanel>
                                         <!-- 盘符 + 别名 (别名在空间不足时完全隐藏) -->
                                         <StackPanel Orientation="Horizontal">
@@ -269,7 +269,7 @@
                                                     BorderBrush="{TemplateBinding BorderBrush}" 
                                                     BorderThickness="{TemplateBinding BorderThickness}" 
                                                     Background="{TemplateBinding Background}" 
-                                                    Padding="{TemplateBinding Padding}" 
+                                                    Padding="4,2,6,2" 
                                                     CornerRadius="{DynamicResource UI.Sidebar.ItemCornerRadius}"
                                                     SnapsToDevicePixels="true">
                                                 <ContentPresenter x:Name="PART_Header" 
@@ -293,7 +293,9 @@
                                                 <Setter Property="Visibility" TargetName="Expander" Value="Hidden"/>
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="true">
-                                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource AccentLightBrush}"/>
+                                                <Setter Property="BorderBrush" TargetName="Bd" Value="{DynamicResource AccentDefaultBrush}"/>
+                                                <Setter Property="BorderThickness" TargetName="Bd" Value="1"/>
                                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                             </Trigger>
                                             <Trigger Property="IsMouseOver" Value="true">
@@ -313,10 +315,10 @@
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource OverlayScrollViewerStyle}">
                         <StackPanel Name="NavSectionsPanel">
                             <!-- 驱动器列表 (整体上移以对齐管理按钮, 内部对齐保持默认) -->
-                            <Expander Name="DrivesExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
+                            <Expander Name="DrivesExpander" Margin="0,-6,0,6" IsExpanded="True" FocusVisualStyle="{x:Null}">
                                  <Expander.Header>
                                      <Grid Height="32">
-                                         <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.Drives}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                         <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.Drives}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                                      </Grid>
                                  </Expander.Header>
                                 <TreeView Name="DrivesTreeView" 
@@ -332,10 +334,10 @@
                             </Expander>
             
                             <!-- 快速访问 -->
-                            <Expander Name="QuickAccessExpander" Margin="0,-8,0,4" IsExpanded="True" FocusVisualStyle="{x:Null}">
+                            <Expander Name="QuickAccessExpander" Margin="0,-6,0,6" IsExpanded="True" FocusVisualStyle="{x:Null}">
                                  <Expander.Header>
                                      <Grid Height="32">
-                                         <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.QuickAccess}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                         <TextBlock Text="{i18n:Loc Key=TabContent.NavigationPanel.QuickAccess}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                                      </Grid>
                                  </Expander.Header>
                                 <ListBox Name="QuickAccessListBox" 
@@ -368,7 +370,7 @@
                                         <Expander IsExpanded="True" Margin="0,-2,0,4" FocusVisualStyle="{x:Null}">
                                             <Expander.Header>
                                                 <Grid Height="32" Margin="0,-6,0,0" Background="Transparent" AllowDrop="True" Loaded="FavoriteGroupHeader_Loaded">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundPrimaryBrush}"/>
                                                 </Grid>
                                             </Expander.Header>
                                             <Expander.ContextMenu>
@@ -432,7 +434,7 @@
             </Grid>
             
             <!-- 库导航内容 -->
-            <Grid Name="NavLibraryContent" Margin="8" Visibility="Collapsed" WindowChrome.IsHitTestVisibleInChrome="True">
+            <Grid Name="NavLibraryContent" Margin="10,8,8,8" Visibility="Collapsed" WindowChrome.IsHitTestVisibleInChrome="True">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -445,7 +447,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <TextBlock Grid.Column="0" Text="{i18n:Loc Key=TabContent.NavigationPanel.Libraries}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="0" Text="{i18n:Loc Key=TabContent.NavigationPanel.Libraries}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
                     
                     <Button Grid.Column="1" Name="LibraryManageBtn"
                             Width="24" Height="24"
@@ -515,7 +517,7 @@
             </Grid>
 
             <!-- 标签导航内容 -->
-            <Grid Name="NavTagContent" Margin="8" Visibility="Collapsed" WindowChrome.IsHitTestVisibleInChrome="True">
+            <Grid Name="NavTagContent" Margin="10,8,8,8" Visibility="Collapsed" WindowChrome.IsHitTestVisibleInChrome="True">
                  <local:TagBrowsePanel x:Name="TagBrowsePanelElement"/>
             </Grid>
             

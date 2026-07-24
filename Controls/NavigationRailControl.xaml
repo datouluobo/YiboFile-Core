@@ -8,8 +8,8 @@
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="60"
              Background="{DynamicResource SidebarBackgroundBrush}"
-             BorderBrush="{DynamicResource BorderSubtleBrush}"
-             BorderThickness="0">
+             BorderBrush="{DynamicResource DividerBrush}"
+             BorderThickness="0,0,1,0">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -18,9 +18,9 @@
             
             <!-- Rail Button Style -->
             <Style x:Key="RailButtonStyle" TargetType="Button">
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Margin" Value="0,3"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -33,16 +33,16 @@
                                 Background="{TemplateBinding Background}" 
                                 BorderBrush="Transparent" 
                                 BorderThickness="0"
-                                CornerRadius="8">
+                                CornerRadius="{DynamicResource UI.Button.CornerRadius}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                             </Trigger>
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                             </DataTrigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -77,7 +77,7 @@
                             PreviewMouseMove="RailItem_PreviewMouseMove"
                             Drop="RailItem_Drop"
                             DragOver="RailItem_DragOver">
-                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -100,7 +100,7 @@
                             PreviewMouseMove="RailItem_PreviewMouseMove"
                             Drop="RailItem_Drop"
                             DragOver="RailItem_DragOver">
-                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <Image helpers:IconHelper.IconKey="{Binding IconKey}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>

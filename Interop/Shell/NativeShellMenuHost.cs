@@ -5,12 +5,16 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
+using YiboFile.Models.Shell;
 
 namespace YiboFile.Interop.Shell
 {
     public sealed class NativeShellMenuHost : IDisposable
     {
+        public event Action<string> RenameRequested;
+
         private IntPtr _contextMenuPtr;
         private IContextMenu _contextMenuRCW;
         private IContextMenu2 _contextMenu2RCW;
@@ -256,8 +260,28 @@ namespace YiboFile.Interop.Shell
             int hr = _contextMenuRCW.QueryContextMenu(_hMenu, 0, 1, 0x7FFF, 
                 ShellConstants.CMF_NORMAL | ShellConstants.CMF_EXPLORE | ShellConstants.CMF_CANRENAME | ShellConstants.CMF_ITEMMENU);
 
-            try { return HMenuParser.ParseMenu(_hMenu, _contextMenuPtr); }
+            try { return HMenuParser.ParseMenu(_hMenu, _contextMenuRCW); }
             finally { Cleanup(); }
+        }
+
+        public List<object> BuildWpfMenuItems(IEnumerable<string> paths, IntPtr ownerHwnd)
+        {
+            var pathList = paths?.ToList() ?? new List<string>();
+            var shellItems = GetMenuItems(pathList);
+            var wpfItems = new List<object>();
+
+            foreach (var shellItem in shellItems)
+            {
+                if (shellItem.IsSeparator)
+                {
+                    wpfItems.Add(null);
+                    continue;
+                }
+
+                wpfItems.Add(CreateWpfMenuItem(shellItem, pathList, ownerHwnd));
+            }
+
+            return wpfItems;
         }
 
         public void InvokeDirect(int commandId, IEnumerable<string> paths, Window owner)
@@ -274,6 +298,14 @@ namespace YiboFile.Interop.Shell
             ExecuteCommand(commandId, pathList[0], hwnd);
             
             Cleanup();
+        }
+
+        public void CleanupResources()
+        {
+            if (!_disposed)
+            {
+                Cleanup();
+            }
         }
 
         private void ExecuteCommand(int menuId, string filePath, IntPtr hwnd)
@@ -297,6 +329,12 @@ namespace YiboFile.Interop.Shell
                         var sampleIds = _menuTextMap.Keys.Take(5).ToList();
                         System.Diagnostics.Debug.WriteLine($"[ShellMenu-v39]   示例ID: {string.Join(", ", sampleIds)}");
                     }
+                }
+
+                if (IsRenameCommand(menuId, menuText))
+                {
+                    RenameRequested?.Invoke(filePath);
+                    return;
                 }
                 
                 // v39 务实方案：优先使用可靠的 ShellExecuteW
@@ -473,6 +511,93 @@ namespace YiboFile.Interop.Shell
             
             // 由于我们无法确定确切映射，返回空让调用者使用 "open" 作为最终回退
             return string.Empty;
+        }
+
+        private bool IsRenameCommand(int menuId, string menuText)
+        {
+            string verb = GetCommandVerb(menuId);
+            if (string.Equals(verb, "rename", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(menuText)
+                && menuText.Replace("&", string.Empty).Contains("重命名", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private MenuItem CreateWpfMenuItem(ShellMenuItem shellItem, IReadOnlyCollection<string> paths, IntPtr ownerHwnd)
+        {
+            var menuItem = new MenuItem
+            {
+                Header = string.IsNullOrWhiteSpace(shellItem.Text) ? "(未命名命令)" : shellItem.Text,
+                IsEnabled = shellItem.IsEnabled
+            };
+
+            if (shellItem.Children != null && shellItem.Children.Count > 0)
+            {
+                foreach (var child in shellItem.Children)
+                {
+                    if (child.IsSeparator)
+                    {
+                        menuItem.Items.Add(new Separator());
+                    }
+                    else
+                    {
+                        menuItem.Items.Add(CreateWpfMenuItem(child, paths, ownerHwnd));
+                    }
+                }
+            }
+            else if (shellItem.CommandId > 0)
+            {
+                menuItem.Click += (_, _) =>
+                {
+                    string primaryPath = paths.FirstOrDefault();
+                    if (primaryPath == null)
+                    {
+                        return;
+                    }
+
+                    if (IsRenameShellItem(shellItem))
+                    {
+                        RenameRequested?.Invoke(primaryPath);
+                        return;
+                    }
+
+                    ExecuteShellCommandFromMenu(shellItem.CommandId, primaryPath, ownerHwnd);
+                };
+            }
+
+            return menuItem;
+        }
+
+        private bool IsRenameShellItem(ShellMenuItem shellItem)
+        {
+            if (shellItem == null)
+            {
+                return false;
+            }
+
+            if (string.Equals(shellItem.Verb, "rename", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(shellItem.Text)
+                && shellItem.Text.Replace("&", string.Empty).Contains("重命名", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ExecuteShellCommandFromMenu(int commandId, string filePath, IntPtr ownerHwnd)
+        {
+            Cleanup();
+
+            if (!GetContextMenu(new List<string> { filePath }))
+            {
+                Cleanup();
+                return;
+            }
+
+            ExecuteCommand(commandId, filePath, ownerHwnd);
+            Cleanup();
         }
 
         private string GetCommandVerb(int menuId)

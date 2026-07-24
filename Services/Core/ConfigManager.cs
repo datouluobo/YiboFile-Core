@@ -70,6 +70,7 @@ namespace YiboFile
         // 外观设置
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public string UIStyle { get; set; } = "Original"; // Original, Fluent, MacOS, Geek
+        public string TabStyle { get; set; } = ""; // 标签页风格；空值时跟随 UIStyle 迁移
         public string Language { get; set; } = "Auto"; // 界面语言
         public string LayoutMode { get; set; } = "Full"; // Focus, Work, Full
         public bool IsDualPaneMode { get; set; } = false; // 双列表模式

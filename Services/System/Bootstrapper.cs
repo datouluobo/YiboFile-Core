@@ -353,6 +353,11 @@ namespace YiboFile.Services.Startup
                 ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetUIStyle(uiStyle);
                 FileLogger.Log($"UI Style applied: {uiStyle}");
 
+                // 应用标签页风格
+                var tabStyle = string.IsNullOrWhiteSpace(config?.TabStyle) ? uiStyle : config.TabStyle;
+                ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetTabStyle(tabStyle);
+                FileLogger.Log($"Tab Style applied: {tabStyle}");
+
                 // 应用图标风格
                 var iconStyle = config?.IconStyle ?? "Emoji";
                 ServiceProvider.GetRequiredService<YiboFile.Services.Theming.IThemeService>().SetIconStyle(iconStyle);
@@ -658,4 +663,3 @@ namespace YiboFile.Services.Startup
         #endregion
     }
 }
-

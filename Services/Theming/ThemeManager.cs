@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media.Animation;
+using System.Windows.Media;
 using Microsoft.Win32;
 using YiboFile.Models;
 
@@ -13,10 +14,12 @@ namespace YiboFile.Services.Theming
     {
         private readonly Dictionary<string, ThemeMetadata> _themes = new();
         private readonly Dictionary<string, UIStyleMetadata> _uiStyles = new();
+        private readonly Dictionary<string, TabStyleMetadata> _tabStyles = new();
         private readonly Dictionary<string, IconStyleMetadata> _iconStyles = new();
         
         private ThemeMetadata _currentTheme;
         private UIStyleMetadata _currentUIStyle;
+        private TabStyleMetadata _currentTabStyle;
         private IconStyleMetadata _currentIconStyle;
         private bool _isFollowingSystemTheme = false;
 
@@ -24,6 +27,7 @@ namespace YiboFile.Services.Theming
 
         public event EventHandler<ThemeChangedEventArgs> ThemeChanged;
         public event EventHandler<UIStyleChangedEventArgs> UIStyleChanged;
+        public event EventHandler<TabStyleChangedEventArgs> TabStyleChanged;
         public event EventHandler<IconStyleChangedEventArgs> IconStyleChanged;
 
         public ThemeMetadata CurrentTheme => _currentTheme;
@@ -31,6 +35,9 @@ namespace YiboFile.Services.Theming
         
         public UIStyleMetadata CurrentUIStyle => _currentUIStyle;
         public IReadOnlyList<UIStyleMetadata> AvailableUIStyles => _uiStyles.Values.ToList();
+
+        public TabStyleMetadata CurrentTabStyle => _currentTabStyle;
+        public IReadOnlyList<TabStyleMetadata> AvailableTabStyles => _tabStyles.Values.ToList();
         
         public IconStyleMetadata CurrentIconStyle => _currentIconStyle;
         public IReadOnlyList<IconStyleMetadata> AvailableIconStyles => _iconStyles.Values.ToList();
@@ -46,7 +53,7 @@ namespace YiboFile.Services.Theming
 
         private void DiscoverResources()
         {
-            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic", "FluentMica", "Win11Pro", "Tesla", "TeslaDark", "Spotify" };
+            var themes = new[] { "Light", "Dark", "Ocean", "Forest", "Sunset", "Purple", "Nordic", "FluentMica", "Win11Pro", "Tesla", "TeslaDark", "Spotify", "test1" };
             foreach (var t in themes)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Themes/{t}.xaml", UriKind.Absolute);
@@ -54,7 +61,7 @@ namespace YiboFile.Services.Theming
                 if (meta != null) _themes[t] = meta;
             }
 
-            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek", "OneCommander", "Antigravity", "Tesla", "Spotify" };
+            var uiStyles = new[] { "Original", "Fluent", "MacOS", "Geek", "OneCommander", "Antigravity", "Tesla", "Spotify", "test1" };
             foreach (var u in uiStyles)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/{u}.xaml", UriKind.Absolute);
@@ -62,7 +69,15 @@ namespace YiboFile.Services.Theming
                 if (meta != null) _uiStyles[u] = meta;
             }
 
-            var icons = new[] { "Emoji", "Fluent", "Material", "Remix", "Lucide", "Pixel", "Prism", "Tabler", "Phosphor", "Tesla", "Spotify" };
+            var tabStyles = new[] { "Original", "StrongUnderline", "PagePlate", "TopRail", "PinUnderline", "SegmentSlot", "CompactChip", "RailBlock", "Blueprint", "test1" };
+            foreach (var tab in tabStyles)
+            {
+                var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/TabStyles/{tab}.xaml", UriKind.Absolute);
+                var meta = LoadTabStyleMetadata(uri, tab);
+                if (meta != null) _tabStyles[tab] = meta;
+            }
+
+            var icons = new[] { "Emoji", "Fluent", "Material", "Remix", "Lucide", "Pixel", "Prism", "Tabler", "Phosphor", "Tesla", "Spotify", "test1" };
         foreach (var i in icons)
             {
                 var uri = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/Icons/{i}.xaml", UriKind.Absolute);
@@ -111,6 +126,60 @@ namespace YiboFile.Services.Theming
                 };
             }
             catch { return null; }
+        }
+
+        private TabStyleMetadata LoadTabStyleMetadata(Uri source, string fallbackId)
+        {
+            try
+            {
+                var dict = new ResourceDictionary { Source = source };
+                return new TabStyleMetadata
+                {
+                    Id = dict.Contains("TabStyleId") ? dict["TabStyleId"] as string : fallbackId,
+                    DisplayName = dict.Contains("TabStyleDisplayName") ? dict["TabStyleDisplayName"] as string : fallbackId,
+                    Description = dict.Contains("TabStyleDescription") ? dict["TabStyleDescription"] as string : "",
+                    Source = source,
+                    ActiveBackground = GetBrush(dict, "TabStylePreview.ActiveBackground", GetBrush(dict, "UI.TabItem.ActiveBackground", Brushes.Transparent)),
+                    ActiveBorderBrush = GetBrush(dict, "TabStylePreview.ActiveBorderBrush", GetBrush(dict, "UI.TabItem.ActiveBorderBrush", Brushes.Transparent)),
+                    ActiveIndicatorBrush = GetBrush(dict, "TabStylePreview.ActiveIndicatorBrush", GetBrush(dict, "UI.TabItem.ActiveIndicatorColor", Brushes.Transparent)),
+                    ActiveSideIndicatorBrush = GetBrush(dict, "TabStylePreview.ActiveSideIndicatorBrush", GetBrush(dict, "UI.TabItem.ActiveSideIndicatorColor", Brushes.Transparent)),
+                    ActiveBorderThickness = GetThickness(dict, "UI.TabItem.ActiveBorderThickness", new Thickness(0)),
+                    Margin = GetThickness(dict, "UI.TabItem.Margin", new Thickness(0)),
+                    ActiveIndicatorMargin = GetThickness(dict, "UI.TabItem.ActiveIndicatorMargin", new Thickness(0)),
+                    ActiveSideIndicatorMargin = GetThickness(dict, "UI.TabItem.ActiveSideIndicatorMargin", new Thickness(0)),
+                    CornerRadius = GetCornerRadius(dict, "UI.TabItem.CornerRadius", new CornerRadius(0)),
+                    ActiveSideIndicatorRadius = GetCornerRadius(dict, "UI.TabItem.ActiveSideIndicatorRadius", new CornerRadius(0)),
+                    Height = GetDouble(dict, "UI.TabItem.Height", 34),
+                    ActiveIndicatorHeight = GetDouble(dict, "UI.TabItem.ActiveIndicatorHeight", 2),
+                    ActiveIndicatorRadius = GetDouble(dict, "UI.TabItem.ActiveIndicatorRadius", 0),
+                    ActiveSideIndicatorWidth = GetDouble(dict, "UI.TabItem.ActiveSideIndicatorWidth", 0),
+                    ActiveIndicatorPosition = dict.Contains("UI.TabItem.ActiveIndicatorPosition") && dict["UI.TabItem.ActiveIndicatorPosition"] is VerticalAlignment pos ? pos : VerticalAlignment.Bottom,
+                    ActiveIndicatorVisibility = dict.Contains("UI.TabItem.ActiveIndicatorVisibility") && dict["UI.TabItem.ActiveIndicatorVisibility"] is Visibility visibility ? visibility : Visibility.Visible,
+                    ActiveSideIndicatorVisibility = dict.Contains("UI.TabItem.ActiveSideIndicatorVisibility") && dict["UI.TabItem.ActiveSideIndicatorVisibility"] is Visibility sideVisibility ? sideVisibility : Visibility.Collapsed,
+                    ActiveFontWeight = dict.Contains("UI.TabItem.ActiveFontWeight") && dict["UI.TabItem.ActiveFontWeight"] is FontWeight weight ? weight : FontWeights.SemiBold
+                };
+            }
+            catch { return null; }
+        }
+
+        private static Brush GetBrush(ResourceDictionary dict, string key, Brush fallback)
+        {
+            return dict.Contains(key) && dict[key] is Brush brush ? brush : fallback;
+        }
+
+        private static double GetDouble(ResourceDictionary dict, string key, double fallback)
+        {
+            return dict.Contains(key) && dict[key] is double value ? value : fallback;
+        }
+
+        private static Thickness GetThickness(ResourceDictionary dict, string key, Thickness fallback)
+        {
+            return dict.Contains(key) && dict[key] is Thickness value ? value : fallback;
+        }
+
+        private static CornerRadius GetCornerRadius(ResourceDictionary dict, string key, CornerRadius fallback)
+        {
+            return dict.Contains(key) && dict[key] is CornerRadius value ? value : fallback;
         }
 
         private IconStyleMetadata LoadIconStyleMetadata(Uri source, string fallbackId)
@@ -198,6 +267,19 @@ namespace YiboFile.Services.Theming
                 var old = _currentUIStyle;
                 _currentUIStyle = _uiStyles[styleId];
                 UIStyleChanged?.Invoke(this, new UIStyleChangedEventArgs(old, _currentUIStyle));
+            }
+        }
+
+        public void SetTabStyle(string styleId)
+        {
+            if (_tabStyles.ContainsKey(styleId))
+            {
+                var source = new Uri($"pack://application:,,,/YiboFile-Core;component/Styles/TabStyles/{styleId}.xaml", UriKind.Absolute);
+                ApplyDictionary(source, "/Styles/TabStyles/");
+                var old = _currentTabStyle;
+                _currentTabStyle = LoadTabStyleMetadata(source, styleId) ?? _tabStyles[styleId];
+                _tabStyles[styleId] = _currentTabStyle;
+                TabStyleChanged?.Invoke(this, new TabStyleChangedEventArgs(old, _currentTabStyle));
             }
         }
 
@@ -323,11 +405,11 @@ namespace YiboFile.Services.Theming
         }
 
         /// <summary>
-        /// 主题切换后，强制重新加载依赖主题颜色的字典（Aliases、UIStyles、Icons）
+        /// 主题切换后，强制重新加载依赖主题颜色的字典（Aliases、UIStyles、TabStyles、Icons）
         /// </summary>
         private void ReloadDependentDictionaries()
         {
-            var identifiers = new[] { "/Styles/Aliases/", "/Styles/UIStyles/", "/Styles/Icons/" };
+            var identifiers = new[] { "/Styles/Aliases/", "/Styles/UIStyles/", "/Styles/TabStyles/", "/Styles/Icons/" };
             foreach (var id in identifiers)
             {
                 var (parent, targets) = FindDictionariesRecursive(

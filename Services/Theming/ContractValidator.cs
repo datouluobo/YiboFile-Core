@@ -72,6 +72,23 @@ namespace YiboFile.Services.Theming
             "UI.Dialog.CornerRadius", "UI.Dialog.ButtonCornerRadius"
         };
 
+        // 标签页风格合约必需键
+        public static readonly IReadOnlyList<string> TabStyleRequiredKeys = new[]
+        {
+            "TabStyleId", "TabStyleDisplayName", "TabStyleDescription",
+            "UI.TabItem.CornerRadius", "UI.TabItem.Margin", "UI.TabItem.Padding", "UI.TabItem.Height",
+            "UI.TabItem.ActiveBackground", "UI.TabItem.ActiveBorderThickness", "UI.TabItem.SeparatorVisibility",
+            "UI.TabItem.SeparatorHeight", "UI.TabItem.ActiveIndicatorVisibility", "UI.TabItem.ActiveIndicatorPosition",
+            "UI.TabItem.ActiveIndicatorHeight", "UI.TabItem.ActiveIndicatorMargin", "UI.TabItem.ActiveIndicatorRadius",
+            "UI.TabItem.ActiveIndicatorColor", "UI.TabItem.ActiveSideIndicatorVisibility",
+            "UI.TabItem.ActiveSideIndicatorWidth", "UI.TabItem.ActiveSideIndicatorMargin",
+            "UI.TabItem.ActiveSideIndicatorRadius", "UI.TabItem.ActiveSideIndicatorColor",
+            "UI.TabItem.ActiveShadowEffect", "UI.TabItem.ActiveBorderBrush",
+            "UI.TabItem.ActiveFontWeight",
+            "TabStylePreview.ActiveBackground", "TabStylePreview.ActiveBorderBrush",
+            "TabStylePreview.ActiveIndicatorBrush", "TabStylePreview.ActiveSideIndicatorBrush"
+        };
+
         // 图标合约必需键 (DrawingImage 制式)
         public static readonly IReadOnlyList<string> IconRequiredKeys = new[]
         {

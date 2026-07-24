@@ -7,109 +7,109 @@
          ======================================== -->
     <sys:String x:Key="ThemeId">Light</sys:String>
     <sys:String x:Key="ThemeDisplayName">浅色模式</sys:String>
-    <sys:String x:Key="ThemeDescription">清新明亮的浅色主题，适合日间使用</sys:String>
+    <sys:String x:Key="ThemeDescription">低对比、清晰分层的浅色工作台主题</sys:String>
     <sys:String x:Key="ThemeAuthor">YiboSoft</sys:String>
     <sys:String x:Key="ThemeVersion">3.0.0</sys:String>
     
     <!-- 预览色彩 (Preview Colors) -->
-    <sys:String x:Key="PreviewPrimaryColor">#007BFF</sys:String>
-    <sys:String x:Key="PreviewBackgroundColor">#FFFFFF</sys:String>
-    <sys:String x:Key="PreviewSurfaceColor">#F8F9FA</sys:String>
-    <sys:String x:Key="PreviewTextColor">#212529</sys:String>
+    <sys:String x:Key="PreviewPrimaryColor">#2563EB</sys:String>
+    <sys:String x:Key="PreviewBackgroundColor">#F5F7FA</sys:String>
+    <sys:String x:Key="PreviewSurfaceColor">#FFFFFF</sys:String>
+    <sys:String x:Key="PreviewTextColor">#172033</sys:String>
     
     <!-- ========================================
          核心资源 (37个 Semantic Tokens)
          ======================================== -->
     
     <!-- 1. 背景类 (9个) -->
-    <Color x:Key="BackgroundPrimaryBrush.Color">#FFFFFF</Color>
-    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#FFFFFF"/>
+    <Color x:Key="BackgroundPrimaryBrush.Color">#F5F7FA</Color>
+    <SolidColorBrush x:Key="BackgroundPrimaryBrush" Color="#F5F7FA"/>
     
-    <Color x:Key="BackgroundSecondaryBrush.Color">#F8F9FA</Color>
-    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#F8F9FA"/>
+    <Color x:Key="BackgroundSecondaryBrush.Color">#F0F3F7</Color>
+    <SolidColorBrush x:Key="BackgroundSecondaryBrush" Color="#F0F3F7"/>
     
-    <Color x:Key="BackgroundTertiaryBrush.Color">#F5F5F5</Color>
-    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#F5F5F5"/>
+    <Color x:Key="BackgroundTertiaryBrush.Color">#E7EDF4</Color>
+    <SolidColorBrush x:Key="BackgroundTertiaryBrush" Color="#E7EDF4"/>
     
     <Color x:Key="BackgroundElevatedBrush.Color">#FFFFFF</Color>
     <SolidColorBrush x:Key="BackgroundElevatedBrush" Color="#FFFFFF"/>
     
-    <Color x:Key="TitleBarBackgroundBrush.Color">#F8F9FA</Color>
-    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F8F9FA"/>
+    <Color x:Key="TitleBarBackgroundBrush.Color">#F4F6F9</Color>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#F4F6F9"/>
     
-    <Color x:Key="NavigationRegionBrush.Color">#F2F2F2</Color>
-    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#F2F2F2"/>
+    <Color x:Key="NavigationRegionBrush.Color">#E8EEF5</Color>
+    <SolidColorBrush x:Key="NavigationRegionBrush" Color="#E8EEF5"/>
     
-    <Color x:Key="SidebarBackgroundBrush.Color">#F0F0F0</Color>
-    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#F0F0F0"/>
+    <Color x:Key="SidebarBackgroundBrush.Color">#DEE8F2</Color>
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#DEE8F2"/>
     
     <Color x:Key="PaneFocusedBackgroundBrush.Color">#FFFFFF</Color>
     <SolidColorBrush x:Key="PaneFocusedBackgroundBrush" Color="#FFFFFF"/>
     
-    <Color x:Key="PaneUnfocusedBackgroundBrush.Color">#FAFAFA</Color>
-    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="#FAFAFA"/>
+    <Color x:Key="PaneUnfocusedBackgroundBrush.Color">#FAFBFD</Color>
+    <SolidColorBrush x:Key="PaneUnfocusedBackgroundBrush" Color="#FAFBFD"/>
     
     <!-- 2. 文本类 (6个) -->
-    <Color x:Key="ForegroundPrimaryBrush.Color">#212529</Color>
-    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#212529"/>
+    <Color x:Key="ForegroundPrimaryBrush.Color">#172033</Color>
+    <SolidColorBrush x:Key="ForegroundPrimaryBrush" Color="#172033"/>
     
-    <Color x:Key="ForegroundSecondaryBrush.Color">#666666</Color>
-    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#666666"/>
+    <Color x:Key="ForegroundSecondaryBrush.Color">#4E5B6B</Color>
+    <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#4E5B6B"/>
     
-    <Color x:Key="ForegroundTertiaryBrush.Color">#999999</Color>
-    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="#999999"/>
+    <Color x:Key="ForegroundTertiaryBrush.Color">#7A8798</Color>
+    <SolidColorBrush x:Key="ForegroundTertiaryBrush" Color="#7A8798"/>
     
-    <Color x:Key="ForegroundDisabledBrush.Color">#ADB5BD</Color>
-    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#ADB5BD"/>
+    <Color x:Key="ForegroundDisabledBrush.Color">#9AA6B5</Color>
+    <SolidColorBrush x:Key="ForegroundDisabledBrush" Color="#9AA6B5"/>
     
     <Color x:Key="ForegroundOnAccentBrush.Color">#FFFFFF</Color>
     <SolidColorBrush x:Key="ForegroundOnAccentBrush" Color="#FFFFFF"/>
     
     <!-- Legacy Key -->
-    <Color x:Key="ForegroundPrimaryColor">#212529</Color>
+    <Color x:Key="ForegroundPrimaryColor">#172033</Color>
     
     <!-- 3. 边框类 (3个) -->
-    <Color x:Key="BorderDefaultBrush.Color">#E0E0E0</Color>
-    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#E0E0E0"/>
+    <Color x:Key="BorderDefaultBrush.Color">#CDD7E3</Color>
+    <SolidColorBrush x:Key="BorderDefaultBrush" Color="#CDD7E3"/>
     
-    <Color x:Key="BorderSubtleBrush.Color">#F0F0F0</Color>
-    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#F0F0F0"/>
+    <Color x:Key="BorderSubtleBrush.Color">#DEE6EF</Color>
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#DEE6EF"/>
     
-    <Color x:Key="BorderFocusBrush.Color">#007BFF</Color>
-    <SolidColorBrush x:Key="BorderFocusBrush" Color="#007BFF"/>
+    <Color x:Key="BorderFocusBrush.Color">#2563EB</Color>
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="#2563EB"/>
     
     <!-- 4. 强调色/交互 (7个) -->
-    <Color x:Key="AccentDefaultBrush.Color">#007BFF</Color>
-    <SolidColorBrush x:Key="AccentDefaultBrush" Color="#007BFF"/>
+    <Color x:Key="AccentDefaultBrush.Color">#2563EB</Color>
+    <SolidColorBrush x:Key="AccentDefaultBrush" Color="#2563EB"/>
     
-    <Color x:Key="AccentHoverBrush.Color">#0056B3</Color>
-    <SolidColorBrush x:Key="AccentHoverBrush" Color="#0056B3"/>
+    <Color x:Key="AccentHoverBrush.Color">#1D4ED8</Color>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#1D4ED8"/>
     
-    <Color x:Key="AccentPressedBrush.Color">#004085</Color>
-    <SolidColorBrush x:Key="AccentPressedBrush" Color="#004085"/>
+    <Color x:Key="AccentPressedBrush.Color">#1E40AF</Color>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#1E40AF"/>
     
-    <Color x:Key="AccentSelectedBrush.Color">#64B5F6</Color>
-    <SolidColorBrush x:Key="AccentSelectedBrush" Color="#64B5F6"/>
+    <Color x:Key="AccentSelectedBrush.Color">#DCEAFF</Color>
+    <SolidColorBrush x:Key="AccentSelectedBrush" Color="#DCEAFF"/>
     
-    <Color x:Key="AccentLightBrush.Color">#E3F2FD</Color>
-    <SolidColorBrush x:Key="AccentLightBrush" Color="#E3F2FD"/>
+    <Color x:Key="AccentLightBrush.Color">#EAF2FF</Color>
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#EAF2FF"/>
     
     <!-- Legacy Keys -->
-    <Color x:Key="AccentColor">#007BFF</Color>
-    <Color x:Key="AccentHoverColor">#0056B3</Color>
+    <Color x:Key="AccentColor">#2563EB</Color>
+    <Color x:Key="AccentHoverColor">#1D4ED8</Color>
     
     <!-- 5. 控件状态 (4个) -->
-    <Color x:Key="ControlDefaultBrush.Color">#E3F2FD</Color>
-    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#E3F2FD"/>
+    <Color x:Key="ControlDefaultBrush.Color">#FFFFFF</Color>
+    <SolidColorBrush x:Key="ControlDefaultBrush" Color="#FFFFFF"/>
     
-    <Color x:Key="ControlHoverBrush.Color">#BBDEFB</Color>
-    <SolidColorBrush x:Key="ControlHoverBrush" Color="#BBDEFB"/>
+    <Color x:Key="ControlHoverBrush.Color">#E3EAF3</Color>
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#E3EAF3"/>
     
-    <Color x:Key="ControlPressedBrush.Color">#90CAF9</Color>
-    <SolidColorBrush x:Key="ControlPressedBrush" Color="#90CAF9"/>
+    <Color x:Key="ControlPressedBrush.Color">#D7E1ED</Color>
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#D7E1ED"/>
     
-    <Color x:Key="ControlDisabledBrush.Color">#F5F5F5</Color>
-    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#F5F5F5"/>
+    <Color x:Key="ControlDisabledBrush.Color">#EEF2F7</Color>
+    <SolidColorBrush x:Key="ControlDisabledBrush" Color="#EEF2F7"/>
     
     <!-- 6. 状态色 (4个) -->
     <Color x:Key="StatusSuccessBrush.Color">#28A745</Color>
@@ -137,8 +137,8 @@
     <Color x:Key="OverlayDarkBrush.Color">#66000000</Color>
     <SolidColorBrush x:Key="OverlayDarkBrush" Color="#66000000"/>
     
-    <Color x:Key="DividerBrush.Color">#E0E0E0</Color>
-    <SolidColorBrush x:Key="DividerBrush" Color="#E0E0E0"/>
+    <Color x:Key="DividerBrush.Color">#D4DDE8</Color>
+    <SolidColorBrush x:Key="DividerBrush" Color="#D4DDE8"/>
     
     <Color x:Key="ShadowBrush.Color">#1A000000</Color>
     <SolidColorBrush x:Key="ShadowBrush" Color="#1A000000"/>

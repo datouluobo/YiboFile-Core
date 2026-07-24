@@ -27,11 +27,11 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource FocusSecondaryBrush}"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource AccentDefaultBrush}"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundOnAccentBrush}"/>
+                                    <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -41,7 +41,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
     
-    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0" Background="Transparent">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0" Background="{DynamicResource PaneFocusedBackgroundBrush}">
         <Grid.ColumnDefinitions>
             <!-- 内容列 -->
             <ColumnDefinition Width="*"/>
@@ -50,10 +50,10 @@
         </Grid.ColumnDefinitions>
 
         <!-- 左侧的内容区域 -->
-        <Border Grid.Column="0" Background="Transparent" BorderThickness="0" Margin="0,4,4,4">
+        <Border Grid.Column="0" Background="{DynamicResource PaneFocusedBackgroundBrush}" BorderThickness="0" Margin="0,4,4,4">
             <Grid>
                 <!-- 预览内容 (当BtnPreview选中时显示) -->
-                <Grid x:Name="PreviewArea" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" Background="Transparent">
+                <Grid x:Name="PreviewArea" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" Background="{DynamicResource PaneFocusedBackgroundBrush}">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -220,7 +220,7 @@
                 </Grid>
 
                 <!-- 笔记内容 (当BtnNotes选中时显示) -->
-                <Grid x:Name="NotesArea" Background="Transparent">
+                <Grid x:Name="NotesArea" Background="{DynamicResource PaneFocusedBackgroundBrush}">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>

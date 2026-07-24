@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="TabStyleId">TopRail</sys:String>
+    <sys:String x:Key="TabStyleDisplayName">顶条</sys:String>
+    <sys:String x:Key="TabStyleDescription">顶部整宽轨道定位，内容下缘保持干净</sys:String>
+    <CornerRadius x:Key="UI.TabItem.CornerRadius">0</CornerRadius>
+    <Thickness x:Key="UI.TabItem.Margin">0</Thickness>
+    <Thickness x:Key="UI.TabItem.Padding">6,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.Height">44</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource ControlDefaultBrush.Color}"/>
+    <Thickness x:Key="UI.TabItem.ActiveBorderThickness">0</Thickness>
+    <Visibility x:Key="UI.TabItem.SeparatorVisibility">Visible</Visibility>
+    <sys:Double x:Key="UI.TabItem.SeparatorHeight">14</sys:Double>
+    <Visibility x:Key="UI.TabItem.ActiveIndicatorVisibility">Visible</Visibility>
+    <VerticalAlignment x:Key="UI.TabItem.ActiveIndicatorPosition">Top</VerticalAlignment>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorHeight">4</sys:Double>
+    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">0</Thickness>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">0</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <Visibility x:Key="UI.TabItem.ActiveSideIndicatorVisibility">Collapsed</Visibility>
+    <sys:Double x:Key="UI.TabItem.ActiveSideIndicatorWidth">0</sys:Double>
+    <Thickness x:Key="UI.TabItem.ActiveSideIndicatorMargin">0</Thickness>
+    <CornerRadius x:Key="UI.TabItem.ActiveSideIndicatorRadius">0</CornerRadius>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveSideIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Transparent"/>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
+    <SolidColorBrush x:Key="TabStylePreview.ActiveBackground" Color="#F3F8FD"/>
+    <SolidColorBrush x:Key="TabStylePreview.ActiveBorderBrush" Color="Transparent"/>
+    <SolidColorBrush x:Key="TabStylePreview.ActiveIndicatorBrush" Color="#1683D8"/>
+    <SolidColorBrush x:Key="TabStylePreview.ActiveSideIndicatorBrush" Color="#1683D8"/>
+</ResourceDictionary>

@@ -8,18 +8,20 @@
          Modern TextBox Style
          ================================================================ -->
     <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
-        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Padding" Value="10,0" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BackgroundElevatedBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
         <Setter Property="CaretBrush" Value="{DynamicResource ForegroundPrimaryBrush}" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource UI.TextBox.CornerRadius}">
                         <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -43,8 +45,8 @@
     <Style x:Key="TagInputBorderStyle" TargetType="Border">
         <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="{DynamicResource BackgroundElevatedBrush}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource UI.TextBox.CornerRadius}" />
         <Setter Property="Padding" Value="1" />
     </Style>
 

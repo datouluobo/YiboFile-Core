@@ -1,0 +1,80 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <sys:String x:Key="UIStyleId">test1</sys:String>
+    <sys:String x:Key="UIStyleDisplayName">test1</sys:String>
+    <sys:String x:Key="UIStyleDisplayNameEn">test1</sys:String>
+    <sys:String x:Key="UIStyleDescription">高密度文件工作台：紧凑页签、清晰边界、统一面板底色</sys:String>
+    <sys:String x:Key="UIStyleDescriptionEn">Dense file workspace with compact tabs, crisp boundaries, and unified panel surfaces</sys:String>
+
+    <CornerRadius x:Key="UI.TabItem.CornerRadius">0</CornerRadius>
+    <Thickness x:Key="UI.TabItem.Margin">0</Thickness>
+    <Thickness x:Key="UI.TabItem.Padding">4,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.Height">44</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="Transparent"/>
+    <Thickness x:Key="UI.TabItem.ActiveBorderThickness">0</Thickness>
+    <Visibility x:Key="UI.TabItem.SeparatorVisibility">Visible</Visibility>
+    <sys:Double x:Key="UI.TabItem.SeparatorHeight">14</sys:Double>
+    <Visibility x:Key="UI.TabItem.ActiveIndicatorVisibility">Visible</Visibility>
+    <VerticalAlignment x:Key="UI.TabItem.ActiveIndicatorPosition">Bottom</VerticalAlignment>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorHeight">2</sys:Double>
+    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">16,0,16,0</Thickness>
+    <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">0</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
+    <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Transparent"/>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="Transparent"/>
+    <FontWeight x:Key="UI.TabItem.ActiveFontWeight">Normal</FontWeight>
+
+    <CornerRadius x:Key="UI.ToolbarButton.CornerRadius">3</CornerRadius>
+    <Thickness x:Key="UI.ToolbarButton.BorderThickness">1</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Padding">6,0</Thickness>
+    <Thickness x:Key="UI.ToolbarButton.Margin">1,0</Thickness>
+    <sys:Double x:Key="UI.ToolbarButton.Height">28</sys:Double>
+
+    <CornerRadius x:Key="UI.Sidebar.ItemCornerRadius">3</CornerRadius>
+    <Thickness x:Key="UI.Sidebar.ItemMargin">3,1</Thickness>
+    <Visibility x:Key="UI.Sidebar.ActiveIndicatorVisibility">Visible</Visibility>
+    <Thickness x:Key="UI.Sidebar.ItemPadding">8,4</Thickness>
+    <sys:Double x:Key="UI.Sidebar.ItemHeight">27</sys:Double>
+    <SolidColorBrush x:Key="UI.Sidebar.ActiveBackground" Color="{DynamicResource AccentSelectedBrush.Color}"/>
+
+    <CornerRadius x:Key="UI.AddressBar.CornerRadius">3</CornerRadius>
+    <Thickness x:Key="UI.AddressBar.BorderThickness">1</Thickness>
+
+    <CornerRadius x:Key="UI.FileList.RowCornerRadius">0</CornerRadius>
+    <Thickness x:Key="UI.FileList.RowMargin">0</Thickness>
+    <Thickness x:Key="UI.FileList.RowBorderThickness">0</Thickness>
+    <sys:Double x:Key="UI.FileList.RowMinHeight">28</sys:Double>
+    <Thickness x:Key="UI.FileList.RowPadding">5,1</Thickness>
+    <Thickness x:Key="UI.FileList.SelectedBorderThickness">0</Thickness>
+
+    <Thickness x:Key="UI.ColumnHeader.Padding">8,5</Thickness>
+    <Thickness x:Key="UI.ColumnHeader.BorderThickness">0,0,0,1</Thickness>
+    <FontWeight x:Key="UI.ColumnHeader.FontWeight">SemiBold</FontWeight>
+    <sys:Double x:Key="UI.ColumnHeader.Height">28</sys:Double>
+
+    <Visibility x:Key="UI.Splitter.VisibleLine">Visible</Visibility>
+    <sys:Double x:Key="UI.Splitter.Width">10</sys:Double>
+    <sys:Double x:Key="UI.Splitter.LineThickness">1</sys:Double>
+    <Visibility x:Key="UI.Splitter.HoverShowGripDot">Collapsed</Visibility>
+    <sys:Double x:Key="UI.Splitter.CollapseButtonOpacity">0.55</sys:Double>
+
+    <CornerRadius x:Key="UI.ScrollBar.ThumbCornerRadius">2</CornerRadius>
+    <sys:Double x:Key="UI.ScrollBar.ThumbWidth">5</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverWidth">8</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbOpacity">0.32</sys:Double>
+    <sys:Double x:Key="UI.ScrollBar.ThumbHoverOpacity">0.62</sys:Double>
+    <sys:String x:Key="UI.ScrollBar.Mode">Overlay</sys:String>
+
+    <CornerRadius x:Key="UI.Button.CornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="UI.TextBox.CornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="UI.ComboBox.CornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="UI.GroupBox.CornerRadius">3</CornerRadius>
+    <CornerRadius x:Key="UI.ContextMenu.CornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="UI.MenuItem.CornerRadius">2</CornerRadius>
+
+    <CornerRadius x:Key="UI.Dialog.CornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="UI.Dialog.ButtonCornerRadius">3</CornerRadius>
+
+</ResourceDictionary>

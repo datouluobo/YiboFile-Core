@@ -10,6 +10,7 @@
                 <!-- ① 合约层 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Themes/_ThemeContract.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/_UIStyleContract.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/TabStyles/_TabStyleContract.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Icons/_IconContract.xaml"/>
 
                 <!-- ② 当前主题 -->
@@ -24,10 +25,13 @@
                 <!-- ⑤ 当前UI风格 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/UIStyles/Original.xaml"/>
 
-                <!-- ⑥ 当前图标集 -->
+                <!-- ⑥ 当前标签页风格 -->
+                <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/TabStyles/Original.xaml"/>
+
+                <!-- ⑦ 当前图标集 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/Icons/Emoji.xaml"/>
 
-                <!-- ⑦ 控件样式 -->
+                <!-- ⑧ 控件样式 -->
                 <ResourceDictionary Source="pack://application:,,,/YiboFile-Core;component/Styles/AppStyles.xaml"/>
                 
                 <!-- 模块化控件样式 -->

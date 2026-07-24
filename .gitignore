@@ -99,4 +99,12 @@ XL/**/*
 build_out/
 Publish/
 build_log.txt
+build.log
+build_output.log
+build_errors.txt
+build_errors.log
+build_err*.txt
+out*.log
+git_log.txt
+git_show.txt
 

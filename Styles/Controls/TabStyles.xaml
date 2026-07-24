@@ -17,12 +17,14 @@
         <Setter Property="Height" Value="{DynamicResource UI.TabItem.Height}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
         <Setter Property="Margin" Value="{DynamicResource UI.TabItem.Margin}" />
         <Setter Property="Padding" Value="{DynamicResource UI.TabItem.Padding}" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid>
+                    <Grid ClipToBounds="False" SnapsToDevicePixels="True">
                         <!-- Main Tab Container -->
                         <Border x:Name="border"
                                 Background="{TemplateBinding Background}"
@@ -41,14 +43,13 @@
                                    Width="1"
                                    Height="{DynamicResource UI.TabItem.SeparatorHeight}"
                                    Fill="{DynamicResource DividerBrush}"
-                                   Margin="0,0,-1,0"
                                    Visibility="{DynamicResource UI.TabItem.SeparatorVisibility}" />
                     </Grid>
                     
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ControlHoverBrush}" TargetName="border" />
-                            <Setter Property="Visibility" Value="Collapsed" TargetName="Separator" />
+                            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -65,28 +66,39 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid>
-                        <!-- ① 主体容器: 背景 + 边框 + 阴影 -->
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{DynamicResource UI.TabItem.ActiveBorderBrush}"
-                                BorderThickness="{DynamicResource UI.TabItem.ActiveBorderThickness}"
-                                CornerRadius="{DynamicResource UI.TabItem.CornerRadius}"
-                                Effect="{DynamicResource UI.TabItem.ActiveShadowEffect}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}"
-                                              TextBlock.FontWeight="{TemplateBinding FontWeight}" />
-                        </Border>
+                    <Grid ClipToBounds="False" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                        <Grid ClipToBounds="False" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                            <!-- ① 主体容器: 背景 + 边框 + 阴影。边缘直接绘制，由父级不裁剪和像素对齐保证完整显示。 -->
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{DynamicResource UI.TabItem.ActiveBorderBrush}"
+                                    BorderThickness="{DynamicResource UI.TabItem.ActiveBorderThickness}"
+                                    CornerRadius="{DynamicResource UI.TabItem.CornerRadius}"
+                                    Effect="{DynamicResource UI.TabItem.ActiveShadowEffect}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  TextBlock.FontWeight="{TemplateBinding FontWeight}" />
+                            </Border>
+
+                            <!-- ② 侧向指示条: 用于和底线/顶线形成真正不同的 tab 样式 -->
+                            <Border Width="{DynamicResource UI.TabItem.ActiveSideIndicatorWidth}"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Stretch"
+                                    Background="{DynamicResource UI.TabItem.ActiveSideIndicatorColor}"
+                                    CornerRadius="{DynamicResource UI.TabItem.ActiveSideIndicatorRadius}"
+                                    Margin="{DynamicResource UI.TabItem.ActiveSideIndicatorMargin}"
+                                    Visibility="{DynamicResource UI.TabItem.ActiveSideIndicatorVisibility}" />
                         
-                        <!-- ② 指示条 (位置/高度/颜色/圆角 全部由 Token 控制) -->
-                        <Rectangle Height="{DynamicResource UI.TabItem.ActiveIndicatorHeight}"
-                                   VerticalAlignment="{DynamicResource UI.TabItem.ActiveIndicatorPosition}"
-                                   Fill="{DynamicResource UI.TabItem.ActiveIndicatorColor}"
-                                   Margin="{DynamicResource UI.TabItem.ActiveIndicatorMargin}"
-                                   RadiusX="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
-                                   RadiusY="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
-                                   Visibility="{DynamicResource UI.TabItem.ActiveIndicatorVisibility}" />
+                            <!-- ③ 指示条 (位置/高度/颜色/圆角 全部由 Token 控制) -->
+                            <Rectangle Height="{DynamicResource UI.TabItem.ActiveIndicatorHeight}"
+                                       VerticalAlignment="{DynamicResource UI.TabItem.ActiveIndicatorPosition}"
+                                       Fill="{DynamicResource UI.TabItem.ActiveIndicatorColor}"
+                                       Margin="{DynamicResource UI.TabItem.ActiveIndicatorMargin}"
+                                       RadiusX="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
+                                       RadiusY="{DynamicResource UI.TabItem.ActiveIndicatorRadius}"
+                                       Visibility="{DynamicResource UI.TabItem.ActiveIndicatorVisibility}" />
+                        </Grid>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -95,16 +107,17 @@
 
     <!-- ======== 新建 Tab 按钮 ======== -->
     <Style x:Key="NewTabButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-        <Setter Property="Width" Value="32" />
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="Width" Value="{DynamicResource UI.TabItem.Height}" />
+        <Setter Property="Height" Value="{DynamicResource UI.TabItem.Height}" />
+        <Setter Property="Margin" Value="{DynamicResource UI.TabItem.Margin}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6">
+                    <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource UI.TabItem.CornerRadius}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>

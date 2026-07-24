@@ -85,7 +85,7 @@
                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -119,7 +119,7 @@
                                 <Setter Property="Background" Value="{DynamicResource ButtonHoverBackgroundBrush}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                 <Setter Property="BorderThickness" Value="1"/>
                             </Trigger>
@@ -283,26 +283,26 @@
     </ResourceDictionary>
 </UserControl.Resources>
     
-    <Grid x:Name="RootGrid" Margin="1,0,1,1">
+    <Grid x:Name="RootGrid" Margin="0" Background="{DynamicResource PaneFocusedBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Row 0: 地址栏 -->
             <RowDefinition Height="Auto"/>  <!-- Row 1: 工具栏行 -->
             <RowDefinition Height="Auto"/>  <!-- Row 2: 搜索状态提示 -->
             <RowDefinition Height="*"/>     <!-- Row 3: 文件列表 -->
-            <RowDefinition Height="12"/>     <!-- Row 4: Splitter -->
+            <RowDefinition Height="10"/>     <!-- Row 4: Splitter -->
             <RowDefinition Height="180" MinHeight="120"/> <!-- Row 5: Info Panel -->
         </Grid.RowDefinitions>
 
         <!-- Row 0: 地址栏（纯地址输入） -->
-        <Border Grid.Row="0" Background="Transparent" Margin="0,4,0,4">
+        <Border Grid.Row="0" Background="{DynamicResource PaneFocusedBackgroundBrush}" Margin="0,4,0,3">
             <controls:AddressBarControl x:Name="AddressBarControl" Margin="8,0" 
                                        AddressText="{Binding CurrentPath, Mode=TwoWay}"
                                        IsReadOnly="{Binding IsAddressReadOnly}"/>
         </Border>
         
         <!-- Row 1: 工具栏行（导航 + 操作 + 视图 + 搜索） -->
-        <Border Grid.Row="1" Background="Transparent" Margin="0,0,0,4">
-            <Grid Margin="8,2">
+        <Border Grid.Row="1" Background="{DynamicResource PaneFocusedBackgroundBrush}" Margin="0,0,0,5">
+            <Grid Margin="8,1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>  <!-- 导航按钮 -->
                     <ColumnDefinition Width="8"/>     <!-- 间距 -->
@@ -358,7 +358,7 @@
                                                     </MultiBinding>
                                                 </DataTrigger.Binding>
                                                 <!-- 使用主题资源设置选中态 -->
-                                                <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}"/>
+                                                <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                                 <Setter Property="BorderThickness" Value="3,0,0,0"/>
@@ -404,7 +404,7 @@
         </Border>
         
         <!-- Row 2: 搜索状态提示条 -->
-        <Border x:Name="SearchStatusBar" Grid.Row="2" Background="{DynamicResource AccentSubtleBrush}" 
+        <Border x:Name="SearchStatusBar" Grid.Row="2" Background="{DynamicResource AccentLightBrush}" 
                 Visibility="{Binding Filter.IsSearching, Converter={StaticResource BooleanToVisibilityConverter}}" Padding="8,4" Margin="0,0,0,4">
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="SearchStatusIcon" Text="🔍" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -434,7 +434,8 @@
                       DragCompleted="GridSplitter_DragCompleted"/>
         
         <!-- Row 5: 底部信息与内嵌预览区（在非独立预览模式下显示） -->
-        <Grid Grid.Row="5" Background="Transparent">
+        <Border Grid.Row="5" Background="{DynamicResource PaneFocusedBackgroundBrush}" BorderBrush="Transparent" BorderThickness="0">
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -460,13 +461,14 @@
             </ScrollViewer>
 
             <!-- 中间：分割器（可用来调整内嵌预览宽度） -->
-            <controls:CollapsibleGridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Center" VerticalAlignment="Stretch" Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
+            <controls:CollapsibleGridSplitter Grid.Column="1" Width="10" HorizontalAlignment="Center" VerticalAlignment="Stretch" Style="{StaticResource VerticalCollapsibleGridSplitterStyle}"
                                               Visibility="{Binding IsInnerPreviewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
             <!-- 右侧：内嵌竖向Tab的预览/备注面板 -->
             <controls:InnerPreviewAttachmentControl x:Name="BottomPreviewControl" Grid.Column="2" DataContext="{Binding Preview}" 
                                                Visibility="{Binding DataContext.IsInnerPreviewVisible, RelativeSource={RelativeSource AncestorType=controls:FileBrowserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </Grid>
+        </Border>
 
         <!-- 筛选弹出面板 -->
         <Popup x:Name="FilterPopup" PlacementTarget="{Binding ElementName=FilterBtn}" 
@@ -479,5 +481,3 @@
         </Popup>
     </Grid>
 </UserControl>
-
-

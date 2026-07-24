@@ -5,13 +5,13 @@
              xmlns:controls="clr-namespace:YiboFile.Controls">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="188"/>
             <ColumnDefinition Width="1"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
         <!-- 左侧导航栏 -->
-        <Border Grid.Column="0" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Background="{DynamicResource NavigationRegionBrush}" BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -20,17 +20,17 @@
                 </Grid.RowDefinitions>
                 
                 <!-- 标题栏 -->
-                <Border Grid.Row="0" Background="{DynamicResource BackgroundSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="12,12">
-                    <TextBlock Text="{i18n:Loc Key=Settings.Menu.Title}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Border Grid.Row="0" Background="{DynamicResource NavigationRegionBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,14">
+                    <TextBlock Text="{i18n:Loc Key=Settings.Menu.Title}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </Border>
                 
                 <!-- 搜索框 -->
-                <Border Grid.Row="1" Background="{DynamicResource BackgroundSecondaryBrush}" Padding="10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                <Border Grid.Row="1" Background="{DynamicResource NavigationRegionBrush}" Padding="10" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                     <TextBox Name="SearchTextBox" 
                              TextChanged="SearchTextBox_TextChanged"
-                             FontSize="14" Padding="10,6"
+                             FontSize="13" Padding="10,0"
                              VerticalContentAlignment="Center"
-                             MinHeight="36"/>
+                             MinHeight="34"/>
                 </Border>
                 
                 <!-- 设置分类列表 -->
@@ -41,16 +41,16 @@
                              SelectionChanged="CategoryListBox_SelectionChanged">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="12,14"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="MinHeight" Value="44"/>
+                                <Setter Property="Padding" Value="12,9"/>
+                                <Setter Property="Margin" Value="{DynamicResource UI.Sidebar.ItemMargin}"/>
+                                <Setter Property="MinHeight" Value="38"/>
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                 <Setter Property="FontSize" Value="14"/>
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
                                         <Setter Property="Background" Value="{DynamicResource AccentLightBrush}"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource AccentDefaultBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
                                         <Setter Property="FontWeight" Value="SemiBold"/>
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
@@ -79,7 +79,7 @@
         
         <!-- 右侧内容区 -->
         <Border Grid.Column="2" Background="{DynamicResource BackgroundPrimaryBrush}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
                 <StackPanel Name="ContentPanel">
                     <!-- 设置内容将动态加载到这里 -->
                 </StackPanel>

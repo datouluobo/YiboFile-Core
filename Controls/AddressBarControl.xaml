@@ -12,6 +12,34 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <helpers:ResourceKeyConverter x:Key="ResourceKeyConverter"/>
 
+        <Style x:Key="AddressBarEditTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundPrimaryBrush}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="Padding" Value="8,0,30,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SearchToggleStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -44,49 +72,40 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid Height="24" MinHeight="24" SnapsToDevicePixels="True">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <!-- 背景和边框：大幅度装饰美化 -->
+        <!-- 背景和边框：默认融入文件列表，只在 hover/focus 时给出边界反馈 -->
         <Border Grid.ColumnSpan="3"
                 BorderThickness="{DynamicResource UI.AddressBar.BorderThickness}"
-                CornerRadius="{DynamicResource UI.AddressBar.CornerRadius}">
+                CornerRadius="{DynamicResource UI.AddressBar.CornerRadius}"
+                SnapsToDevicePixels="True">
             <Border.Style>
                 <Style TargetType="Border">
-                    <!-- 默认状态：轻微内缩与底层背景区分，颜色更暗 -->
-                    <Setter Property="Background" Value="{DynamicResource BackgroundSecondaryBrush}"/>
-                    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
                     <Style.Triggers>
-                        <!-- 鼠标滑过时变亮 -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                            <Setter Property="Background" Value="{DynamicResource ControlDefaultBrush}"/>
                             <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
                         </Trigger>
-                        <!-- 输入/激活时发光并强化 -->
                         <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
-                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter Property="Background" Value="{DynamicResource ControlDefaultBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderFocusBrush}"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <!-- 让地址栏有一层微弱的物理环境阴影，具有现代浏览器搜索框同样的悬浮高级感 -->
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.08" Direction="270" Color="Black"/>
-            </Border.Effect>
         </Border>
 
         <!-- 编辑模式容器 -->
         <Grid Name="EditModeContainer" Grid.Column="1" Visibility="Collapsed">
             <TextBox Name="AddressTextBox"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     VerticalContentAlignment="Center"
-                     Padding="8,0"
+                     Style="{StaticResource AddressBarEditTextBoxStyle}"
                      KeyDown="AddressTextBox_KeyDown"
                      LostFocus="AddressTextBox_LostFocus"
                      ContextMenuOpening="AddressTextBox_ContextMenuOpening"/>
@@ -147,6 +166,7 @@
                 Grid.Column="1"
                 Background="Transparent"
                 MouseLeftButtonDown="BreadcrumbContainer_MouseLeftButtonDown"
+                MinHeight="24"
                 VerticalAlignment="Stretch">
             <Border.ContextMenu>
                 <ContextMenu>
@@ -164,14 +184,14 @@
                 <TextBlock Name="BreadcrumbText"
                            Grid.Column="0"
                            VerticalAlignment="Center"
-                           Padding="5,3"
+                           Padding="5,0"
                            ToolTipService.ShowOnDisabled="True"/>
                 
                 <!-- 右侧：路径尾部（仅长路径时使用，右对齐） -->
                 <TextBlock Name="BreadcrumbTail"
                            Grid.Column="1"
                            VerticalAlignment="Center"
-                           Padding="5,3"
+                           Padding="5,0"
                            HorizontalAlignment="Right"
                            Visibility="Collapsed"/>
             </Grid>

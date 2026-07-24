@@ -8,15 +8,16 @@
              d:DesignHeight="400" d:DesignWidth="600">
 
     <Border x:Name="FocusBorder"
-            BorderThickness="0"
+            BorderThickness="0,1,0,0"
             Margin="0"
-            CornerRadius="4">
+            CornerRadius="0"
+            Background="{DynamicResource PaneFocusedBackgroundBrush}">
         <Border.Style>
             <Style TargetType="Border">
-                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsActive}" Value="True">
-                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -25,11 +26,11 @@
         <Grid x:Name="RootGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Grid.Style>
                 <Style TargetType="Grid">
-                    <Setter Property="Background" Value="{DynamicResource BackgroundTertiaryBrush}"/>
-                    <Setter Property="Opacity" Value="0.90"/>
+                    <Setter Property="Background" Value="{DynamicResource PaneUnfocusedBackgroundBrush}"/>
+                    <Setter Property="Opacity" Value="0.96"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsActive}" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource BackgroundPrimaryBrush}"/>
+                            <Setter Property="Background" Value="{DynamicResource PaneFocusedBackgroundBrush}"/>
                             <Setter Property="Opacity" Value="1.0"/>
                         </DataTrigger>
                     </Style.Triggers>

@@ -20,6 +20,7 @@ namespace YiboFile.Models.Config
         public string Language { get; set; } = "Auto";
         public string ThemeMode { get; set; } = "FollowSystem"; // Light, Dark, FollowSystem
         public string UIStyle { get; set; } = "Original"; // Original, Fluent, MacOS, Geek
+        public string TabStyle { get; set; } = ""; // 标签页风格；空值时跟随 UIStyle 迁移
         public double WindowOpacity { get; set; } = 1.0;
         public bool AnimationsEnabled { get; set; } = true;
         public string IconStyle { get; set; } = "Emoji"; // Emoji, Remix, Fluent
