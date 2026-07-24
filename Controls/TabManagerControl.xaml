@@ -57,10 +57,11 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                            <Grid ClipToBounds="True" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                            <Grid ClipToBounds="False" SnapsToDevicePixels="True" UseLayoutRounding="True">
                                 <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
                                                         CanContentScroll="{TemplateBinding CanContentScroll}"
                                                         Margin="0"
+                                                        ClipToBounds="False"
                                                         SnapsToDevicePixels="True"
                                                         UseLayoutRounding="True" />
                                 <ScrollBar x:Name="PART_HorizontalScrollBar"
@@ -101,11 +102,10 @@
                             <MenuItem Header="{i18n:Loc Key=TabContent.Context.CloseRight}" Click="CloseRightTabs_Click" />
                         </ContextMenu>
                     </Button.ContextMenu>
-                    <Grid Margin="12,0" HorizontalAlignment="Stretch">
+                    <Grid x:Name="TabContentGrid" Margin="10,0" HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Icon -->
@@ -113,10 +113,10 @@
                                    Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Button}, Converter={StaticResource WidthToVisibilityConverter}, ConverterParameter=80}" />
 
                         <!-- Title -->
-                        <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
+                        <TextBlock Grid.Column="1" x:Name="TitleTextBlock" Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
 
-                        <!-- Close Button -->
-                        <Button Grid.Column="2" x:Name="PART_CloseButton" Width="18" Height="18" Margin="6,0,0,0" Padding="0" 
+                        <!-- Close Button: overlay it so hidden close affordance never steals title width. -->
+                        <Button Grid.Column="1" x:Name="PART_CloseButton" Width="18" Height="18" Margin="0" Padding="0" 
                                 VerticalAlignment="Center" HorizontalAlignment="Right" 
                                 Foreground="{DynamicResource ForegroundPrimaryBrush}" 
                                 Command="{Binding CloseCommand}" 
@@ -124,7 +124,7 @@
                                 Cursor="Hand">
                             <Button.Style>
                                 <Style TargetType="Button">
-                                    <Setter Property="Visibility" Value="Hidden" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
                                     <Setter Property="Opacity" Value="0.6" />
                                     <Setter Property="Template">
                                         <Setter.Value>
@@ -169,6 +169,7 @@
                     </DataTrigger>
                     <Trigger SourceName="TabButton" Property="IsMouseOver" Value="True">
                         <Setter TargetName="PART_CloseButton" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="TitleTextBlock" Property="Margin" Value="0,0,24,0" />
                     </Trigger>
                     <DataTrigger Binding="{Binding Path, Converter={StaticResource StringStartsWithConverter}, ConverterParameter='search://'}" Value="True">
                         <Setter TargetName="IconText" Property="Text" Value="🔍" />

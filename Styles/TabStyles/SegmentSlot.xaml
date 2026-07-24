@@ -5,7 +5,7 @@
     <sys:String x:Key="TabStyleDisplayName">分段槽</sys:String>
     <sys:String x:Key="TabStyleDescription">直角线框分段选择，四边完整、辨识度较强</sys:String>
     <CornerRadius x:Key="UI.TabItem.CornerRadius">0</CornerRadius>
-    <Thickness x:Key="UI.TabItem.Margin">4,6,4,6</Thickness>
+    <Thickness x:Key="UI.TabItem.Margin">4,5,4,5</Thickness>
     <Thickness x:Key="UI.TabItem.Padding">8,0</Thickness>
     <sys:Double x:Key="UI.TabItem.Height">32</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="{DynamicResource AccentLightBrush.Color}"/>
