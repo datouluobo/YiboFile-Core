@@ -50,6 +50,20 @@ namespace YiboFile
     /// </summary>
     public partial class MainWindow : System.Windows.Window, IShellWindow
     {
+        private const int WmNcHitTest = 0x0084;
+        private const int HtClient = 1;
+        private const int HtCaption = 2;
+        private const int HtLeft = 10;
+        private const int HtRight = 11;
+        private const int HtTop = 12;
+        private const int HtTopLeft = 13;
+        private const int HtTopRight = 14;
+        private const int HtBottom = 15;
+        private const int HtBottomLeft = 16;
+        private const int HtBottomRight = 17;
+        private const double CustomChromeResizeGrip = 6;
+        private const double CustomChromeTitleHeight = 44;
+
         #region Windows 11 DWM Integration
         
         [DllImport("dwmapi.dll")]
@@ -65,15 +79,113 @@ namespace YiboFile
                 int immersiveDarkMode = 1;
                 DwmSetWindowAttribute(hwnd, 20, ref immersiveDarkMode, sizeof(int));
 
-                // 注册硬件监控钩子
                 HwndSource source = HwndSource.FromHwnd(hwnd);
-                if (source != null && _orchestrator?.HardwareMonitorService != null)
+                if (source != null)
                 {
-                    _orchestrator.HardwareMonitorService.Initialize(hwnd);
-                    source.AddHook(_orchestrator.HardwareMonitorService.HookProc);
+                    source.AddHook(CustomChromeHitTestHook);
+
+                    // 注册硬件监控钩子
+                    if (_orchestrator?.HardwareMonitorService != null)
+                    {
+                        _orchestrator.HardwareMonitorService.Initialize(hwnd);
+                        source.AddHook(_orchestrator.HardwareMonitorService.HookProc);
+                    }
                 }
             }
             catch { }
+        }
+
+        private IntPtr CustomChromeHitTestHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg != WmNcHitTest)
+            {
+                return IntPtr.Zero;
+            }
+
+            var screenPoint = GetScreenPointFromLParam(lParam);
+            var clientPoint = PointFromScreen(screenPoint);
+            int hit = GetCustomChromeHitTest(clientPoint);
+            if (hit == HtClient)
+            {
+                return IntPtr.Zero;
+            }
+
+            handled = true;
+            return new IntPtr(hit);
+        }
+
+        private int GetCustomChromeHitTest(Point point)
+        {
+            if (ActualWidth <= 0 || ActualHeight <= 0)
+            {
+                return HtClient;
+            }
+
+            if (ResizeMode == ResizeMode.CanResize && WindowState != WindowState.Maximized)
+            {
+                bool left = point.X >= 0 && point.X < CustomChromeResizeGrip;
+                bool right = point.X <= ActualWidth && point.X > ActualWidth - CustomChromeResizeGrip;
+                bool top = point.Y >= 0 && point.Y < CustomChromeResizeGrip;
+                bool bottom = point.Y <= ActualHeight && point.Y > ActualHeight - CustomChromeResizeGrip;
+
+                if (top && left) return HtTopLeft;
+                if (top && right) return HtTopRight;
+                if (bottom && left) return HtBottomLeft;
+                if (bottom && right) return HtBottomRight;
+                if (left) return HtLeft;
+                if (right) return HtRight;
+                if (top) return HtTop;
+                if (bottom) return HtBottom;
+            }
+
+            if (point.Y >= 0 && point.Y < CustomChromeTitleHeight)
+            {
+                if (IsInsideInteractiveChromeElement(point))
+                {
+                    return HtClient;
+                }
+
+                return HtCaption;
+            }
+
+            return HtClient;
+        }
+
+        private bool IsInsideInteractiveChromeElement(Point point)
+        {
+            return IsPointInsideElement(point, WindowControlButtonsContainer)
+                || IsPointInsideElement(point, TabManager)
+                || IsPointInsideElement(point, SecondTabManager)
+                || IsPointInsideElement(point, NavigationRail);
+        }
+
+        private bool IsPointInsideElement(Point windowPoint, FrameworkElement element)
+        {
+            if (element == null || !element.IsVisible || element.ActualWidth <= 0 || element.ActualHeight <= 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                Point elementPoint = TranslatePoint(windowPoint, element);
+                return elementPoint.X >= 0
+                    && elementPoint.Y >= 0
+                    && elementPoint.X <= element.ActualWidth
+                    && elementPoint.Y <= element.ActualHeight;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static Point GetScreenPointFromLParam(IntPtr lParam)
+        {
+            long value = lParam.ToInt64();
+            int x = unchecked((short)(value & 0xFFFF));
+            int y = unchecked((short)((value >> 16) & 0xFFFF));
+            return new Point(x, y);
         }
 
         /// <summary>

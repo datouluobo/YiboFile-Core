@@ -10,7 +10,7 @@
         MinHeight="600"
         MinWidth="960"
         WindowState="Normal"
-        WindowStyle="SingleBorderWindow"
+        WindowStyle="None"
         AllowsTransparency="False"
         ResizeMode="CanResize"
         UseLayoutRounding="True"
@@ -31,9 +31,9 @@
     </Window.InputBindings>
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="44" 
-                      ResizeBorderThickness="4" 
-                      GlassFrameThickness="-1" 
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="0"
+                      GlassFrameThickness="0"
                       CornerRadius="0" 
                       UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
