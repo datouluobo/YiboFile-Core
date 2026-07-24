@@ -3,7 +3,7 @@
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" 
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          IgnorableNamespaces="uap rescap">
-  <Identity Name="YiboSoft.YiboFile" Version="1.0.1940.0" Publisher="CN=7919EC65-9786-42C0-8811-15FD14EECFE0" ProcessorArchitecture="x64" />
+  <Identity Name="YiboSoft.YiboFile" Version="1.0.1950.0" Publisher="CN=7919EC65-9786-42C0-8811-15FD14EECFE0" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>YiboFile</DisplayName>
     <PublisherDisplayName>YiboSoft</PublisherDisplayName>
@@ -29,4 +29,3 @@
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
 </Package>
-

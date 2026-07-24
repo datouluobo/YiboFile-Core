@@ -2,7 +2,7 @@
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
-$Version = "1.0.1940.0"
+$Version = "1.0.1950.0"
 $SourceDir = (Resolve-Path "..\Publish\Store_Core").Path
 $OutputDir = (Resolve-Path "..\Publish").Path
 $PackageName = "YiboFile_Core_$Version.msix"
@@ -55,4 +55,3 @@ if ($process.ExitCode -eq 0) {
     Write-Host "Error: Packaging failed with exit code $($process.ExitCode)"
     exit 1
 }
-
