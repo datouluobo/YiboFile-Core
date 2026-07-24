@@ -3,19 +3,19 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <sys:String x:Key="TabStyleId">Blueprint</sys:String>
     <sys:String x:Key="TabStyleDisplayName">蓝图线框</sys:String>
-    <sys:String x:Key="TabStyleDescription">细蓝边框和短底线，偏工程感</sys:String>
+    <sys:String x:Key="TabStyleDescription">内收蓝色线框和短底线，偏工程感</sys:String>
     <CornerRadius x:Key="UI.TabItem.CornerRadius">0</CornerRadius>
-    <Thickness x:Key="UI.TabItem.Margin">0,4,2,2</Thickness>
+    <Thickness x:Key="UI.TabItem.Margin">0,5,2,5</Thickness>
     <Thickness x:Key="UI.TabItem.Padding">8,0</Thickness>
-    <sys:Double x:Key="UI.TabItem.Height">38</sys:Double>
-    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="Transparent"/>
+    <sys:Double x:Key="UI.TabItem.Height">34</sys:Double>
+    <SolidColorBrush x:Key="UI.TabItem.ActiveBackground" Color="#EAF6FF"/>
     <Thickness x:Key="UI.TabItem.ActiveBorderThickness">1</Thickness>
     <Visibility x:Key="UI.TabItem.SeparatorVisibility">Visible</Visibility>
     <sys:Double x:Key="UI.TabItem.SeparatorHeight">14</sys:Double>
     <Visibility x:Key="UI.TabItem.ActiveIndicatorVisibility">Visible</Visibility>
     <VerticalAlignment x:Key="UI.TabItem.ActiveIndicatorPosition">Bottom</VerticalAlignment>
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorHeight">2</sys:Double>
-    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">12,0,12,0</Thickness>
+    <Thickness x:Key="UI.TabItem.ActiveIndicatorMargin">14,0,14,2</Thickness>
     <sys:Double x:Key="UI.TabItem.ActiveIndicatorRadius">0</sys:Double>
     <SolidColorBrush x:Key="UI.TabItem.ActiveIndicatorColor" Color="{DynamicResource AccentColor}"/>
     <Visibility x:Key="UI.TabItem.ActiveSideIndicatorVisibility">Collapsed</Visibility>
@@ -26,7 +26,7 @@
     <DropShadowEffect x:Key="UI.TabItem.ActiveShadowEffect" BlurRadius="0" ShadowDepth="0" Opacity="0" Color="Transparent"/>
     <SolidColorBrush x:Key="UI.TabItem.ActiveBorderBrush" Color="{DynamicResource AccentColor}"/>
     <FontWeight x:Key="UI.TabItem.ActiveFontWeight">SemiBold</FontWeight>
-    <SolidColorBrush x:Key="TabStylePreview.ActiveBackground" Color="Transparent"/>
+    <SolidColorBrush x:Key="TabStylePreview.ActiveBackground" Color="#EAF6FF"/>
     <SolidColorBrush x:Key="TabStylePreview.ActiveBorderBrush" Color="#1683D8"/>
     <SolidColorBrush x:Key="TabStylePreview.ActiveIndicatorBrush" Color="#1683D8"/>
     <SolidColorBrush x:Key="TabStylePreview.ActiveSideIndicatorBrush" Color="#1683D8"/>
